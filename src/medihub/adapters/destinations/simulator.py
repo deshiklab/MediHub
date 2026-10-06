@@ -1,5 +1,6 @@
 """In-process synthetic receiver for end-to-end tests; it opens no network socket."""
 
+from collections import OrderedDict
 from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -26,7 +27,12 @@ class SyntheticDestinationAdapter:
         destination: Destination | None = None,
         *,
         clock: Callable[[], datetime] = _utc_now,
+        max_seen_event_ids: int | None = None,
     ) -> None:
+        if max_seen_event_ids is not None and max_seen_event_ids < 1:
+            raise ValueError("max_seen_event_ids must be positive")
+        self._max_seen_event_ids = max_seen_event_ids
+        self._unique_receipt_count = 0
         self._destination = destination or Destination(
             destination_id="medihub.synthetic-test-receiver",
             site_id="synthetic-site",
@@ -38,7 +44,7 @@ class SyntheticDestinationAdapter:
             accepts_synthetic_data=True,
         )
         self._clock = clock
-        self._seen_event_ids: set[UUID] = set()
+        self._seen_event_ids: OrderedDict[UUID, None] = OrderedDict()
         self._delivery_attempt_count = 0
 
     @property
@@ -47,7 +53,7 @@ class SyntheticDestinationAdapter:
 
     @property
     def unique_receipt_count(self) -> int:
-        return len(self._seen_event_ids)
+        return self._unique_receipt_count
 
     @property
     def delivery_attempt_count(self) -> int:
@@ -69,7 +75,14 @@ class SyntheticDestinationAdapter:
                 error_code=error.code,
             )
 
-        self._seen_event_ids.add(delivery.event.event_id)
+        if delivery.event.event_id not in self._seen_event_ids:
+            self._seen_event_ids[delivery.event.event_id] = None
+            self._unique_receipt_count += 1
+            if (
+                self._max_seen_event_ids is not None
+                and len(self._seen_event_ids) > self._max_seen_event_ids
+            ):
+                self._seen_event_ids.popitem(last=False)
         ack_id = uuid5(
             NAMESPACE_URL,
             f"medihub-synthetic-ack:{self._destination.destination_id}:{delivery.event.event_id}",

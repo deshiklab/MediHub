@@ -9,16 +9,31 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
+import uvicorn
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
 from medihub.application.demo import DemoSummary, run_synthetic_demo
+from medihub.application.discovery import validate_profile_file
+from medihub.application.mapping_discovery import validate_mapping_worksheet_file
+from medihub.application.operations import SyntheticOperationsDashboard
+from medihub.application.recovery_demo import (
+    SyntheticRecoveryDemoError,
+    run_synthetic_recovery_demo,
+)
 from medihub.application.replay import (
     ReplayInputError,
     ReplaySummary,
     load_synthetic_events,
     replay_synthetic_events,
 )
+from medihub.application.synthetic_mapping import (
+    SyntheticMappingBatchError,
+    SyntheticMappingConfigError,
+    load_synthetic_mapping,
+    map_synthetic_events,
+)
+from medihub.dashboard import create_dashboard_app
 from medihub.domain import DeviceReference, ObservationEvent
 from medihub.infrastructure.database import create_database_engine
 from medihub.infrastructure.event_store import SqlAlchemyEventStore
@@ -74,6 +89,22 @@ def _simulator_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConf
     )
 
 
+def _recovery_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConfig:
+    return SyntheticDeviceConfig(
+        site_id=args.site_id,
+        device=DeviceReference(
+            device_id=args.device_id,
+            manufacturer="MediHub Synthetic",
+            model="scalar-simulator-v1",
+            firmware_version="1.0",
+        ),
+        event_count=args.count,
+        seed=args.seed,
+        start_at=args.start_at,
+        duplicate_every=args.duplicate_every,
+    )
+
+
 async def _write_synthetic_events(config: SyntheticDeviceConfig) -> None:
     adapter = SyntheticDeviceAdapter(config)
     try:
@@ -108,11 +139,73 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_simulation_arguments(demo)
 
+    recovery_demo = commands.add_parser(
+        "recovery-demo",
+        help="exercise synthetic outbox recovery after a simulated gateway restart",
+    )
+    recovery_demo.add_argument("--count", type=int, default=3, help="synthetic events (1–100)")
+    recovery_demo.add_argument("--seed", type=int, default=7)
+    recovery_demo.add_argument("--site-id", default="synthetic-site")
+    recovery_demo.add_argument("--device-id", default="sim-device-001")
+    recovery_demo.add_argument("--start-at", type=_parse_datetime)
+    recovery_demo.add_argument(
+        "--duplicate-every",
+        type=int,
+        default=0,
+        help="redeliver every Nth synthetic event to exercise event-ID deduplication",
+    )
+
+    dashboard = commands.add_parser(
+        "dashboard",
+        help="serve a read-only, synthetic-only operations dashboard",
+    )
+    dashboard.add_argument("--host", default="127.0.0.1")
+    dashboard.add_argument("--port", type=int, default=8000)
+    dashboard.add_argument("--refresh-interval-seconds", type=float, default=2.0)
+    dashboard.add_argument(
+        "--duplicate-every",
+        type=int,
+        default=4,
+        help="redeliver every Nth synthetic event to demonstrate deduplication; 0 disables",
+    )
+
     replay = commands.add_parser(
         "replay",
         help="validate and idempotently store a synthetic NDJSON fixture",
     )
     replay.add_argument("input", type=Path, help="path to a synthetic NDJSON event fixture")
+
+    validate_profile = commands.add_parser(
+        "validate-profile",
+        help="check a local TOML integration-discovery profile; never enables connectivity",
+    )
+    validate_profile.add_argument(
+        "profile",
+        type=Path,
+        help="path to a local integration-discovery TOML profile",
+    )
+
+    validate_mapping = commands.add_parser(
+        "validate-mapping",
+        help="check a local TOML field-mapping worksheet; never activates mappings",
+    )
+    validate_mapping.add_argument(
+        "worksheet",
+        type=Path,
+        help="path to a local source-to-canonical-to-destination worksheet",
+    )
+
+    map_synthetic = commands.add_parser(
+        "map-synthetic",
+        help="dry-run synthetic NDJSON through a synthetic-only mapping; no storage or receiver",
+    )
+    map_synthetic.add_argument("input", type=Path, help="path to a synthetic NDJSON fixture")
+    map_synthetic.add_argument(
+        "--mapping",
+        required=True,
+        type=Path,
+        help="path to a synthetic-only TOML mapping set",
+    )
     return parser
 
 
@@ -123,6 +216,42 @@ def _write_demo_summary(summary: DemoSummary) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.command == "dashboard":
+        if not 1 <= args.port <= 65_535:
+            parser.error("--port must be between 1 and 65535")
+        try:
+            runtime = SyntheticOperationsDashboard(
+                refresh_interval_seconds=args.refresh_interval_seconds,
+                duplicate_every=args.duplicate_every,
+            )
+        except ValueError as error:
+            parser.error(str(error))
+        try:
+            uvicorn.run(
+                create_dashboard_app(runtime),
+                host=args.host,
+                port=args.port,
+                access_log=False,
+                log_level="info",
+            )
+        except Exception as error:
+            parser.error(f"dashboard failed ({type(error).__name__})")
+        return 0
+
+    if args.command == "recovery-demo":
+        try:
+            config = _recovery_config_from_args(args)
+        except ValueError as error:
+            parser.error(f"invalid recovery demo options ({type(error).__name__})")
+        try:
+            summary = asyncio.run(run_synthetic_recovery_demo(config))
+        except SyntheticRecoveryDemoError as error:
+            parser.error(f"synthetic recovery demo stopped ({error.code})")
+        except Exception as error:
+            parser.error(f"synthetic recovery demo failed ({type(error).__name__})")
+        print(json.dumps(asdict(summary), sort_keys=True))
+        return 0
+
     if args.command in {"simulate", "demo"}:
         try:
             config = _simulator_config_from_args(args)
@@ -136,6 +265,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         except Exception as error:
             parser.error(f"synthetic demo failed ({type(error).__name__})")
         _write_demo_summary(summary)
+        return 0
+
+    if args.command == "validate-profile":
+        report = validate_profile_file(args.profile)
+        print(json.dumps(report.to_dict(), sort_keys=True))
+        return report.exit_code
+
+    if args.command == "validate-mapping":
+        report = validate_mapping_worksheet_file(args.worksheet)
+        print(json.dumps(report.to_dict(), sort_keys=True))
+        return report.exit_code
+
+    if args.command == "map-synthetic":
+        try:
+            events = load_synthetic_events(args.input)
+        except ReplayInputError as error:
+            parser.error(str(error))
+        try:
+            mapping_set = load_synthetic_mapping(args.mapping)
+        except SyntheticMappingConfigError as error:
+            parser.error(f"synthetic mapping config rejected ({error.code})")
+        try:
+            mapped_events = map_synthetic_events(events, mapping_set)
+        except SyntheticMappingBatchError as error:
+            parser.error(f"synthetic mapping stopped ({error.code})")
+        for mapped_event in mapped_events:
+            print(mapped_event.model_dump_json())
         return 0
 
     if args.command == "replay":

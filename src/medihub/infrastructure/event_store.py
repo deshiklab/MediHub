@@ -1,4 +1,4 @@
-"""SQLAlchemy event store with a leased, idempotent delivery outbox."""
+"""SQLAlchemy event store, transactional outbox, routing holds, and safe audit trail."""
 
 import hashlib
 import json
@@ -12,15 +12,24 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from medihub.domain import (
+    AuditAction,
+    AuditEvent,
+    BlockedRoute,
     ClaimedDelivery,
     DeliveryAttempt,
     DeliveryStatus,
     Destination,
     ObservationEvent,
 )
-from medihub.ports import EventStore, OutboxStore
+from medihub.ports import AuditStore, EventStore, OutboxStore
 
-from .models import DeliveryAttemptRecord, DeliveryOutboxRecord, EventRecord
+from .models import (
+    AuditEventRecord,
+    DeliveryAttemptRecord,
+    DeliveryOutboxRecord,
+    EventRecord,
+    RoutingHoldRecord,
+)
 
 
 class EventIdentityConflictError(ValueError):
@@ -53,8 +62,52 @@ def _require_aware(value: datetime, name: str) -> datetime:
     return value.astimezone(UTC)
 
 
-class SqlAlchemyEventStore(EventStore, OutboxStore):
-    """Persist events/intents atomically and coordinate at-least-once delivery."""
+def _audit_event(
+    *,
+    site_id: str,
+    actor_id: str,
+    action: AuditAction,
+    resource_type: str,
+    resource_id: str,
+    occurred_at: datetime,
+    correlation_id: str,
+    reason_code: str | None = None,
+) -> AuditEvent:
+    return AuditEvent(
+        event_id=uuid4(),
+        site_id=site_id,
+        actor_id=actor_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        occurred_at=occurred_at,
+        correlation_id=correlation_id,
+        reason_code=reason_code,
+    )
+
+
+def _utc_from_storage(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _audit_record(event: AuditEvent) -> AuditEventRecord:
+    return AuditEventRecord(
+        audit_id=event.event_id,
+        site_id=event.site_id,
+        actor_id=event.actor_id,
+        action=event.action.value,
+        resource_type=event.resource_type,
+        resource_id=event.resource_id,
+        occurred_at=_require_aware(event.occurred_at, "audit occurred_at"),
+        correlation_id=event.correlation_id,
+        reason_code=event.reason_code,
+    )
+
+
+class SqlAlchemyEventStore(EventStore, OutboxStore, AuditStore):
+    """Persist event decisions, delivery transitions, and audit metadata atomically."""
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -63,16 +116,20 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
         self,
         event: ObservationEvent,
         destinations: Sequence[Destination],
+        *,
+        blocked_routes: Sequence[BlockedRoute] = (),
     ) -> bool:
-        """Return whether a new event was committed; exact duplicates are no-ops.
+        """Atomically commit a new event, eligible intents, and safe policy holds.
 
         A duplicate event ID with different canonical content fails closed. Existing
-        delivery intents are never silently expanded during a duplicate replay.
+        delivery intents and blocked-route decisions are never silently changed during
+        a duplicate replay.
         """
 
         destination_ids = [destination.destination_id for destination in destinations]
+        destination_ids.extend(route.destination_id for route in blocked_routes)
         if len(destination_ids) != len(set(destination_ids)):
-            raise ValueError("destination list contains duplicate destination IDs")
+            raise ValueError("destination decisions contain duplicate destination IDs")
 
         payload, content_hash = _canonical_payload(event)
         try:
@@ -82,6 +139,7 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
                     self._ensure_same_content(existing, content_hash)
                     return False
 
+                audit_occurred_at = datetime.now(UTC)
                 stored_event = EventRecord(
                     event_id=event.event_id,
                     site_id=event.site_id,
@@ -94,14 +152,64 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
                     payload=payload,
                 )
                 session.add(stored_event)
-                session.add_all(
-                    DeliveryOutboxRecord(
-                        outbox_id=uuid4(),
-                        event=stored_event,
-                        destination_id=destination.destination_id,
+                audit_events = [
+                    _audit_event(
+                        site_id=event.site_id,
+                        actor_id="system:ingestion",
+                        action=AuditAction.EVENT_STORED,
+                        resource_type="observation_event",
+                        resource_id=str(event.event_id),
+                        occurred_at=audit_occurred_at,
+                        correlation_id=str(event.event_id),
                     )
-                    for destination in destinations
-                )
+                ]
+                outbox_rows: list[DeliveryOutboxRecord] = []
+                for destination in destinations:
+                    outbox_id = uuid4()
+                    outbox_rows.append(
+                        DeliveryOutboxRecord(
+                            outbox_id=outbox_id,
+                            event=stored_event,
+                            destination_id=destination.destination_id,
+                        )
+                    )
+                    audit_events.append(
+                        _audit_event(
+                            site_id=event.site_id,
+                            actor_id="system:ingestion",
+                            action=AuditAction.DELIVERY_INTENT_CREATED,
+                            resource_type="delivery_intent",
+                            resource_id=str(outbox_id),
+                            occurred_at=audit_occurred_at,
+                            correlation_id=str(event.event_id),
+                        )
+                    )
+                hold_rows: list[RoutingHoldRecord] = []
+                for route in blocked_routes:
+                    hold_id = uuid4()
+                    hold_rows.append(
+                        RoutingHoldRecord(
+                            hold_id=hold_id,
+                            event=stored_event,
+                            destination_id=route.destination_id,
+                            reason_code=route.reason_code,
+                        )
+                    )
+                    audit_events.append(
+                        _audit_event(
+                            site_id=event.site_id,
+                            actor_id="system:ingestion",
+                            action=AuditAction.ROUTE_HELD,
+                            resource_type="routing_hold",
+                            resource_id=str(hold_id),
+                            occurred_at=audit_occurred_at,
+                            correlation_id=str(event.event_id),
+                            reason_code=route.reason_code,
+                        )
+                    )
+                session.add_all(outbox_rows)
+                session.add_all(hold_rows)
+                session.add_all(_audit_record(audit_event) for audit_event in audit_events)
             return True
         except IntegrityError:
             # A concurrent writer may have committed the same event after our read.
@@ -112,6 +220,46 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
                 raise
             self._ensure_same_content(existing, content_hash)
             return False
+
+    async def recent_audit_events(
+        self,
+        *,
+        site_id: str,
+        limit: int = 100,
+    ) -> tuple[AuditEvent, ...]:
+        """Read a bounded, site-filtered projection of audit metadata only."""
+
+        normalized_site_id = site_id.strip()
+        if not normalized_site_id:
+            raise ValueError("site_id must not be empty")
+        if not 1 <= limit <= 1_000:
+            raise ValueError("limit must be between 1 and 1000")
+        async with self._sessions() as session:
+            records = (
+                await session.scalars(
+                    select(AuditEventRecord)
+                    .where(AuditEventRecord.site_id == normalized_site_id)
+                    .order_by(
+                        AuditEventRecord.occurred_at.desc(),
+                        AuditEventRecord.audit_id.desc(),
+                    )
+                    .limit(limit)
+                )
+            ).all()
+        return tuple(
+            AuditEvent(
+                event_id=record.audit_id,
+                site_id=record.site_id,
+                actor_id=record.actor_id,
+                action=record.action,
+                resource_type=record.resource_type,
+                resource_id=record.resource_id,
+                occurred_at=_utc_from_storage(record.occurred_at),
+                correlation_id=record.correlation_id,
+                reason_code=record.reason_code,
+            )
+            for record in records
+        )
 
     async def claim_next(
         self,
@@ -159,6 +307,7 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
             if outbox is None:
                 return None
 
+            expired_attempt_id = None
             if outbox.status == DeliveryStatus.SENT.value:
                 previous_attempt = await session.scalar(
                     select(DeliveryAttemptRecord)
@@ -173,6 +322,7 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
                 previous_attempt.status = DeliveryStatus.RETRYABLE_FAILURE.value
                 previous_attempt.completed_at = moment
                 previous_attempt.error_code = "lease_expired"
+                expired_attempt_id = previous_attempt.attempt_id
 
             event_record = await session.get(EventRecord, outbox.event_id)
             if event_record is None:
@@ -201,6 +351,36 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
                     started_at=moment,
                 )
             )
+            audit_events = []
+            if expired_attempt_id is not None:
+                audit_events.append(
+                    _audit_record(
+                        _audit_event(
+                            site_id=event_record.site_id,
+                            actor_id="system:outbox-worker",
+                            action=AuditAction.DELIVERY_LEASE_EXPIRED,
+                            resource_type="delivery_attempt",
+                            resource_id=str(expired_attempt_id),
+                            occurred_at=moment,
+                            correlation_id=str(outbox.event_id),
+                            reason_code="lease_expired",
+                        )
+                    )
+                )
+            audit_events.append(
+                _audit_record(
+                    _audit_event(
+                        site_id=event_record.site_id,
+                        actor_id="system:outbox-worker",
+                        action=AuditAction.DELIVERY_ATTEMPT_STARTED,
+                        resource_type="delivery_attempt",
+                        resource_id=str(attempt_id),
+                        occurred_at=moment,
+                        correlation_id=str(outbox.event_id),
+                    )
+                )
+            )
+            session.add_all(audit_events)
             return ClaimedDelivery(
                 outbox_id=outbox.outbox_id,
                 attempt_id=attempt_id,
@@ -263,6 +443,34 @@ class SqlAlchemyEventStore(EventStore, OutboxStore):
 
             outbox.lease_token = None
             outbox.lease_expires_at = None
+
+            if attempt.status is DeliveryStatus.ACKNOWLEDGED:
+                audit_action = AuditAction.DELIVERY_ACKNOWLEDGED
+            elif attempt.status is DeliveryStatus.REJECTED:
+                audit_action = AuditAction.DELIVERY_REJECTED
+            elif attempt.status is DeliveryStatus.RETRYABLE_FAILURE and retry_at is not None:
+                audit_action = AuditAction.DELIVERY_RETRY_SCHEDULED
+            elif attempt.status is DeliveryStatus.RETRYABLE_FAILURE:
+                audit_action = AuditAction.DELIVERY_RETRY_EXHAUSTED
+            else:
+                audit_action = AuditAction.DELIVERY_PERMANENT_FAILURE
+
+            if attempt.completed_at is None:
+                raise OutboxStateError("completed delivery attempt has no completion timestamp")
+            session.add(
+                _audit_record(
+                    _audit_event(
+                        site_id=delivery.event.site_id,
+                        actor_id="system:outbox-worker",
+                        action=audit_action,
+                        resource_type="delivery_attempt",
+                        resource_id=str(attempt.attempt_id),
+                        occurred_at=attempt.completed_at,
+                        correlation_id=str(delivery.event.event_id),
+                        reason_code=attempt.error_code,
+                    )
+                )
+            )
 
     @staticmethod
     def _ensure_same_content(existing: EventRecord, content_hash: str) -> None:

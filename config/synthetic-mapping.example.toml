@@ -1,0 +1,22 @@
+# Offline test mapping for the built-in synthetic simulator only.
+# It does not describe or authorize a medical-device or receiving-system mapping.
+# Copy to config/synthetic-mapping.local.toml before local experimentation.
+
+scope = "synthetic_only"
+mapping_set_id = "synthetic-scalar-demo"
+version = "1.0.0"
+manufacturer = "MediHub Synthetic"
+model = "scalar-simulator-v1"
+firmware_versions = ["1.0"]
+adapter_id = "medihub.synthetic-device"
+adapter_version = "0.2.0"
+
+[[entries]]
+source_metric = { system = "https://example.invalid/medihub/synthetic-metrics", code = "simulated-scalar-reading" }
+source_unit = { system = "http://unitsofmeasure.org", code = "1" }
+normalized_metric = { system = "https://example.invalid/medihub/canonical-synthetic", code = "mapped-synthetic-scalar" }
+normalized_unit = { system = "http://unitsofmeasure.org", code = "1" }
+operation = "identity"
+scale = "1"
+offset = "0"
+decimal_places = 2

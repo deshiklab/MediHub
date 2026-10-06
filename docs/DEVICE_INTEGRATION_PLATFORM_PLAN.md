@@ -507,7 +507,7 @@ The durations below are planning ranges, not promises. Access to device manuals/
 3. Obtain the target hospital interface contract: FHIR base/version/CapabilityStatement/profiles/scopes or HL7 version/profile/message examples/ACK rules/MLLP route; identify whether the interface engine is the actual receiver.
 4. Define the patient/encounter/location association authority, review responsibility, event timing, data rate, buffering duration, retention, and clinical verification workflow.
 5. Document jurisdiction, privacy/security owner, network zones, who operates MediHub, data-processing/BAA needs, and whether the planned functions remain passive data handling.
-6. Create a protocol/field mapping worksheet before coding: source field/code/unit/state → canonical field → destination field/profile; unknowns remain unresolved.
+6. Create the [protocol/field mapping worksheet](DEVICE_MAPPING_WORKSHEET.md) before coding: source field/code/unit/state → canonical field → destination field/profile; unknowns remain unresolved.
 7. For a Bangladesh pilot, name the facility, clinical-engineering and interface owners, the actual HMS/EHR and device vendor, the facility-authoritative patient ID workflow, and whether an authorized SHR/Health ID integration is available. Obtain the actual FHIR or HL7 v2 contract; do not assume national production API access.
 8. Have Bangladesh counsel review the Personal Data Protection Act, 2026 roles/legal basis/consent, retention, breach, and cross-border hosting; request a DGDA or local regulatory opinion on MediHub’s intended use and medical-device software classification.
 
@@ -525,6 +525,8 @@ The durations below are planning ranges, not promises. Access to device manuals/
 
 **Exit gate:** schema contract tests pass; no adapter needs to import the FHIR/HL7 sender; migrations and backups work in a local synthetic environment.
 
+**Current synthetic increment:** event, policy-hold, outbox, and delivery-attempt transitions now write privacy-minimized audit metadata transactionally. See [audit scope and limitations](AUDIT_TRAIL.md). This is not an authenticated or tamper-evident production audit system, and it does not close Phase 0 or authorize live data.
+
 ### Phase 2 — Simulator, replay, and test fixtures
 
 **Tasks**
@@ -535,6 +537,8 @@ The durations below are planning ranges, not promises. Access to device manuals/
 4. Establish golden mapping tests for every supported source metric and unit; use property-based tests for malformed/truncated frames and numeric edge cases.
 
 **Exit gate:** an end-to-end simulated event reaches the event store and is visible in a local operator status page; bad data is rejected/held with a reason; repeated replay does not create duplicate events.
+
+**Current synthetic increment:** an offline [mapping workbench](SYNTHETIC_MAPPING_WORKBENCH.md) tests exact code/unit matching and bounded arithmetic only against patient-free simulator events. A separate [recovery drill](SYNTHETIC_RECOVERY_DRILL.md) now exercises file-backed lease recovery, an engine restart, retry history, and queue drain with synthetic data. Neither tool is a clinical mapping, device adapter, destination connector, power-loss/backup qualification, or Phase 0 exit-gate approval.
 
 ### Phase 3 — First real device adapter
 
@@ -583,6 +587,8 @@ The durations below are planning ranges, not promises. Access to device manuals/
 4. Create operator, interface-analyst, security, installation, upgrade/rollback, outage, key-rotation, and incident-response runbooks.
 
 **Exit gate:** operators can identify a disconnected device, an unresolved patient, and a rejected destination message without reading raw PHI logs; service can restore its local queue after restart.
+
+**Current synthetic preview:** a small [management workbench](SYNTHETIC_MANAGEMENT_WORKBENCH.md) demonstrates in-memory simulator registration, synthetic mapping drafts/previews, version-tagged golden-vector QA with stale-result detection, and a local test-receiver check. It has no authentication, persistence, physical-device controls, endpoint/credential fields, or live activation; it does not satisfy Phase 6.
 
 ### Phase 7 — Controlled site pilot
 
@@ -757,7 +763,7 @@ This is a planning analysis, not a Bangladesh legal opinion or a DGDA classifica
 
 1. Secure a Bangladesh pilot sponsor/facility and name its clinical, biomedical/clinical-engineering, IT/interface, and privacy/security owners; confirm the intended first workflow and whether a Health ID/UHID path is available.
 2. Add the first device and destination interface specification (or vendor-approved manuals) to the project in a restricted location if they contain confidential content; provide a sanitized version for engineering documentation.
-3. Complete the discovery worksheet in Phase 0 and obtain a named hardware test device plus a synthetic test destination.
+3. Complete the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md) and obtain a named hardware test device plus a synthetic test destination.
 4. Start with a Python modular monolith, event schema, simulator, and the patient-association/outbox domain before implementing any real protocol.
 5. Build a single device simulator + one destination test harness and prove retry, de-duplication, patient conflict hold, audit, and restart recovery.
 6. Select the first connector from the receiving-system contract—not from a general preference for FHIR or v2.

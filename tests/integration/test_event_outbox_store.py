@@ -20,7 +20,7 @@ from medihub.domain import (
 )
 from medihub.infrastructure.database import Base, create_database_engine
 from medihub.infrastructure.event_store import EventIdentityConflictError, SqlAlchemyEventStore
-from medihub.infrastructure.models import DeliveryOutboxRecord, EventRecord
+from medihub.infrastructure.models import DeliveryOutboxRecord, EventRecord, RoutingHoldRecord
 
 OBSERVED_AT = datetime(2026, 10, 7, 8, 0, tzinfo=UTC)
 DATABASE_URLS = ["sqlite+aiosqlite:///:memory:"]
@@ -141,7 +141,7 @@ def test_event_id_reuse_with_different_content_fails_closed(database_url: str) -
 
 
 @pytest.mark.parametrize("database_url", DATABASE_URLS, ids=DATABASE_IDS)
-def test_route_failures_are_isolated_before_outbox_creation(database_url: str) -> None:
+def test_route_failures_are_isolated_and_durable(database_url: str) -> None:
     async def exercise() -> None:
         engine = create_database_engine(database_url)
         try:
@@ -153,15 +153,55 @@ def test_route_failures_are_isolated_before_outbox_creation(database_url: str) -
             test_destination = make_destination("synthetic-fhir", accepts_synthetic_data=True)
 
             result = await service.ingest(event, [production, test_destination])
+            duplicate = await service.ingest(event, [production, test_destination])
 
             assert result.duplicate is False
+            assert duplicate.duplicate is True
             assert result.queued_destination_ids == ("synthetic-fhir",)
             assert [
                 (route.destination_id, route.reason_code) for route in result.blocked_routes
             ] == [("production-fhir", "synthetic_not_accepted")]
             async with sessions() as session:
                 outbox_rows = list(await session.scalars(select(DeliveryOutboxRecord)))
+                hold_rows = list(await session.scalars(select(RoutingHoldRecord)))
             assert [row.destination_id for row in outbox_rows] == ["synthetic-fhir"]
+            assert len(hold_rows) == 1
+            assert hold_rows[0].event_id == event.event_id
+            assert hold_rows[0].destination_id == "production-fhir"
+            assert hold_rows[0].reason_code == "synthetic_not_accepted"
+        finally:
+            await engine.dispose()
+
+    asyncio.run(exercise())
+
+
+@pytest.mark.parametrize("database_url", DATABASE_URLS, ids=DATABASE_IDS)
+def test_all_routes_blocked_retains_event_and_hold_without_outbox(database_url: str) -> None:
+    async def exercise() -> None:
+        engine = create_database_engine(database_url)
+        try:
+            await initialize_schema(engine)
+            sessions = async_sessionmaker(engine, expire_on_commit=False)
+            service = IngestionService(SqlAlchemyEventStore(sessions))
+            event = make_event()
+            blocked_destination = make_destination("non-test-fhir")
+
+            result = await service.ingest(event, [blocked_destination])
+
+            assert result.duplicate is False
+            assert result.queued_destination_ids == ()
+            assert result.blocked_routes[0].reason_code == "synthetic_not_accepted"
+            async with sessions() as session:
+                event_count = await session.scalar(select(func.count()).select_from(EventRecord))
+                outbox_count = await session.scalar(
+                    select(func.count()).select_from(DeliveryOutboxRecord)
+                )
+                hold_count = await session.scalar(
+                    select(func.count()).select_from(RoutingHoldRecord)
+                )
+            assert event_count == 1
+            assert outbox_count == 0
+            assert hold_count == 1
         finally:
             await engine.dispose()
 

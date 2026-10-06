@@ -1,0 +1,66 @@
+# Copy to config/device-mapping.local.toml and complete after obtaining authorized contracts.
+# This is a review worksheet only: it is never loaded by event ingestion or a connector.
+# Never put credentials, patient data, raw messages, network endpoints, or restricted captures here.
+
+schema_version = "1.0"
+worksheet_id = "bd-first-site-mapping"
+discovery_profile_id = "bd-first-site"
+country_code = "BD"
+facility = "TBD: first pilot facility"
+
+[source]
+manufacturer = "TBD"
+model = "TBD"
+firmware_versions = ["TBD"]
+adapter_id = "TBD: approved adapter name"
+adapter_version = "TBD"
+protocol_version = "TBD: exact protocol/interface version"
+
+[source.vendor_authorization]
+status = "open"
+
+[source.technical_specification]
+status = "open"
+
+[source.sample_messages]
+status = "open"
+
+[destination]
+product = "TBD: exact receiving system"
+protocol = "TBD: exact facility contract"
+interface_version = "TBD"
+
+[destination.contract]
+status = "open"
+
+[[entries]]
+entry_id = "example-reading-001"
+source_element = "TBD: exact source field/frame element"
+source_state = "TBD: exact source state or not_applicable"
+source_metric_system = "TBD"
+source_metric_code = "TBD"
+source_unit_system = "TBD"
+source_unit_code = "TBD"
+canonical_element = "TBD: exact MediHub canonical field"
+canonical_state = "TBD: exact canonical state or not_applicable"
+canonical_metric_system = "TBD"
+canonical_metric_code = "TBD"
+canonical_unit_system = "TBD"
+canonical_unit_code = "TBD"
+destination_element = "TBD: exact field/segment/path"
+destination_state = "TBD: exact target state or not_applicable"
+destination_profile = "TBD: exact receiver profile"
+destination_code_system = "TBD"
+destination_code = "TBD"
+destination_unit_system = "TBD"
+destination_unit_code = "TBD"
+transformation_rule = "TBD: exact reviewed identity/conversion rule and precision"
+
+[entries.approval]
+status = "open"
+
+[worksheet_approval]
+status = "open"
+
+[synthetic_test_vectors]
+status = "open"

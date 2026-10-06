@@ -21,6 +21,11 @@ dist/
 # Local runtime data and secrets
 .env
 .env.*
+config/integration-profile.local.toml
+config/device-mapping.local.toml
+config/synthetic-mapping.local.toml
+*.profile.local.toml
+*.mapping.local.toml
 *.sqlite3
 *.db
 *.ndjson

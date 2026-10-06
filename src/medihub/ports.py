@@ -6,6 +6,8 @@ from typing import Protocol, runtime_checkable
 
 from medihub.domain import (
     AdapterHealth,
+    AuditEvent,
+    BlockedRoute,
     ClaimedDelivery,
     DeliveryAttempt,
     Destination,
@@ -38,9 +40,23 @@ class EventStore(Protocol):
         self,
         event: ObservationEvent,
         destinations: Sequence[Destination],
+        *,
+        blocked_routes: Sequence[BlockedRoute] = (),
     ) -> bool:
-        """Return True if inserted; an exact duplicate is a no-op returning False."""
+        """Persist an event, eligible intents, and policy holds atomically."""
         ...
+
+
+@runtime_checkable
+class AuditStore(Protocol):
+    """Read privacy-minimized system audit events filtered to one site scope."""
+
+    async def recent_audit_events(
+        self,
+        *,
+        site_id: str,
+        limit: int = 100,
+    ) -> tuple[AuditEvent, ...]: ...
 
 
 @runtime_checkable

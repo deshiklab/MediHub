@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from medihub.application.ingestion import IngestionService
 from medihub.application.outbox_worker import OutboxWorker
 from medihub.domain import (
+    AuditAction,
     Coding,
     DeliveryAttempt,
     DeliveryStatus,
@@ -27,7 +28,11 @@ from medihub.infrastructure.event_store import (
     OutboxLeaseLostError,
     SqlAlchemyEventStore,
 )
-from medihub.infrastructure.models import DeliveryAttemptRecord, DeliveryOutboxRecord
+from medihub.infrastructure.models import (
+    AuditEventRecord,
+    DeliveryAttemptRecord,
+    DeliveryOutboxRecord,
+)
 from medihub.ports import DestinationAdapter
 
 OBSERVED_AT = datetime(2026, 10, 7, 8, 0, tzinfo=UTC)
@@ -159,12 +164,20 @@ def test_worker_records_acknowledgement_and_stops_redelivery(database_url: str) 
             async with sessions() as session:
                 outbox = await session.scalar(select(DeliveryOutboxRecord))
                 attempts = list(await session.scalars(select(DeliveryAttemptRecord)))
+                audit_rows = list(await session.scalars(select(AuditEventRecord)))
             assert outbox is not None
             assert outbox.status == DeliveryStatus.ACKNOWLEDGED.value
             assert outbox.acknowledgement_id == "synthetic-ack-1"
             assert outbox.lease_token is None
             assert len(attempts) == 1
             assert attempts[0].status == DeliveryStatus.ACKNOWLEDGED.value
+            assert {row.action for row in audit_rows} == {
+                AuditAction.EVENT_STORED.value,
+                AuditAction.DELIVERY_INTENT_CREATED.value,
+                AuditAction.DELIVERY_ATTEMPT_STARTED.value,
+                AuditAction.DELIVERY_ACKNOWLEDGED.value,
+            }
+            assert len(audit_rows) == 4
         finally:
             await engine.dispose()
 
@@ -208,12 +221,17 @@ def test_worker_retries_with_backoff_then_acknowledges(database_url: str) -> Non
                         select(DeliveryAttemptRecord).order_by(DeliveryAttemptRecord.attempt_number)
                     )
                 )
+                audit_rows = list(await session.scalars(select(AuditEventRecord)))
             assert outbox is not None
             assert outbox.status == DeliveryStatus.ACKNOWLEDGED.value
             assert [item.status for item in attempts] == [
                 DeliveryStatus.RETRYABLE_FAILURE.value,
                 DeliveryStatus.ACKNOWLEDGED.value,
             ]
+            actions = [row.action for row in audit_rows]
+            assert actions.count(AuditAction.DELIVERY_ATTEMPT_STARTED.value) == 2
+            assert AuditAction.DELIVERY_RETRY_SCHEDULED.value in actions
+            assert AuditAction.DELIVERY_ACKNOWLEDGED.value in actions
         finally:
             await engine.dispose()
 
@@ -297,9 +315,15 @@ def test_expired_lease_recovers_and_rejects_stale_completion(database_url: str) 
                         select(DeliveryAttemptRecord).order_by(DeliveryAttemptRecord.attempt_number)
                     )
                 )
+                audit_rows = list(await session.scalars(select(AuditEventRecord)))
             assert attempts[0].status == DeliveryStatus.RETRYABLE_FAILURE.value
             assert attempts[0].error_code == "lease_expired"
             assert attempts[1].status == DeliveryStatus.SENT.value
+            lease_events = [
+                row for row in audit_rows if row.action == AuditAction.DELIVERY_LEASE_EXPIRED.value
+            ]
+            assert len(lease_events) == 1
+            assert lease_events[0].reason_code == "lease_expired"
         finally:
             await engine.dispose()
 
@@ -335,9 +359,17 @@ def test_retry_limit_moves_outbox_to_permanent_failure(database_url: str) -> Non
             assert result.status is DeliveryStatus.RETRYABLE_FAILURE
             async with sessions() as session:
                 outbox = await session.scalar(select(DeliveryOutboxRecord))
+                audit_rows = list(await session.scalars(select(AuditEventRecord)))
             assert outbox is not None
             assert outbox.status == DeliveryStatus.PERMANENT_FAILURE.value
             assert outbox.last_error_code == "receiver_timeout"
+            exhausted = [
+                row
+                for row in audit_rows
+                if row.action == AuditAction.DELIVERY_RETRY_EXHAUSTED.value
+            ]
+            assert len(exhausted) == 1
+            assert exhausted[0].reason_code == "receiver_timeout"
         finally:
             await engine.dispose()
 

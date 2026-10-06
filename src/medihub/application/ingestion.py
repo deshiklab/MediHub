@@ -4,18 +4,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
-from medihub.domain import Destination, ObservationEvent, PatientAssociation
+from medihub.domain import BlockedRoute, Destination, ObservationEvent, PatientAssociation
 from medihub.ports import EventStore
 
 from .routing import RouteBlockedError, assert_route_eligible
-
-
-@dataclass(frozen=True, slots=True)
-class BlockedRoute:
-    """Safe-to-log route rejection with a stable code and no clinical payload."""
-
-    destination_id: str
-    reason_code: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +59,11 @@ class IngestionService:
             else:
                 eligible.append(destination)
 
-        inserted = await self._event_store.append_with_outbox(event, eligible)
+        inserted = await self._event_store.append_with_outbox(
+            event,
+            eligible,
+            blocked_routes=blocked,
+        )
         queued_ids = (
             tuple(destination.destination_id for destination in eligible) if inserted else ()
         )

@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1018" />
+    <title>MediHub · Synthetic operations</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --canvas: #0b1018;
+        --panel: #111925;
+        --panel-raised: #151f2d;
+        --line: #253243;
+        --muted: #94a3b8;
+        --text: #edf4fb;
+        --teal: #5eead4;
+        --green: #86efac;
+        --amber: #fcd34d;
+        --red: #fda4af;
+        --blue: #93c5fd;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--canvas);
+        color: var(--text);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 82% -20%, #193046 0, transparent 42%), var(--canvas); }
+      .shell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 30px 0 48px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 27px; border-bottom: 1px solid var(--line); }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 720; letter-spacing: -.03em; font-size: 18px; }
+      .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: #042b2a; font-size: 21px; font-weight: 850; background: linear-gradient(145deg, #8cf2d9, #46c8c2); box-shadow: 0 6px 24px #31c9bb2c; }
+      .brand small { display: block; color: var(--muted); letter-spacing: .12em; font-size: 9px; font-weight: 700; margin-top: 3px; }
+      .top-actions { display: flex; align-items: center; gap: 12px; }
+      .mode-pill, .refresh-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border-radius: 999px; border: 1px solid var(--line); color: #cbd5e1; background: #111925c7; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+      .mode-pill { color: var(--teal); border-color: #245c5a; background: #0e2929; }
+      .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px #5eead41c; animation: pulse 1.8s ease-in-out infinite; }
+      @keyframes pulse { 50% { box-shadow: 0 0 0 7px #5eead405; opacity: .62; } }
+      .intro { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: 31px 0 25px; }
+      .eyebrow { margin: 0 0 9px; color: var(--teal); font-weight: 760; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(28px, 4vw, 38px); font-weight: 670; letter-spacing: -.055em; line-height: 1.12; }
+      .intro-copy { max-width: 660px; margin: 10px 0 0; color: #a9b8c8; font-size: 13px; line-height: 1.65; }
+      .updated { color: var(--muted); font-size: 11px; white-space: nowrap; padding-bottom: 4px; }
+      .updated strong { color: #d2deea; font-weight: 600; }
+      .notice { display: flex; align-items: center; gap: 12px; padding: 13px 15px; margin: 0 0 17px; border: 1px solid #634c20; border-radius: 12px; background: linear-gradient(90deg, #3a2b13b5, #1c1d20); color: #f5d98f; font-size: 12px; line-height: 1.5; }
+      .notice-icon { display: grid; flex: 0 0 25px; place-items: center; width: 25px; height: 25px; border-radius: 8px; background: #f5c4511d; font-weight: 800; }
+      .notice strong { color: #ffe9ad; }
+      .health-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+      .health-card, .metric-card, .data-panel { border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(150deg, #141e2b, #101722 80%); box-shadow: 0 14px 36px #00000014; }
+      .health-card { display: flex; align-items: center; gap: 14px; min-height: 88px; padding: 16px 18px; }
+      .health-icon { display: grid; flex: 0 0 39px; place-items: center; height: 39px; border-radius: 12px; background: #163734; color: var(--teal); font-size: 17px; }
+      .health-icon.receiver { background: #1a2e49; color: var(--blue); }
+      .health-copy { min-width: 0; flex: 1; }
+      .health-label { display: block; color: #9aabbe; font-size: 11px; margin-bottom: 5px; }
+      .health-copy strong { font-size: 14px; font-weight: 650; }
+      .health-copy small { display: block; margin-top: 4px; color: #6f8095; font-size: 10px; overflow-wrap: anywhere; }
+      .state { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 750; }
+      .state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+      .state.degraded, .state.starting { color: var(--amber); }
+      .state.failed { color: var(--red); }
+      .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .metric-card { min-height: 106px; padding: 15px 16px; }
+      .metric-label { color: #91a2b6; font-size: 10px; font-weight: 650; letter-spacing: .055em; text-transform: uppercase; }
+      .metric-value { margin-top: 14px; font-variant-numeric: tabular-nums; font-size: 27px; font-weight: 700; letter-spacing: -.045em; }
+      .metric-note { margin-top: 5px; color: #74859a; font-size: 10px; }
+      .metric-card.accent .metric-value { color: var(--teal); }
+      .metric-card.blue .metric-value { color: var(--blue); }
+      .metric-card.amber .metric-value { color: var(--amber); }
+      .columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 16px; }
+      .data-panel { min-width: 0; overflow: hidden; }
+      .holds-panel, .activity-panel { margin-top: 16px; }
+      .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 18px; border-bottom: 1px solid var(--line); }
+      .panel-title { margin: 0; font-size: 13px; font-weight: 680; letter-spacing: -.01em; }
+      .panel-subtitle { margin: 5px 0 0; color: #8293a7; font-size: 10px; }
+      .count { padding: 5px 8px; border: 1px solid #2d3d50; border-radius: 999px; color: #aab9c9; font-size: 10px; font-variant-numeric: tabular-nums; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+      th { padding: 11px 14px; color: #75869b; font-size: 9px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; background: #101721; }
+      td { padding: 12px 14px; border-top: 1px solid #202c3a; color: #c7d3df; font-size: 11px; }
+      tbody tr:hover { background: #ffffff04; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #91a4ba; font-size: 10px; }
+      .reading { color: var(--teal); font-weight: 680; font-variant-numeric: tabular-nums; }
+      .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 999px; background: #18332b; color: var(--green); font-size: 9px; font-weight: 720; text-transform: uppercase; letter-spacing: .04em; }
+      .status-chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+      .status-chip.retryable_failure, .status-chip.queued, .status-chip.sent { background: #382d17; color: var(--amber); }
+      .status-chip.permanent_failure, .status-chip.rejected { background: #3d2026; color: var(--red); }
+      .empty { padding: 28px 14px; color: #7d8da1; text-align: center; font-size: 11px; }
+      .footer { display: flex; justify-content: space-between; gap: 18px; padding-top: 20px; color: #748397; font-size: 10px; line-height: 1.6; }
+      .footer strong { color: #aab9c8; font-weight: 600; }
+      .api-error { display: none; margin-top: 14px; padding: 11px 14px; border: 1px solid #713540; border-radius: 10px; background: #2a151b; color: #fecdd3; font-size: 11px; }
+      .api-error.visible { display: block; }
+      .setup-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 15px 0 2px; }
+      .setup-nav a { padding: 8px 11px; border: 1px solid #2b3c4f; border-radius: 999px; color: #b9cad9; background: #101722; font-size: 10px; font-weight: 700; text-decoration: none; }
+      .setup-nav a:hover, .setup-nav a:focus-visible { color: var(--teal); border-color: #37726b; outline: none; }
+      .management { margin-top: 28px; scroll-margin-top: 18px; }
+      .management-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+      .management-head h2 { margin: 0; font-size: 21px; letter-spacing: -.035em; }
+      .management-head p { max-width: 680px; margin: 7px 0 0; color: #91a2b6; font-size: 11px; line-height: 1.6; }
+      .management-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .management-panel { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(150deg, #141e2b, #101722 80%); }
+      .management-panel.full { grid-column: 1 / -1; }
+      .management-body { padding: 16px 18px 18px; }
+      .management-note { margin: 0 0 13px; color: #91a2b6; font-size: 10px; line-height: 1.55; }
+      .locked-note { padding: 10px 12px; border: 1px solid #604b24; border-radius: 9px; background: #2d2414; color: #f3d38b; font-size: 10px; line-height: 1.5; }
+      .workbench-list { display: grid; gap: 8px; }
+      .workbench-row { display: flex; align-items: center; gap: 10px; padding: 10px 11px; border: 1px solid #253243; border-radius: 10px; background: #0e151f; }
+      .workbench-row .row-main { flex: 1; min-width: 0; }
+      .workbench-row strong { display: block; color: #d9e5ef; font-size: 11px; font-weight: 650; }
+      .workbench-row small { display: block; margin-top: 4px; color: #8092a7; font-size: 9px; line-height: 1.4; }
+      .workbench-row .row-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+      .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .form-field { display: grid; gap: 5px; min-width: 0; color: #a6b6c7; font-size: 9px; font-weight: 680; letter-spacing: .035em; }
+      .form-field input, .form-field select { width: 100%; min-height: 35px; padding: 8px 9px; border: 1px solid #2b3a4c; border-radius: 7px; background: #0b121b; color: var(--text); font: inherit; font-size: 11px; }
+      .form-field input:focus, .form-field select:focus { outline: 2px solid #3b827b; outline-offset: 1px; }
+      .form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
+      .control-btn { min-height: 32px; padding: 7px 10px; border: 1px solid #32465b; border-radius: 8px; background: #1a2736; color: #d6e3ee; font-size: 10px; font-weight: 700; cursor: pointer; }
+      .control-btn:hover, .control-btn:focus-visible { border-color: #4b9087; color: var(--teal); outline: none; }
+      .control-btn.primary { border-color: #2e7168; background: #12332f; color: #a3f3e3; }
+      .control-btn.subtle { background: transparent; color: #a4b4c4; }
+      .control-btn:disabled { opacity: .55; cursor: wait; }
+      .management-status { min-height: 16px; margin-top: 9px; color: var(--teal); font-size: 10px; line-height: 1.45; }
+      .mapping-table { width: 100%; margin: 10px 0 14px; border: 1px solid #263446; border-radius: 8px; overflow: hidden; }
+      .mapping-table th, .mapping-table td { padding: 8px 9px; font-size: 9px; }
+      .mapping-table th { background: #0c141d; }
+      .mapping-table td { white-space: normal; overflow-wrap: anywhere; }
+      .destination-card { padding: 12px; border: 1px solid #2a3d51; border-radius: 10px; background: #101a26; }
+      .destination-card + .destination-card { margin-top: 9px; }
+      .destination-card strong { display: block; font-size: 11px; }
+      .destination-card small { display: block; margin-top: 5px; color: #8fa0b4; font-size: 9px; line-height: 1.5; }
+      .management-footnote { margin: 12px 0 0; color: #74869b; font-size: 9px; line-height: 1.5; }
+      @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid { grid-template-columns: 1fr; } .management-panel.full { grid-column: auto; } }
+      @media (max-width: 650px) { .shell { width: min(100% - 24px, 1240px); padding-top: 16px; } .topbar { align-items: flex-start; } .top-actions { align-items: flex-end; flex-direction: column; gap: 6px; } .refresh-pill { display: none; } .intro { display: block; padding-top: 25px; } .updated { padding-top: 14px; } .health-grid { grid-template-columns: 1fr; gap: 9px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .metric-card { min-height: 94px; padding: 13px; } .metric-value { font-size: 24px; } .management-head { display: block; } .setup-nav { overflow-x: auto; flex-wrap: nowrap; } .setup-nav a { flex: 0 0 auto; } .form-grid { grid-template-columns: 1fr; } .workbench-row { align-items: flex-start; flex-wrap: wrap; } .workbench-row .row-actions { width: 100%; justify-content: flex-start; } .footer { display: block; } .footer span { display: block; margin-bottom: 5px; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">+</span><span>MediHub<small>INTEGRATION GATEWAY</small></span></div>
+        <div class="top-actions">
+          <span class="mode-pill"><span class="pulse" aria-hidden="true"></span>Synthetic-only lab</span>
+          <span class="refresh-pill">Ephemeral controls · no live connections</span>
+        </div>
+      </header>
+      <nav class="setup-nav" aria-label="Dashboard sections">
+        <a href="#overview">Operations</a>
+        <a href="#device-workbench">Devices</a>
+        <a href="#mapping-workbench">Mappings</a>
+        <a href="#destination-workbench">API setup</a>
+      </nav>
+
+      <section class="intro" id="overview" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Operations overview / local preview</p>
+          <h1 id="page-title">Integration operations</h1>
+          <p class="intro-copy">Monitor the synthetic device → ingestion → outbox flow, then try the isolated setup workbench below. Its controls edit only in-memory simulator devices and synthetic mapping drafts; no physical device, external endpoint, or EMR/EMS is connected.</p>
+        </div>
+        <div class="updated">Last updated <strong id="updated-at">Waiting for first snapshot…</strong></div>
+      </section>
+
+      <aside class="notice" role="note">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <span><strong>Development data only.</strong> Values are arbitrary synthetic scalars, not patient measurements. Setup changes are ephemeral and reset when the server restarts. No live device, external API, EMR/EMS endpoint, credential, or patient context is supported by this workbench.</span>
+      </aside>
+
+      <section class="health-grid" aria-label="Adapter health">
+        <article class="health-card">
+          <span class="health-icon" aria-hidden="true">◉</span>
+          <div class="health-copy"><span class="health-label">Synthetic device source</span><strong id="source-name">medihub.synthetic-device</strong><small id="source-detail">Waiting for health check</small></div>
+          <span id="source-state" class="state starting">Starting</span>
+        </article>
+        <article class="health-card">
+          <span class="health-icon receiver" aria-hidden="true">↗</span>
+          <div class="health-copy"><span class="health-label">Destination adapter</span><strong>In-process FHIR R4 test receiver</strong><small>generic synthetic Observation · no network</small></div>
+          <span id="receiver-state" class="state starting">Starting</span>
+        </article>
+      </section>
+
+      <section class="metrics" aria-label="Synthetic pipeline metrics">
+        <article class="metric-card accent"><div class="metric-label">Events retained</div><div id="events-inserted" class="metric-value">—</div><div class="metric-note">Unique event IDs</div></article>
+        <article class="metric-card amber"><div class="metric-label">Duplicates</div><div id="duplicates" class="metric-value">—</div><div class="metric-note">Idempotent replays</div></article>
+        <article class="metric-card blue"><div class="metric-label">Delivery attempts</div><div id="attempts" class="metric-value">—</div><div class="metric-note">Outbox dispatches</div></article>
+        <article class="metric-card accent"><div class="metric-label">Acknowledged</div><div id="acknowledged" class="metric-value">—</div><div class="metric-note">Synthetic test receipts</div></article>
+        <article class="metric-card"><div class="metric-label">Pending</div><div id="pending" class="metric-value">—</div><div class="metric-note">Queued or retryable</div></article>
+        <article class="metric-card"><div class="metric-label">Blocked routes</div><div id="blocked" class="metric-value">—</div><div class="metric-note">Policy holds</div></article>
+      </section>
+
+      <div class="columns">
+        <section class="data-panel" aria-labelledby="events-heading">
+          <div class="panel-head"><div><h2 id="events-heading" class="panel-title">Recent synthetic events</h2><p class="panel-subtitle">Curated fields only · payloads are not exposed</p></div><span id="events-count" class="count">0 events</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Received</th><th>Device</th><th>Reading</th><th>Event ID</th></tr></thead><tbody id="events-body"><tr><td colspan="4" class="empty">Waiting for synthetic events…</td></tr></tbody></table></div>
+        </section>
+        <section class="data-panel" aria-labelledby="deliveries-heading">
+          <div class="panel-head"><div><h2 id="deliveries-heading" class="panel-title">Outbox activity</h2><p class="panel-subtitle">Delivery lifecycle at the test receiver</p></div><span id="deliveries-count" class="count">0 intents</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Updated</th><th>State</th><th>Attempts</th><th>Event ID</th></tr></thead><tbody id="deliveries-body"><tr><td colspan="4" class="empty">Waiting for delivery intents…</td></tr></tbody></table></div>
+        </section>
+      </div>
+
+      <section class="data-panel holds-panel" aria-labelledby="holds-heading">
+        <div class="panel-head"><div><h2 id="holds-heading" class="panel-title">Durable policy holds</h2><p class="panel-subtitle">Stable reason codes only · no auto-override or patient details</p></div><span id="holds-count" class="count">0 holds</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Recorded</th><th>Destination</th><th>Reason code</th><th>Event ID</th></tr></thead><tbody id="holds-body"><tr><td colspan="4" class="empty">Waiting for policy decisions…</td></tr></tbody></table></div>
+      </section>
+
+      <section class="data-panel activity-panel" aria-labelledby="activity-heading">
+        <div class="panel-head"><div><h2 id="activity-heading" class="panel-title">Synthetic audit activity</h2><p class="panel-subtitle">Curated system actions · reason codes only · no payload or actor IDs</p></div><span id="activity-count" class="count">0 recent</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Recorded</th><th>Action</th><th>Resource type</th><th>Reason code</th></tr></thead><tbody id="activity-body"><tr><td colspan="4" class="empty">Waiting for audit events…</td></tr></tbody></table></div>
+      </section>
+
+      <section class="management" aria-labelledby="workbench-heading">
+        <div class="management-head">
+          <div>
+            <p class="eyebrow">Configuration workbench / synthetic only</p>
+            <h2 id="workbench-heading">Try device, mapping, and API workflows</h2>
+            <p>These are temporary demo records, not production configuration. No settings are stored on disk or used to contact real devices or services.</p>
+          </div>
+          <span class="refresh-pill">Live activation disabled</span>
+        </div>
+
+        <div class="management-grid">
+          <section id="device-workbench" class="management-panel" aria-labelledby="device-workbench-heading">
+            <div class="panel-head">
+              <div><h3 id="device-workbench-heading" class="panel-title">Devices</h3><p class="panel-subtitle">Simulator inventory · no hardware connectivity</p></div>
+              <button id="register-device" class="control-btn primary" type="button">Register simulator</button>
+            </div>
+            <div class="management-body">
+              <p class="management-note">Device identity, firmware, and adapter are fixed to MediHub's built-in synthetic simulator. Registering a row does not discover or connect to hardware.</p>
+              <div id="devices-list" class="workbench-list" aria-live="polite"><div class="empty">Loading simulator inventory…</div></div>
+              <div id="device-status" class="management-status" role="status"></div>
+            </div>
+          </section>
+
+          <section id="mapping-workbench" class="management-panel" aria-labelledby="mapping-workbench-heading">
+            <div class="panel-head">
+              <div><h3 id="mapping-workbench-heading" class="panel-title">Data mapping</h3><p class="panel-subtitle">Versioned draft rules · preview only · never activated</p></div>
+              <button id="reset-mappings" class="control-btn subtle" type="button">Reset demo rules</button>
+            </div>
+            <div class="management-body">
+              <p id="mapping-summary" class="management-note">Loading synthetic mapping set…</p>
+              <div class="table-wrap"><table class="mapping-table"><thead><tr><th>Source code + unit</th><th>Operation</th><th>Normalized code + unit</th></tr></thead><tbody id="mapping-entries"><tr><td colspan="3" class="empty">Loading rules…</td></tr></tbody></table></div>
+              <form id="mapping-add-form">
+                <p class="management-note"><strong>Add a synthetic draft rule.</strong> Code systems are fixed to example.invalid / UCUM, and entries stay in memory.</p>
+                <div class="form-grid">
+                  <label class="form-field" for="source-code">Source metric code<input id="source-code" name="source_metric_code" required pattern="[A-Za-z0-9][A-Za-z0-9._-]*" maxlength="64" value="synthetic-test-metric" /></label>
+                  <label class="form-field" for="source-unit">Source unit code<input id="source-unit" name="source_unit_code" required maxlength="32" value="1" /></label>
+                  <label class="form-field" for="normalized-code">Normalized metric code<input id="normalized-code" name="normalized_metric_code" required pattern="[A-Za-z0-9][A-Za-z0-9._-]*" maxlength="64" value="normalized-test-metric" /></label>
+                  <label class="form-field" for="normalized-unit">Normalized unit code<input id="normalized-unit" name="normalized_unit_code" required maxlength="32" value="1" /></label>
+                  <label class="form-field" for="mapping-operation">Operation<select id="mapping-operation" name="operation"><option value="identity">Identity</option><option value="linear">Linear</option></select></label>
+                  <label class="form-field" for="mapping-scale">Scale<input id="mapping-scale" name="scale" inputmode="decimal" value="1" /></label>
+                  <label class="form-field" for="mapping-offset">Offset<input id="mapping-offset" name="offset" inputmode="decimal" value="0" /></label>
+                  <label class="form-field" for="mapping-places">Decimal places<input id="mapping-places" name="decimal_places" type="number" min="0" max="9" value="2" /></label>
+                </div>
+                <div class="form-actions"><button class="control-btn primary" type="submit">Add draft mapping</button></div>
+                <div id="mapping-status" class="management-status" role="status"></div>
+              </form>
+              <hr style="border:0;border-top:1px solid #253243;margin:16px 0" />
+              <form id="mapping-preview-form">
+                <p class="management-note"><strong>Preview with a synthetic scalar.</strong> Exact metric/unit and simulator scope are required.</p>
+                <div class="form-grid">
+                  <label class="form-field" for="preview-device">Simulator<select id="preview-device" name="device_id"></select></label>
+                  <label class="form-field" for="preview-source-code">Source metric code<input id="preview-source-code" name="source_metric_code" required maxlength="64" value="simulated-scalar-reading" /></label>
+                  <label class="form-field" for="preview-source-unit">Source unit code<input id="preview-source-unit" name="source_unit_code" required maxlength="32" value="1" /></label>
+                  <label class="form-field" for="preview-value">Synthetic value<input id="preview-value" name="value" type="number" step="any" required value="42.5" /></label>
+                </div>
+                <div class="form-actions"><button class="control-btn" type="submit">Preview mapping</button></div>
+                <pre id="preview-result" class="management-status" aria-live="polite">No preview run yet.</pre>
+              </form>
+              <hr style="border:0;border-top:1px solid #253243;margin:16px 0" />
+              <div>
+                <p class="management-note"><strong>Golden test vectors</strong> · synthetic inputs and expected normalized outputs only. Passing vectors does not approve or activate a mapping.</p>
+                <div class="form-actions"><button id="run-mapping-tests" class="control-btn primary" type="button">Run all mapping tests</button></div>
+                <div id="mapping-test-summary" class="management-status" role="status">Loading mapping tests…</div>
+                <div class="table-wrap"><table class="mapping-table"><thead><tr><th>Vector</th><th>Source test</th><th>Expected output</th></tr></thead><tbody id="mapping-test-vectors"><tr><td colspan="3" class="empty">Loading vectors…</td></tr></tbody></table></div>
+                <form id="mapping-test-add-form">
+                  <p class="management-note">Add a synthetic golden vector for the current mapping set.</p>
+                  <div class="form-grid">
+                    <label class="form-field" for="vector-device">Simulator<select id="vector-device" name="device_id"></select></label>
+                    <label class="form-field" for="vector-source-code">Source metric code<input id="vector-source-code" name="source_metric_code" required maxlength="64" value="simulated-scalar-reading" /></label>
+                    <label class="form-field" for="vector-source-unit">Source unit code<input id="vector-source-unit" name="source_unit_code" required maxlength="32" value="1" /></label>
+                    <label class="form-field" for="vector-input-value">Synthetic input value<input id="vector-input-value" name="input_value" type="number" step="any" required value="42.5" /></label>
+                    <label class="form-field" for="vector-expected-code">Expected normalized metric<input id="vector-expected-code" name="expected_metric_code" required maxlength="64" value="mapped-synthetic-scalar" /></label>
+                    <label class="form-field" for="vector-expected-unit">Expected normalized unit<input id="vector-expected-unit" name="expected_unit_code" required maxlength="32" value="1" /></label>
+                    <label class="form-field" for="vector-expected-value">Expected normalized value<input id="vector-expected-value" name="expected_value" type="number" step="any" required value="42.50" /></label>
+                  </div>
+                  <div class="form-actions"><button class="control-btn" type="submit">Add test vector</button></div>
+                  <div id="mapping-test-status" class="management-status" role="status"></div>
+                </form>
+                <pre id="mapping-test-results" class="management-status" aria-live="polite">No test run yet.</pre>
+              </div>
+            </div>
+          </section>
+
+          <section id="destination-workbench" class="management-panel full" aria-labelledby="destination-workbench-heading">
+            <div class="panel-head"><div><h3 id="destination-workbench-heading" class="panel-title">Destination / API setup</h3><p class="panel-subtitle">Connection management is intentionally locked to the local synthetic test receiver</p></div></div>
+            <div class="management-body">
+              <div class="management-grid">
+                <div>
+                  <div id="destinations-list" class="destination-card"><strong>Loading local test receiver…</strong></div>
+                  <div class="form-actions"><button id="test-destination" class="control-btn primary" type="button">Run local synthetic delivery test</button></div>
+                  <div id="destination-status" class="management-status" role="status"></div>
+                </div>
+                <div>
+                  <div class="destination-card"><strong>FHIR R4 / EMR</strong><small>Not connected. A facility-specific CapabilityStatement, profiles, write behavior, authentication scopes, and approval are required before a connector can be built.</small></div>
+                  <div class="destination-card"><strong>HL7 v2 / interface engine / EMS</strong><small>Not connected. The exact message profile, transport, acknowledgements, patient-context rules, and authorized test endpoint are required first.</small></div>
+                  <p class="locked-note" style="margin-top:10px"><strong>Endpoint and credential fields are not available.</strong> This preview has no network sender, secrets store, management authentication, or live activation.</p>
+                </div>
+              </div>
+              <p class="management-footnote">For real deployments, management endpoints require authenticated roles, site scoping, approved contracts, external secret management, and a security review. This synthetic preview is not a production control plane.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <div id="api-error" class="api-error" role="status">Dashboard refresh failed. Retrying automatically.</div>
+      <footer class="footer"><span><strong>MediHub local operator preview</strong> · in-memory setup controls · synthetic mode</span><span>At-least-once delivery model · receiver idempotency demonstrated with stable event IDs</span></footer>
+    </main>
+    <script>
+      (() => {
+        const byId = (id) => document.getElementById(id);
+        const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+        const time = (value) => {
+          if (!value) return "—";
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        };
+        const setText = (id, value) => { byId(id).textContent = String(value); };
+        const appendCell = (row, value, className = "") => {
+          const cell = document.createElement("td");
+          if (className) cell.className = className;
+          cell.textContent = value == null ? "—" : String(value);
+          row.appendChild(cell);
+          return cell;
+        };
+        const setState = (id, status, label) => {
+          const target = byId(id);
+          const safeState = ["healthy", "in_process", "ready"].includes(status) ? "healthy" : (status === "starting" ? "starting" : "degraded");
+          target.className = `state ${safeState === "healthy" ? "" : safeState}`.trim();
+          target.textContent = label;
+        };
+        const renderEvents = (events) => {
+          const body = byId("events-body");
+          body.replaceChildren();
+          if (!events.length) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "No synthetic events yet", "empty");
+            cell.colSpan = 4;
+            body.appendChild(row);
+            return;
+          }
+          for (const event of events) {
+            const row = document.createElement("tr");
+            appendCell(row, time(event.received_at));
+            appendCell(row, event.device_id, "mono");
+            appendCell(row, `${Number(event.value).toFixed(2)} · synthetic`, "reading");
+            appendCell(row, String(event.event_id).slice(0, 12), "mono");
+            body.appendChild(row);
+          }
+        };
+        const renderDeliveries = (deliveries) => {
+          const body = byId("deliveries-body");
+          body.replaceChildren();
+          if (!deliveries.length) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "No delivery intents yet", "empty");
+            cell.colSpan = 4;
+            body.appendChild(row);
+            return;
+          }
+          for (const delivery of deliveries) {
+            const row = document.createElement("tr");
+            appendCell(row, time(delivery.updated_at));
+            const stateCell = appendCell(row, delivery.status);
+            const status = ["acknowledged", "queued", "sent", "retryable_failure", "permanent_failure", "rejected"].includes(delivery.status) ? delivery.status : "queued";
+            stateCell.replaceChildren();
+            const chip = document.createElement("span");
+            chip.className = `status-chip ${status}`;
+            chip.textContent = status.replaceAll("_", " ");
+            stateCell.appendChild(chip);
+            appendCell(row, number.format(delivery.attempts));
+            appendCell(row, String(delivery.event_id).slice(0, 12), "mono");
+            body.appendChild(row);
+          }
+        };
+        const renderHolds = (holds) => {
+          const body = byId("holds-body");
+          body.replaceChildren();
+          if (!holds.length) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "No policy holds", "empty");
+            cell.colSpan = 4;
+            body.appendChild(row);
+            return;
+          }
+          for (const hold of holds) {
+            const row = document.createElement("tr");
+            appendCell(row, time(hold.created_at));
+            appendCell(row, hold.destination_id, "mono");
+            appendCell(row, hold.reason_code, "reading");
+            appendCell(row, String(hold.event_id).slice(0, 12), "mono");
+            body.appendChild(row);
+          }
+        };
+        const renderActivity = (entries) => {
+          const body = byId("activity-body");
+          body.replaceChildren();
+          if (!entries.length) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "No audit events", "empty");
+            cell.colSpan = 4;
+            body.appendChild(row);
+            return;
+          }
+          for (const entry of entries) {
+            const row = document.createElement("tr");
+            appendCell(row, time(entry.occurred_at));
+            appendCell(row, String(entry.action).replaceAll("_", " "));
+            appendCell(row, entry.resource_type, "mono");
+            appendCell(row, entry.reason_code, "reading");
+            body.appendChild(row);
+          }
+        };
+        const managementRequest = async (path, method = "GET", body = null) => {
+          const options = { method, cache: "no-store", headers: { Accept: "application/json" } };
+          if (body !== null) {
+            options.headers["Content-Type"] = "application/json";
+            options.body = JSON.stringify(body);
+          }
+          const response = await fetch(path, options);
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const code = data.error || (data.errors && data.errors[0] && data.errors[0].code) || "request_failed";
+            throw new Error(code);
+          }
+          return data;
+        };
+        const makeButton = (label, className, onClick) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = className;
+          button.textContent = label;
+          button.addEventListener("click", onClick);
+          return button;
+        };
+        const loadDevices = async () => {
+          const data = await managementRequest("/api/management/devices");
+          const list = byId("devices-list");
+          const select = byId("preview-device");
+          const vectorSelect = byId("vector-device");
+          list.replaceChildren();
+          select.replaceChildren();
+          vectorSelect.replaceChildren();
+          const enabledDevices = data.devices.filter((device) => device.enabled);
+          for (const device of data.devices) {
+            const row = document.createElement("div");
+            row.className = "workbench-row";
+            const main = document.createElement("div");
+            main.className = "row-main";
+            const title = document.createElement("strong");
+            title.textContent = `${device.device_id} · ${device.enabled ? "registered" : "disabled"}`;
+            const details = document.createElement("small");
+            details.textContent = `${device.model} · firmware ${device.firmware_version} · ${device.adapter_id} ${device.adapter_version} · simulator only`;
+            main.append(title, details);
+            const actions = document.createElement("div");
+            actions.className = "row-actions";
+            const toggle = makeButton(device.enabled ? "Disable" : "Enable", "control-btn subtle", async () => {
+              try {
+                await managementRequest(`/api/management/devices/${encodeURIComponent(device.device_id)}`, "PATCH", { enabled: !device.enabled });
+                setText("device-status", `${device.device_id} updated in this session only.`);
+                await loadDevices();
+              } catch (error) { setText("device-status", error.message); }
+            });
+            const emit = makeButton("Emit sample", "control-btn", async () => {
+              emit.disabled = true;
+              try {
+                const result = await managementRequest(`/api/management/devices/${encodeURIComponent(device.device_id)}/emit`, "POST");
+                setText("device-status", `${device.device_id}: ${result.status}; in-process receipts ${result.unique_test_receipts}.`);
+                await refresh();
+              } catch (error) { setText("device-status", error.message); }
+              finally { emit.disabled = false; }
+            });
+            emit.disabled = !device.enabled;
+            actions.append(toggle, emit);
+            row.append(main, actions);
+            list.appendChild(row);
+          }
+          if (!data.devices.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            empty.textContent = "No simulator registrations.";
+            list.appendChild(empty);
+          }
+          for (const device of enabledDevices) {
+            const option = document.createElement("option");
+            option.value = device.device_id;
+            option.textContent = device.device_id;
+            select.appendChild(option);
+            const vectorOption = document.createElement("option");
+            vectorOption.value = device.device_id;
+            vectorOption.textContent = device.device_id;
+            vectorSelect.appendChild(vectorOption);
+          }
+          if (!enabledDevices.length) {
+            for (const target of [select, vectorSelect]) {
+              const option = document.createElement("option");
+              option.value = "";
+              option.textContent = "No enabled simulator";
+              target.appendChild(option);
+            }
+          }
+        };
+        const loadMappings = async () => {
+          const data = await managementRequest("/api/management/mappings");
+          const set = data.mapping_set;
+          setText("mapping-summary", `${set.mapping_set_id} · version ${set.version} · ${data.scope} · activation disabled`);
+          const body = byId("mapping-entries");
+          body.replaceChildren();
+          for (const entry of set.entries) {
+            const row = document.createElement("tr");
+            appendCell(row, `${entry.source_metric.code} · ${entry.source_unit.code}`, "mono");
+            appendCell(row, entry.operation === "identity" ? "identity" : `linear × ${entry.scale} + ${entry.offset}`, "reading");
+            appendCell(row, `${entry.normalized_metric.code} · ${entry.normalized_unit.code}`, "mono");
+            body.appendChild(row);
+          }
+        };
+        const loadMappingTests = async () => {
+          const data = await managementRequest("/api/management/mapping-tests");
+          const body = byId("mapping-test-vectors");
+          body.replaceChildren();
+          for (const vector of data.vectors) {
+            const row = document.createElement("tr");
+            appendCell(row, vector.vector_id, "mono");
+            appendCell(row, `${vector.source_metric_code} · ${vector.source_unit_code} = ${vector.input_value}`, "mono");
+            appendCell(row, `${vector.expected_metric_code} · ${vector.expected_unit_code} = ${vector.expected_value}`, "reading");
+            body.appendChild(row);
+          }
+          const lastRun = data.last_run_mapping_version ? ` · last run ${data.last_run_mapping_version}` : "";
+          setText("mapping-test-summary", `Mapping ${data.mapping_version} · ${data.test_count} vector(s) · ${data.status}${lastRun} · activation disabled`);
+          if (data.last_report) {
+            byId("mapping-test-results").textContent = JSON.stringify(data.last_report.results, null, 2);
+            const stale = data.status === "stale" ? " (stale against the current mapping)" : "";
+            setText("mapping-test-status", `${data.last_report.status}: ${data.last_report.passed} passed, ${data.last_report.failed} failed for mapping ${data.last_run_mapping_version}${stale}. Activation remains disabled.`);
+          } else {
+            byId("mapping-test-results").textContent = "No test run yet.";
+            setText("mapping-test-status", "");
+          }
+        };
+        const loadDestinations = async () => {
+          const data = await managementRequest("/api/management/destinations");
+          const list = byId("destinations-list");
+          list.replaceChildren();
+          for (const destination of data.destinations) {
+            const card = document.createElement("div");
+            card.className = "destination-card";
+            const title = document.createElement("strong");
+            title.textContent = `${destination.label} · ${destination.status}`;
+            const detail = document.createElement("small");
+            detail.textContent = `${destination.protocol} · ${destination.transport} · network ${destination.network_enabled ? "enabled" : "disabled"} · no endpoint or credential fields`;
+            card.append(title, detail);
+            list.appendChild(card);
+          }
+        };
+        const loadManagement = async () => {
+          try {
+            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadDestinations()]);
+          } catch (error) {
+            setText("device-status", `Management workbench unavailable (${error.message}).`);
+          }
+        };
+        byId("register-device").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const device = await managementRequest("/api/management/devices", "POST");
+            setText("device-status", `${device.device_id} registered as an in-memory simulator.`);
+            await loadDevices();
+          } catch (error) { setText("device-status", error.message); }
+          finally { button.disabled = false; }
+        });
+        byId("mapping-add-form").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const values = new FormData(form);
+          const body = {
+            source_metric_code: values.get("source_metric_code"),
+            source_unit_code: values.get("source_unit_code"),
+            normalized_metric_code: values.get("normalized_metric_code"),
+            normalized_unit_code: values.get("normalized_unit_code"),
+            operation: values.get("operation"),
+            scale: values.get("scale"),
+            offset: values.get("offset"),
+            decimal_places: Number(values.get("decimal_places")),
+          };
+          try {
+            const result = await managementRequest("/api/management/mappings/entries", "POST", body);
+            setText("mapping-status", `Draft added as version ${result.mapping_set.version}; it remains inactive.`);
+            await loadMappings();
+            await loadMappingTests();
+          } catch (error) { setText("mapping-status", error.message); }
+        });
+        byId("mapping-preview-form").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          const body = {
+            device_id: values.get("device_id"),
+            source_metric_code: values.get("source_metric_code"),
+            source_unit_code: values.get("source_unit_code"),
+            value: Number(values.get("value")),
+          };
+          try {
+            const result = await managementRequest("/api/management/mappings/preview", "POST", body);
+            byId("preview-result").textContent = JSON.stringify(result.result, null, 2);
+          } catch (error) { byId("preview-result").textContent = `Preview rejected (${error.message}).`; }
+        });
+        byId("mapping-test-add-form").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          const body = {
+            device_id: values.get("device_id"),
+            source_metric_code: values.get("source_metric_code"),
+            source_unit_code: values.get("source_unit_code"),
+            input_value: values.get("input_value"),
+            expected_metric_code: values.get("expected_metric_code"),
+            expected_unit_code: values.get("expected_unit_code"),
+            expected_value: values.get("expected_value"),
+          };
+          try {
+            const result = await managementRequest("/api/management/mapping-tests/vectors", "POST", body);
+            setText("mapping-test-status", `${result.vector.vector_id} added for mapping ${result.mapping_version}; rerun tests after mapping edits.`);
+            await loadMappingTests();
+          } catch (error) { setText("mapping-test-status", error.message); }
+        });
+        byId("run-mapping-tests").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await managementRequest("/api/management/mapping-tests/run", "POST");
+            setText("mapping-test-results", JSON.stringify(result.results, null, 2));
+            setText("mapping-test-status", `${result.status}: ${result.passed} passed, ${result.failed} failed for mapping ${result.mapping_version}. Activation remains disabled.`);
+            await loadMappingTests();
+          } catch (error) { setText("mapping-test-status", error.message); }
+          finally { button.disabled = false; }
+        });
+        byId("reset-mappings").addEventListener("click", async () => {
+          try {
+            const result = await managementRequest("/api/management/mappings/reset", "POST");
+            setText("mapping-status", `Demo mapping reset to version ${result.mapping_set.version}.`);
+            await loadMappings();
+            await loadMappingTests();
+          } catch (error) { setText("mapping-status", error.message); }
+        });
+        byId("test-destination").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await managementRequest("/api/management/destinations/test", "POST");
+            setText("destination-status", `${result.status}: local in-process receiver only; ${result.unique_test_receipts} synthetic receipts; network disabled.`);
+            await refresh();
+          } catch (error) { setText("destination-status", error.message); }
+          finally { button.disabled = false; }
+        });
+        const refresh = async () => {
+          try {
+            const response = await fetch("/api/dashboard", { cache: "no-store", headers: { Accept: "application/json" } });
+            if (!response.ok) throw new Error("snapshot unavailable");
+            const data = await response.json();
+            const totals = data.totals;
+            setText("events-inserted", number.format(totals.events_inserted));
+            setText("duplicates", number.format(totals.duplicate_events));
+            setText("attempts", number.format(totals.delivery_attempts));
+            setText("acknowledged", number.format(totals.acknowledged_deliveries));
+            setText("pending", number.format(totals.pending_deliveries));
+            setText("blocked", number.format(totals.blocked_routes));
+            setText("events-count", `${data.recent_events.length} recent`);
+            setText("deliveries-count", `${data.recent_deliveries.length} intents`);
+            setText("holds-count", `${totals.blocked_routes} holds`);
+            setText("activity-count", `${data.recent_activity.length} recent`);
+            setText("updated-at", time(data.updated_at));
+            setText("source-name", data.source.adapter_id);
+            setText("source-detail", data.source.detail_code);
+            setState("source-state", data.source.status, data.source.status);
+            setState("receiver-state", data.receiver.status, data.receiver.status === "in_process" ? "Connected" : data.receiver.status);
+            renderEvents(data.recent_events);
+            renderDeliveries(data.recent_deliveries);
+            renderHolds(data.recent_holds);
+            renderActivity(data.recent_activity);
+            byId("api-error").classList.remove("visible");
+          } catch (_) {
+            byId("api-error").classList.add("visible");
+          }
+        };
+        refresh();
+        loadManagement();
+        window.setInterval(refresh, 2000);
+      })();
+    </script>
+  </body>
+</html>

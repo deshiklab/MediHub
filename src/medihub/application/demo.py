@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from medihub.adapters.destinations.simulator import SyntheticDestinationAdapter
+from medihub.adapters.destinations.fhir_r4 import SyntheticFhirR4DestinationAdapter
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
 from medihub.application.ingestion import IngestionService
 from medihub.application.outbox_worker import OutboxWorker
@@ -40,13 +40,13 @@ async def run_synthetic_demo(config: SyntheticDeviceConfig) -> DemoSummary:
             destination_id="medihub.synthetic-test-receiver",
             site_id=config.site_id,
             name="MediHub in-process synthetic receiver",
-            protocol=DestinationProtocol.MEDIHUB_API,
-            contract_version="synthetic-test-v1",
+            protocol=DestinationProtocol.FHIR_R4,
+            contract_version="generic-r4-synthetic-observation-v1",
             connection_ref="in-process",
             enabled=True,
             accepts_synthetic_data=True,
         )
-        receiver = SyntheticDestinationAdapter(destination)
+        receiver = SyntheticFhirR4DestinationAdapter(destination)
         simulator = SyntheticDeviceAdapter(config)
         ingestion = IngestionService(store)
 

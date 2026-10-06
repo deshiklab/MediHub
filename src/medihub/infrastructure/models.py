@@ -46,6 +46,61 @@ class EventRecord(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    routing_holds: Mapped[list["RoutingHoldRecord"]] = relationship(
+        back_populates="event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AuditEventRecord(Base):
+    """Append-only audit metadata with no observation payload or patient fields."""
+
+    __tablename__ = "audit_event"
+    __table_args__ = (
+        Index("ix_audit_event_site_occurred", "site_id", "occurred_at"),
+        Index("ix_audit_event_correlation", "correlation_id"),
+        Index("ix_audit_event_resource", "resource_type", "resource_id"),
+    )
+
+    audit_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    site_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    resource_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    correlation_id: Mapped[str | None] = mapped_column(String(256))
+    reason_code: Mapped[str | None] = mapped_column(String(128))
+
+
+class RoutingHoldRecord(Base):
+    """Durable policy hold without payload text or any automatic resolution state."""
+
+    __tablename__ = "routing_hold"
+    __table_args__ = (
+        UniqueConstraint(
+            "event_id",
+            "destination_id",
+            name="uq_routing_hold_event_destination",
+        ),
+        Index("ix_routing_hold_created_at", "created_at"),
+        Index("ix_routing_hold_destination_created", "destination_id", "created_at"),
+    )
+
+    hold_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    event_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("event_store.event_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    destination_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    event: Mapped[EventRecord] = relationship(back_populates="routing_holds")
 
 
 class DeliveryOutboxRecord(Base):
@@ -121,4 +176,10 @@ class DeliveryAttemptRecord(Base):
     outbox: Mapped[DeliveryOutboxRecord] = relationship(back_populates="attempts")
 
 
-__all__ = ["DeliveryAttemptRecord", "DeliveryOutboxRecord", "EventRecord"]
+__all__ = [
+    "AuditEventRecord",
+    "DeliveryAttemptRecord",
+    "DeliveryOutboxRecord",
+    "EventRecord",
+    "RoutingHoldRecord",
+]

@@ -12,13 +12,21 @@ The first synthetic-only vertical slice is underway:
 
 - Pydantic domain contracts, adapter/destination ports, a deterministic simulator, and an NDJSON CLI.
 - A conservative route policy: synthetic data needs explicit test-destination acceptance; live data needs a matching, active, confirmed patient/device association and synchronized observation time.
-- Async SQLAlchemy event persistence and an outbox committed in one transaction, with event-ID deduplication and collision detection.
+- Async SQLAlchemy event persistence, eligible outbox intents, and policy holds committed atomically, with event-ID deduplication and collision detection.
+- A durable routing-hold ledger that stores only destination IDs and stable reason codes; it has no free-text payloads or automatic override workflow.
+- A privacy-minimized lifecycle audit ledger that commits event, route, and outbox transitions atomically; see [audit scope and limitations](docs/AUDIT_TRAIL.md).
 - A single-item outbox dispatcher with database leases, attempt history, ACK/rejection handling, bounded exponential retries, and expired-lease recovery. Delivery is at-least-once; receivers should deduplicate on the stable event ID.
 - A bounded, synthetic-only NDJSON replay CLI that validates events and demonstrates event-store deduplication without sending to a receiver.
-- An in-process synthetic receiver and end-to-end `medihub demo` command; it opens no network connection.
+- A generic synthetic FHIR R4 Observation mapper and in-process test receiver used by the end-to-end `medihub demo` command; it opens no network connection.
+- A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only management workbench for simulator devices, mapping previews and synthetic golden-vector QA, and the in-process test receiver; it has no physical-device controls or external destination configuration.
+- A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
+- A Phase 0 integration-discovery worksheet and strict local TOML profile preflight; it reports safe blocker codes and never enables connectivity.
+- A machine-readable source-to-canonical-to-destination mapping worksheet and strict linter; it never executes transformations or activates mappings.
+- An offline mapping workbench that applies exact-match, versioned synthetic-only mappings to bounded synthetic fixtures; it has no database or destination connection.
+- A file-backed synthetic recovery drill that simulates an expired outbox lease, a gateway engine restart, a transient receiver failure, and queue drain without external connectivity.
 - Alembic migrations for SQLite development and PostgreSQL; CI is configured to exercise PostgreSQL 16 and concurrent row claims.
 
-This is not production-ready storage. Persisted event JSON can contain patient identifiers if supplied. Use synthetic data only until facility-approved access controls, encryption, retention, backups/recovery, and operational/security controls are implemented. There is not yet a real device protocol, destination connector, operator review UI, management API, or EHR/SHR integration. The replay command is local/test-only and does not deliver events. The simulator uses `example.invalid` terminology identifiers.
+This is not production-ready storage. Persisted event JSON can contain patient identifiers if supplied. Use synthetic data only until facility-approved access controls, encryption, retention, backups/recovery, and operational/security controls are implemented. There is not yet a real device protocol, destination connector, operator review workflow, management API, or EHR/SHR integration. The dashboard below includes in-memory synthetic setup controls but is not a production operator control plane: it has no authentication, persistence, real device control, or external API connection. The audit ledger is metadata-only, unauthenticated, and not tamper-evident or a compliance claim. The replay command is local/test-only and does not deliver events. The simulator uses `example.invalid` terminology identifiers.
 
 ## Local development
 
@@ -33,6 +41,52 @@ ruff format --check .
 pytest
 ```
 
+### Phase 0: integration discovery
+
+The first device, receiving system, facility, and patient/device association workflow are not yet specified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md), copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
+
+```bash
+python -m medihub validate-profile config/integration-profile.local.toml
+```
+
+The command reports schema validity, readiness, and stable safe codes only; it never echoes profile values, and `connectivity_enabled` is always `false`. Completed profiles may contain sensitive facility/vendor details: keep them local, and never store secrets or PHI. Even `discovery_complete` is not production authorization or a conformance claim.
+
+For the source-to-canonical-to-destination worksheet, copy `config/device-mapping.example.toml` to the Git-ignored `config/device-mapping.local.toml`, fill it only from authorized device/synthetic messages and the actual receiver contract, then run:
+
+```bash
+python -m medihub validate-mapping config/device-mapping.local.toml
+```
+
+This linter checks worksheet completeness and safe review gates only. `mapping_activation_enabled` is always `false`; no device metric is normalized and no receiver contract is inferred. See [the worksheet guide](docs/DEVICE_MAPPING_WORKSHEET.md).
+
+For an isolated synthetic-only mapping dry run (no database or receiver), generate a fixture and map it with the committed simulator example:
+
+```bash
+python -m medihub simulate --count 3 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z > /tmp/medihub-synthetic.ndjson
+python -m medihub map-synthetic /tmp/medihub-synthetic.ndjson \
+  --mapping config/synthetic-mapping.example.toml
+```
+
+The mapper rejects patient context and non-synthetic inputs and emits no partial output on failure. It does not run as part of ingestion. See [the synthetic workbench limits](docs/SYNTHETIC_MAPPING_WORKBENCH.md).
+
+Exercise file-backed queue recovery using a disposable SQLite file and the in-process synthetic receiver:
+
+```bash
+python -m medihub recovery-demo --count 3 --seed 7 \
+  --duplicate-every 2 --start-at 2026-10-07T08:00:00Z
+```
+
+The command simulates an engine restart after an unfinished lease, injects one retryable receiver failure, and reports aggregate recovery counts. Its temporary DB is removed at exit; it does not use `MEDIHUB_DATABASE_URL` or contact a device/external receiver. This is not a power-loss, backup/restore, production, or facility acceptance test. See [the drill limitations](docs/SYNTHETIC_RECOVERY_DRILL.md).
+
+Launch the synthetic operations dashboard and demo-only setup workbench locally:
+
+```bash
+python -m medihub dashboard --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000`. The operations feed emits one synthetic event every two seconds, redelivers every fourth event for deduplication, and records a `synthetic_not_accepted` hold. The setup workbench can register/disable simulator-only rows, add and preview synthetic mapping drafts, run version-tagged golden mapping tests with stale-result detection, and send a test event to the in-process receiver. Device/mapping settings and event history are ephemeral; the event store retains at most 500 events, holds, and their audit metadata in in-memory SQLite. There are no physical device connections, external endpoint/credential fields, or live activation. For an Arena browser preview, bind to `0.0.0.0`; this unauthenticated, non-persistent demo must not be exposed as a production service. See [management workbench limits](docs/SYNTHETIC_MANAGEMENT_WORKBENCH.md).
+
 Run an end-to-end synthetic check (in-memory SQLite and an in-process test receiver; it opens no network connection):
 
 ```bash
@@ -40,7 +94,7 @@ python -m medihub demo --count 5 --seed 7 \
   --start-at 2026-10-07T08:00:00Z
 ```
 
-The JSON summary reports ingested events, duplicates, acknowledgements, test receipts, and simulator health. It is not a FHIR/HL7 integration test.
+The JSON summary reports ingested events, duplicates, acknowledgements, test receipts, and simulator health. The demo validates a small generic R4 Observation shape only; it is not a network integration test or a validator for Bangladesh Core FHIR profiles or a facility contract.
 
 Create the local SQLite schema for persistent replay (the default database file is ignored by Git):
 

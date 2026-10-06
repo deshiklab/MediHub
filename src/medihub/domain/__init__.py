@@ -12,6 +12,12 @@ from .delivery import (
     ValidationSeverity,
 )
 from .device import AdapterHealth, AdapterHealthStatus, DeviceReference, DeviceRegistration
+from .mapping import (
+    SyntheticMappingError,
+    SyntheticMappingResult,
+    SyntheticMappingSet,
+    SyntheticMetricMapping,
+)
 from .observation import (
     Coding,
     EventOrigin,
@@ -21,6 +27,7 @@ from .observation import (
     SourceProvenance,
     TimeQuality,
 )
+from .routing import BlockedRoute
 
 __all__ = [
     "AdapterHealth",
@@ -28,6 +35,7 @@ __all__ = [
     "AssociationSource",
     "AssociationStatus",
     "AuditAction",
+    "BlockedRoute",
     "AuditEvent",
     "Coding",
     "ClaimedDelivery",
@@ -43,6 +51,10 @@ __all__ = [
     "PatientReference",
     "QualityFlag",
     "SourceProvenance",
+    "SyntheticMappingError",
+    "SyntheticMappingResult",
+    "SyntheticMappingSet",
+    "SyntheticMetricMapping",
     "TimeQuality",
     "ValidationIssue",
     "ValidationSeverity",
