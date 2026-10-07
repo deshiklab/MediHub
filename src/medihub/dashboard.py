@@ -132,6 +132,28 @@ def create_dashboard_app(
     async def reset_synthetic_mappings() -> dict[str, object]:
         return await workbench.reset_mappings()
 
+    @app.get("/api/management/mappings/revisions", include_in_schema=False)
+    async def list_synthetic_mapping_revisions() -> dict[str, object]:
+        return await workbench.mapping_revisions()
+
+    @app.get(
+        "/api/management/mappings/revisions/{from_version}/compare/{to_version}",
+        include_in_schema=False,
+    )
+    async def compare_synthetic_mapping_revisions(
+        from_version: str,
+        to_version: str,
+    ) -> dict[str, object]:
+        return await workbench.compare_mapping_revisions(from_version, to_version)
+
+    @app.get("/api/management/mappings/revisions/{version}", include_in_schema=False)
+    async def get_synthetic_mapping_revision(version: str) -> dict[str, object]:
+        return await workbench.mapping_revision(version)
+
+    @app.post("/api/management/mappings/revisions/{version}/restore", include_in_schema=False)
+    async def restore_synthetic_mapping_revision(version: str) -> dict[str, object]:
+        return await workbench.restore_mapping_revision(version)
+
     @app.get("/api/management/mapping-tests", include_in_schema=False)
     async def list_synthetic_mapping_tests() -> dict[str, object]:
         return await workbench.mapping_test_vectors()

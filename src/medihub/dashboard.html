@@ -285,6 +285,14 @@
                 </form>
                 <pre id="mapping-test-results" class="management-status" aria-live="polite">No test run yet.</pre>
               </div>
+              <hr style="border:0;border-top:1px solid #253243;margin:16px 0" />
+              <div>
+                <p class="management-note"><strong>Revision history</strong> · compare immutable synthetic snapshots or restore an older snapshot as a new inactive draft version. History is in memory and capped at 100 revisions.</p>
+                <div id="mapping-revision-summary" class="management-status" role="status">Loading revision history…</div>
+                <div class="table-wrap"><table class="mapping-table"><thead><tr><th>Version</th><th>Change</th><th>Entries</th><th>Recorded</th><th>Actions</th></tr></thead><tbody id="mapping-revisions"><tr><td colspan="5" class="empty">Loading revisions…</td></tr></tbody></table></div>
+                <div id="mapping-revision-status" class="management-status" role="status"></div>
+                <pre id="mapping-revision-comparison" class="management-status" aria-live="polite">Select “Compare to current” on a revision to inspect its synthetic rule changes.</pre>
+              </div>
             </div>
           </section>
 
@@ -542,6 +550,42 @@
             setText("mapping-test-status", "");
           }
         };
+        const loadMappingRevisions = async () => {
+          const data = await managementRequest("/api/management/mappings/revisions");
+          const body = byId("mapping-revisions");
+          body.replaceChildren();
+          for (const revision of data.revisions) {
+            const row = document.createElement("tr");
+            appendCell(row, `${revision.version}${revision.is_current ? " · current" : ""}`, "mono");
+            appendCell(row, revision.restored_from_version ? `restore from ${revision.restored_from_version}` : revision.change_type);
+            appendCell(row, revision.entry_count);
+            appendCell(row, new Date(revision.changed_at).toLocaleString());
+            const actionsCell = appendCell(row, "");
+            const actions = document.createElement("div");
+            actions.className = "row-actions";
+            const compare = makeButton("Compare to current", "control-btn subtle", async () => {
+              try {
+                const result = await managementRequest(`/api/management/mappings/revisions/${encodeURIComponent(revision.version)}/compare/${encodeURIComponent(data.current_version)}`);
+                byId("mapping-revision-comparison").textContent = JSON.stringify(result, null, 2);
+              } catch (error) { setText("mapping-revision-status", error.message); }
+            });
+            compare.disabled = revision.is_current;
+            const restore = makeButton("Restore as new draft", "control-btn subtle", async () => {
+              if (!window.confirm(`Create an inactive mapping draft from revision ${revision.version}?`)) return;
+              try {
+                const result = await managementRequest(`/api/management/mappings/revisions/${encodeURIComponent(revision.version)}/restore`, "POST");
+                setText("mapping-revision-status", `Restored ${result.restored_from_version} as new inactive version ${result.mapping_set.version}. Mapping tests are now stale.`);
+                byId("mapping-revision-comparison").textContent = "Select “Compare to current” on a revision to inspect its synthetic rule changes.";
+                await Promise.all([loadMappings(), loadMappingTests(), loadMappingRevisions()]);
+              } catch (error) { setText("mapping-revision-status", error.message); }
+            });
+            restore.disabled = revision.is_current;
+            actions.append(compare, restore);
+            actionsCell.appendChild(actions);
+            body.appendChild(row);
+          }
+          setText("mapping-revision-summary", `${data.revision_count} retained revision(s) · ${data.older_revisions_discarded} older revision(s) discarded · current ${data.current_version} · inactive synthetic drafts only`);
+        };
         const loadDestinations = async () => {
           const data = await managementRequest("/api/management/destinations");
           const list = byId("destinations-list");
@@ -559,7 +603,7 @@
         };
         const loadManagement = async () => {
           try {
-            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadDestinations()]);
+            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions(), loadDestinations()]);
           } catch (error) {
             setText("device-status", `Management workbench unavailable (${error.message}).`);
           }
@@ -593,6 +637,7 @@
             setText("mapping-status", `Draft added as version ${result.mapping_set.version}; it remains inactive.`);
             await loadMappings();
             await loadMappingTests();
+            await loadMappingRevisions();
           } catch (error) { setText("mapping-status", error.message); }
         });
         byId("mapping-preview-form").addEventListener("submit", async (event) => {
@@ -644,6 +689,7 @@
             setText("mapping-status", `Demo mapping reset to version ${result.mapping_set.version}.`);
             await loadMappings();
             await loadMappingTests();
+            await loadMappingRevisions();
           } catch (error) { setText("mapping-status", error.message); }
         });
         byId("test-destination").addEventListener("click", async (event) => {

@@ -52,6 +52,13 @@ async def _request_workbench():
             assert mappings["mapping_activation_enabled"] is False
             assert mappings["mapping_set"]["scope"] == "synthetic_only"
             assert len(mappings["mapping_set"]["entries"]) == 1
+            initial_history = (await client.get("/api/management/mappings/revisions")).json()
+            assert initial_history["current_version"] == "1.0.0"
+            assert initial_history["revision_count"] == 1
+            assert initial_history["revisions"][0]["change_type"] == "initial"
+            initial_revision = await client.get("/api/management/mappings/revisions/1.0.0")
+            assert initial_revision.status_code == 200
+            assert initial_revision.json()["revision"]["mapping_set"]["version"] == "1.0.0"
             initial_vectors = (await client.get("/api/management/mapping-tests")).json()
             assert initial_vectors["status"] == "not_run"
             assert len(initial_vectors["vectors"]) == 1
@@ -77,6 +84,14 @@ async def _request_workbench():
             assert draft.status_code == 200
             assert draft.json()["mapping_activation_enabled"] is False
             assert draft.json()["mapping_set"]["version"] == "1.0.1"
+            comparison = await client.get("/api/management/mappings/revisions/1.0.0/compare/1.0.1")
+            assert comparison.status_code == 200
+            assert comparison.json()["summary"] == {"added": 1, "removed": 0, "changed": 0}
+            assert comparison.json()["activation_enabled"] is False
+            current_revision = await client.get("/api/management/mappings/revisions/1.0.1")
+            assert current_revision.status_code == 200
+            assert current_revision.json()["revision"]["change_type"] == "entry_added"
+            assert len(current_revision.json()["revision"]["mapping_set"]["entries"]) == 2
             invalidated_vectors = (await client.get("/api/management/mapping-tests")).json()
             assert invalidated_vectors["status"] == "stale"
             assert invalidated_vectors["last_run_mapping_version"] == "1.0.0"
@@ -161,6 +176,30 @@ async def _request_workbench():
             assert receiver_test.json()["status"] == "passed"
             assert receiver_test.json()["network_enabled"] is False
 
+            current_restore = await client.post("/api/management/mappings/revisions/1.0.1/restore")
+            assert current_restore.status_code == 409
+            missing_revision = await client.post("/api/management/mappings/revisions/9.9.9/restore")
+            assert missing_revision.status_code == 404
+            restored = await client.post("/api/management/mappings/revisions/1.0.0/restore")
+            assert restored.status_code == 200
+            assert restored.json()["restored_from_version"] == "1.0.0"
+            assert restored.json()["mapping_set"]["version"] == "1.0.2"
+            assert len(restored.json()["mapping_set"]["entries"]) == 1
+            restore_comparison = await client.get(
+                "/api/management/mappings/revisions/1.0.1/compare/1.0.2"
+            )
+            assert restore_comparison.json()["summary"] == {
+                "added": 0,
+                "removed": 1,
+                "changed": 0,
+            }
+            restored_history = (await client.get("/api/management/mappings/revisions")).json()
+            assert restored_history["revisions"][0]["change_type"] == "restore"
+            assert restored_history["revisions"][0]["restored_from_version"] == "1.0.0"
+            stale_after_restore = (await client.get("/api/management/mapping-tests")).json()
+            assert stale_after_restore["status"] == "stale"
+            assert stale_after_restore["last_run_mapping_version"] == "1.0.1"
+
             return await client.get("/")
 
 
@@ -172,5 +211,7 @@ def test_management_workbench_is_strict_synthetic_only_and_operational() -> None
     assert "Preview mapping" in page.text
     assert "Golden test vectors" in page.text
     assert "Run all mapping tests" in page.text
+    assert "Revision history" in page.text
+    assert "Restore as new draft" in page.text
     assert "Endpoint and credential fields are not available" in page.text
     assert "no live connections" in page.text.lower()

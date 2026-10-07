@@ -21,7 +21,7 @@ from medihub.domain import (
     SyntheticMetricMapping,
     TimeQuality,
 )
-from medihub.domain.base import DomainModel
+from medihub.domain.base import AwareDateTime, DomainModel
 
 SIMULATOR_MANUFACTURER = "MediHub Synthetic"
 SIMULATOR_MODEL = "scalar-simulator-v1"
@@ -35,6 +35,7 @@ TEST_DESTINATION_ID = "medihub.synthetic-test-receiver"
 MAX_SIMULATOR_DEVICES = 20
 MAX_MANAGED_MAPPINGS = 50
 MAX_MAPPING_TEST_VECTORS = 50
+MAX_MAPPING_REVISIONS = 100
 
 SyntheticCode = Annotated[
     str,
@@ -118,6 +119,15 @@ class SyntheticMappingTestVector(SyntheticMappingTestVectorDraft):
     vector_id: str = Field(pattern=r"^mapping-test-[0-9]{3}$")
 
 
+class SyntheticMappingRevision(DomainModel):
+    """One immutable, ephemeral snapshot of a synthetic mapping revision."""
+
+    mapping_set: SyntheticMappingSet
+    changed_at: AwareDateTime
+    change_type: Literal["initial", "entry_added", "reset", "restore"]
+    restored_from_version: str | None = None
+
+
 class ManagementWorkbenchError(ValueError):
     """Safe error code/status for synthetic management operations."""
 
@@ -142,6 +152,14 @@ class SyntheticManagementWorkbench:
             "sim-device-001": SyntheticDeviceRecord(device_id="sim-device-001")
         }
         self._mapping_set = _example_mapping_set()
+        self._mapping_revisions: list[SyntheticMappingRevision] = [
+            SyntheticMappingRevision(
+                mapping_set=self._mapping_set,
+                changed_at=datetime.now(UTC),
+                change_type="initial",
+            )
+        ]
+        self._discarded_mapping_revisions = 0
         self._test_vectors: list[SyntheticMappingTestVector] = [
             SyntheticMappingTestVector(
                 vector_id="mapping-test-001",
@@ -250,6 +268,7 @@ class SyntheticManagementWorkbench:
                     "duplicate_or_invalid_synthetic_mapping", 409
                 ) from None
             self._mapping_set = updated
+            self._record_mapping_revision(updated, "entry_added")
             return {
                 "scope": "synthetic_only",
                 "mapping_activation_enabled": False,
@@ -260,10 +279,174 @@ class SyntheticManagementWorkbench:
         async with self._lock:
             version = _next_patch_version(self._mapping_set.version)
             self._mapping_set = _example_mapping_set(version=version)
+            self._record_mapping_revision(self._mapping_set, "reset")
             return {
                 "scope": "synthetic_only",
                 "mapping_activation_enabled": False,
                 "mapping_set": self._mapping_set.model_dump(mode="json"),
+            }
+
+    def _record_mapping_revision(
+        self,
+        mapping_set: SyntheticMappingSet,
+        change_type: Literal["initial", "entry_added", "reset", "restore"],
+        *,
+        restored_from_version: str | None = None,
+    ) -> None:
+        self._mapping_revisions.append(
+            SyntheticMappingRevision(
+                mapping_set=mapping_set,
+                changed_at=datetime.now(UTC),
+                change_type=change_type,
+                restored_from_version=restored_from_version,
+            )
+        )
+        overflow = len(self._mapping_revisions) - MAX_MAPPING_REVISIONS
+        if overflow > 0:
+            del self._mapping_revisions[:overflow]
+            self._discarded_mapping_revisions += overflow
+
+    async def mapping_revisions(self) -> dict[str, object]:
+        async with self._lock:
+            current_version = self._mapping_set.version
+            revisions = [
+                {
+                    "version": revision.mapping_set.version,
+                    "changed_at": revision.changed_at.isoformat(),
+                    "change_type": revision.change_type,
+                    "restored_from_version": revision.restored_from_version,
+                    "entry_count": len(revision.mapping_set.entries),
+                    "is_current": revision.mapping_set.version == current_version,
+                }
+                for revision in reversed(self._mapping_revisions)
+            ]
+            return {
+                "scope": "synthetic_only",
+                "persistent": False,
+                "current_version": current_version,
+                "revision_count": len(revisions),
+                "revision_limit": MAX_MAPPING_REVISIONS,
+                "older_revisions_discarded": self._discarded_mapping_revisions,
+                "revisions": revisions,
+            }
+
+    async def mapping_revision(self, version: str) -> dict[str, object]:
+        async with self._lock:
+            revision = next(
+                (
+                    candidate
+                    for candidate in self._mapping_revisions
+                    if candidate.mapping_set.version == version
+                ),
+                None,
+            )
+            if revision is None:
+                raise ManagementWorkbenchError("mapping_revision_not_found", 404)
+            return {
+                "scope": "synthetic_only",
+                "persistent": False,
+                "is_current": revision.mapping_set.version == self._mapping_set.version,
+                "revision": {
+                    "version": revision.mapping_set.version,
+                    "changed_at": revision.changed_at.isoformat(),
+                    "change_type": revision.change_type,
+                    "restored_from_version": revision.restored_from_version,
+                    "mapping_set": revision.mapping_set.model_dump(mode="json"),
+                },
+            }
+
+    async def compare_mapping_revisions(
+        self,
+        from_version: str,
+        to_version: str,
+    ) -> dict[str, object]:
+        async with self._lock:
+            revisions = {item.mapping_set.version: item for item in self._mapping_revisions}
+            from_revision = revisions.get(from_version)
+            to_revision = revisions.get(to_version)
+            if from_revision is None or to_revision is None:
+                raise ManagementWorkbenchError("mapping_revision_not_found", 404)
+            before = _index_mapping_entries(from_revision.mapping_set)
+            after = _index_mapping_entries(to_revision.mapping_set)
+
+        def signature_json(signature: tuple[str, str, str, str]) -> dict[str, str]:
+            metric_system, metric_code, unit_system, unit_code = signature
+            return {
+                "metric_system": metric_system,
+                "metric_code": metric_code,
+                "unit_system": unit_system,
+                "unit_code": unit_code,
+            }
+
+        added = [
+            {
+                "source_signature": signature_json(signature),
+                "entry": after[signature].model_dump(mode="json"),
+            }
+            for signature in sorted(after.keys() - before.keys())
+        ]
+        removed = [
+            {
+                "source_signature": signature_json(signature),
+                "entry": before[signature].model_dump(mode="json"),
+            }
+            for signature in sorted(before.keys() - after.keys())
+        ]
+        changed = [
+            {
+                "source_signature": signature_json(signature),
+                "from": before[signature].model_dump(mode="json"),
+                "to": after[signature].model_dump(mode="json"),
+            }
+            for signature in sorted(before.keys() & after.keys())
+            if before[signature] != after[signature]
+        ]
+        return {
+            "scope": "synthetic_only",
+            "activation_enabled": False,
+            "from_version": from_version,
+            "to_version": to_version,
+            "summary": {
+                "added": len(added),
+                "removed": len(removed),
+                "changed": len(changed),
+            },
+            "added": added,
+            "removed": removed,
+            "changed": changed,
+        }
+
+    async def restore_mapping_revision(self, version: str) -> dict[str, object]:
+        async with self._lock:
+            revision = next(
+                (
+                    candidate
+                    for candidate in self._mapping_revisions
+                    if candidate.mapping_set.version == version
+                ),
+                None,
+            )
+            if revision is None:
+                raise ManagementWorkbenchError("mapping_revision_not_found", 404)
+            if version == self._mapping_set.version:
+                raise ManagementWorkbenchError("mapping_revision_already_current", 409)
+            restored = SyntheticMappingSet.model_validate(
+                {
+                    **revision.mapping_set.model_dump(mode="python"),
+                    "version": _next_patch_version(self._mapping_set.version),
+                }
+            )
+            self._mapping_set = restored
+            self._record_mapping_revision(
+                restored,
+                "restore",
+                restored_from_version=version,
+            )
+            return {
+                "scope": "synthetic_only",
+                "activation_enabled": False,
+                "restored_from_version": version,
+                "mapping_set": restored.model_dump(mode="json"),
             }
 
     async def preview_mapping(
@@ -450,6 +633,20 @@ class SyntheticManagementWorkbench:
         }
 
 
+def _index_mapping_entries(
+    mapping_set: SyntheticMappingSet,
+) -> dict[tuple[str, str, str, str], SyntheticMetricMapping]:
+    return {
+        (
+            entry.source_metric.system,
+            entry.source_metric.code,
+            entry.source_unit.system,
+            entry.source_unit.code,
+        ): entry
+        for entry in mapping_set.entries
+    }
+
+
 def _event_from_synthetic_values(
     device: SyntheticDeviceRecord,
     *,
@@ -524,5 +721,6 @@ __all__ = [
     "SyntheticManagementWorkbench",
     "SyntheticMappingEntryDraft",
     "SyntheticMappingPreviewRequest",
+    "SyntheticMappingRevision",
     "SyntheticMappingTestVectorDraft",
 ]
