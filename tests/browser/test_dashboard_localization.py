@@ -63,7 +63,7 @@ SNAPSHOT = {
 }
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def browser() -> Iterator[Browser]:
     """Launch Chromium installed by the browser-test setup step."""
 
