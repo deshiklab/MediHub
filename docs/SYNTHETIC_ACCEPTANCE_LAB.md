@@ -30,17 +30,17 @@ The JSON output contains stage summaries, aggregate pass/fail assertions, and lo
 | Pipeline and deduplication | Simulator → ingestion → event store/outbox → synthetic FHIR-shaped in-process receiver; expected duplicate count, unique inserts, acknowledgements, and unique receipts. |
 | Mapping | Exact-scope, identity mapping of the simulator's `example.invalid` scalar code and dimensionless unit using a built-in synthetic-only mapping; verifies complete, non-partial, synthetic-only results. |
 | Routing and fault/replay | Persists one expected policy hold for a destination that does not accept synthetic data; injects one retryable failure, then one terminal rejection; exercises guarded synthetic terminal replay; verifies final acknowledgement and an empty pending queue. |
-| Ambiguous acknowledgement | The synthetic receiver accepts an event, then the one-shot injector withholds its ACK. The worker is restarted against a temporary file-backed outbox, retries with the same event ID, and receives an ACK. Checks two receiver sends against one unique synthetic receipt. |
+| Ambiguous acknowledgement | The synthetic receiver accepts an event, then the one-shot injector withholds its ACK. The worker restarts against a temporary file-backed outbox and the receiver reopens its separate durable synthetic inbox; the retry uses the same event ID. Checks two receiver sends against one unique receipt across both simulated restarts. |
 | Restart recovery | Calls the existing file-backed recovery drill, including an unfinished lease, simulated process restart, transient failure, retry, and queue drain. Its temporary SQLite database is removed at exit. |
 | Bounded load | Calls the existing in-memory load lab with the same unique-event count and duplicate setting; reports aggregate throughput and acknowledgement latency without asserting environment-dependent performance thresholds. |
 
-The command combines these stages rather than sharing a single database between them: the pipeline/fault/load stages use in-memory SQLite, and the acknowledgement-loss and existing recovery drills each use a disposable temporary SQLite file. All receivers are in-process. It does not read `MEDIHUB_DATABASE_URL`, persist a report, or open sockets.
+The command combines these stages rather than sharing a single database between them: the pipeline/fault/load stages use in-memory SQLite; the acknowledgement-loss drill uses separate disposable files for the worker outbox and receiver inbox; and the existing recovery drill uses its own temporary file. All receivers are in-process. It does not read `MEDIHUB_DATABASE_URL`, persist a report, or open sockets.
 
 ## Reading the result
 
 - `status` and `checks` report only the implemented synthetic invariants.
 - `pipeline`, `mapping`, `fault_drill`, `ambiguous_ack_drill`, `restart_recovery`, and `bounded_load` contain aggregate evidence for each stage.
-- `ambiguous_ack_drill` should report two receiver delivery attempts, one duplicate attempt, and one unique test receipt. This is evidence only for the in-process receiver's stable-ID behavior; see the [ACK-loss drill details](SYNTHETIC_ACK_LOSS_DRILL.md).
+- `ambiguous_ack_drill` should report two receiver delivery attempts, one duplicate attempt, and one unique test receipt across a worker and receiver restart. This validates only the synthetic SQLite inbox; see the [ACK-loss drill details](SYNTHETIC_ACK_LOSS_DRILL.md).
 - `network_enabled` is always `false`; the fault injector and load summary also report their transport limits.
 - `facility_qualification` is always `not_performed`. A passing run means only that these repository scenarios passed locally.
 - Load rates and latency are useful for comparing code changes in a consistent environment. They are not a throughput guarantee, production benchmark, hospital SLO, or capacity sign-off.

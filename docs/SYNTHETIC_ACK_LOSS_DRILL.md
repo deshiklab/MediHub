@@ -2,7 +2,7 @@
 
 **Status:** Offline resilience scenario only
 **Data:** Deterministic patient-free synthetic event
-**Persistence:** Disposable file-backed SQLite outbox
+**Persistence:** Separate disposable SQLite outbox and synthetic receiver inbox
 **Transport:** In-process test receiver; network disabled
 
 ## Why this failure matters
@@ -16,16 +16,18 @@ The supported reliability claim is therefore **at-least-once delivery with a sta
 The acceptance lab runs this sequence against the local synthetic FHIR-shaped receiver:
 
 1. Persist one synthetic event and its outbox intent.
-2. The worker sends it; the in-process receiver accepts the event and records its event ID.
+2. The worker sends it; the receiver validates the FHIR-shaped event and commits only its event ID and stable acknowledgement ID to a separate SQLite inbox.
 3. The one-shot `ack_lost_once` injector suppresses the receiver's acknowledgement and returns the safe retryable code `synthetic_test_ack_lost_after_acceptance` to the worker.
-4. Close and reopen the file-backed SQLite engine to simulate a worker restart.
+4. Close and reopen both the outbox database and receiver inbox connection to simulate independent worker and receiver restarts.
 5. The restarted worker retries the same outbox intent with the same event ID.
-6. The receiver recognizes the already-seen ID, acknowledges the retry, and keeps one unique receipt.
+6. The restarted receiver recognizes the ID using its persisted unique constraint, acknowledges the retry, and retains one unique receipt.
 
 Expected aggregate evidence:
 
 | Metric | Expected |
 |---|---:|
+| Simulated worker restarts | 1 |
+| Simulated receiver restarts | 1 |
 | Outbox/receiver delivery attempts | 2 |
 | Retryable lost-ack outcomes | 1 |
 | Acknowledged attempts | 1 |
@@ -53,6 +55,6 @@ A public GitHub example, [1](https://github.com/willfragoso/carequeue), describe
 
 ## Limits and future site test
 
-The worker restart is simulated inside one Python process. The test receiver intentionally remains alive as a stand-in for the remote system and keeps its deduplication set in memory. The local test therefore verifies MediHub's retry state transition and the test receiver's stable-ID behavior; it does **not** prove that a real EHR, interface engine, or Bangladesh SHR endpoint commits idempotently, retains deduplication state across its own restart, or uses the same acknowledgement semantics.
+Both restarts are simulated inside one Python process. The receiver fixture closes and reopens a disposable SQLite inbox whose only persisted fields are the synthetic event ID and deterministic acknowledgement ID; a unique constraint prevents a second receipt. This verifies the fixture's durable deduplication across reopen and MediHub's outbox retry state, but it does **not** prove that a real EHR, interface engine, or Bangladesh SHR endpoint commits idempotently, retains deduplication state across its own restart, or uses the same acknowledgement semantics.
 
 Before a site pilot, agree with the named receiver on its actual idempotency key, duplicate response behavior, ACK/HTTP response meaning, and retention scope. Verify those behaviors in the receiver's approved synthetic test environment using the facility contract. Do not enable live delivery on the strength of this drill alone.

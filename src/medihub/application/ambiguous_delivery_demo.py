@@ -9,7 +9,9 @@ from tempfile import TemporaryDirectory
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from medihub.adapters.destinations.fhir_r4 import SyntheticFhirR4DestinationAdapter
+from medihub.adapters.destinations.durable_synthetic_receiver import (
+    SyntheticDurableFhirR4TestReceiver,
+)
 from medihub.adapters.destinations.synthetic_fault_injector import (
     SyntheticReceiverFaultInjector,
 )
@@ -40,6 +42,7 @@ class SyntheticAmbiguousDeliveryDemoSummary:
 
     events_inserted: int
     simulated_worker_restarts: int
+    simulated_receiver_restarts: int
     delivery_attempts: int
     retryable_failures: int
     acknowledged_attempts: int
@@ -58,9 +61,9 @@ async def run_synthetic_ambiguous_delivery_demo(
 ) -> SyntheticAmbiguousDeliveryDemoSummary:
     """Lose one synthetic receiver ACK, restart the worker, then retry the same event.
 
-    A disposable file-backed outbox survives the simulated worker restart. The
-    in-process receiver remains available as the remote-system stand-in and uses
-    the event ID as its idempotency key; no device or network connection is made.
+    A disposable file-backed outbox and an independent receiver inbox both
+    survive simulated process restarts. The receiver uses the event ID as its
+    idempotency key; no device or network connection is made.
     """
 
     if config.disconnect_after is not None or config.disconnect_for:
@@ -91,12 +94,16 @@ async def run_synthetic_ambiguous_delivery_demo(
         enabled=True,
         accepts_synthetic_data=True,
     )
-    receiver = SyntheticFhirR4DestinationAdapter(destination, max_seen_event_ids=1)
-    fault_injector = SyntheticReceiverFaultInjector(receiver)
-
     with TemporaryDirectory(prefix="medihub-ambiguous-ack-") as temporary_directory:
-        database_path = Path(temporary_directory) / "ambiguous-ack.db"
+        database_path = Path(temporary_directory) / "ambiguous-ack-outbox.db"
+        receiver_database_path = Path(temporary_directory) / "ambiguous-ack-receiver.db"
         database_url = f"sqlite+aiosqlite:///{database_path}"
+        receiver_before_restart = await SyntheticDurableFhirR4TestReceiver.open(
+            destination,
+            receiver_database_path,
+        )
+        receiver_after_restart: SyntheticDurableFhirR4TestReceiver | None = None
+        fault_injector = SyntheticReceiverFaultInjector(receiver_before_restart)
         engine = create_database_engine(database_url)
         try:
             async with engine.begin() as connection:
@@ -122,14 +129,19 @@ async def run_synthetic_ambiguous_delivery_demo(
             ):
                 raise SyntheticAmbiguousDeliveryDemoError("ambiguous_ack_fault_not_observed")
 
-            # Close and reopen the file-backed store to exercise retry after restart.
+            # Restart both ends independently; each reloads its own durable ledger.
+            await receiver_before_restart.close()
             await engine.dispose()
+            receiver_after_restart = await SyntheticDurableFhirR4TestReceiver.open(
+                destination,
+                receiver_database_path,
+            )
             engine = create_database_engine(database_url)
             sessions = async_sessionmaker(engine, expire_on_commit=False)
             store = SqlAlchemyEventStore(sessions)
             restarted_worker = OutboxWorker(
                 store,
-                {destination.destination_id: fault_injector},
+                {destination.destination_id: receiver_after_restart},
                 base_retry_delay=timedelta(0),
                 max_retry_delay=timedelta(0),
             )
@@ -164,8 +176,10 @@ async def run_synthetic_ambiguous_delivery_demo(
                 or len(outbox_rows) != 1
                 or [record.status for record in attempt_rows] != expected_attempt_statuses
                 or outbox_rows[0].status != DeliveryStatus.ACKNOWLEDGED.value
-                or receiver.delivery_attempt_count != 2
-                or receiver.unique_receipt_count != 1
+                or receiver_before_restart.delivery_attempt_count != 1
+                or receiver_after_restart is None
+                or receiver_after_restart.delivery_attempt_count != 1
+                or receiver_after_restart.unique_receipt_count != 1
                 or fault_status["last_injected_fault"] != "ack_lost_once"
                 or fault_status["last_outcome"] != "receiver_acknowledgement_lost_after_acceptance"
                 or fault_status["armed_fault"] is not None
@@ -184,21 +198,30 @@ async def run_synthetic_ambiguous_delivery_demo(
             return SyntheticAmbiguousDeliveryDemoSummary(
                 events_inserted=len(event_rows),
                 simulated_worker_restarts=1,
+                simulated_receiver_restarts=1,
                 delivery_attempts=len(attempt_rows),
                 retryable_failures=attempt_counts[DeliveryStatus.RETRYABLE_FAILURE.value],
                 acknowledged_attempts=attempt_counts[DeliveryStatus.ACKNOWLEDGED.value],
                 final_acknowledged_deliveries=outbox_counts[DeliveryStatus.ACKNOWLEDGED.value],
                 pending_deliveries=pending,
-                receiver_delivery_attempts=receiver.delivery_attempt_count,
-                receiver_duplicate_attempts=(
-                    receiver.delivery_attempt_count - receiver.unique_receipt_count
+                receiver_delivery_attempts=(
+                    receiver_before_restart.delivery_attempt_count
+                    + receiver_after_restart.delivery_attempt_count
                 ),
-                unique_test_receipts=receiver.unique_receipt_count,
+                receiver_duplicate_attempts=(
+                    receiver_before_restart.delivery_attempt_count
+                    + receiver_after_restart.delivery_attempt_count
+                    - receiver_after_restart.unique_receipt_count
+                ),
+                unique_test_receipts=receiver_after_restart.unique_receipt_count,
                 faults_injected=int(fault_status["faults_injected"]),
                 fault_injector_clear=fault_status["armed_fault"] is None,
                 network_enabled=bool(fault_status["network_enabled"]),
             )
         finally:
+            if receiver_after_restart is not None:
+                await receiver_after_restart.close()
+            await receiver_before_restart.close()
             await engine.dispose()
 
 

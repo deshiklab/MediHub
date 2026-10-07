@@ -405,7 +405,7 @@ If “EMS” means Emergency Medical Services, implement it as a separate workfl
 - Define queue retention/outage capacity from real expected device rates and the facility’s recovery objectives; do not rely on memory-only queues. MQTT, if introduced, is transport—not the authoritative record or substitute for the durable outbox.
 - Fan-out is per destination: a successful EHR delivery and a failed analytics delivery must have separate states.
 
-**Current synthetic evidence:** `medihub acceptance-demo` now simulates a receiver accepting an event while its acknowledgement is lost, then restarts the worker against a temporary file-backed outbox. It demonstrates duplicate sends with one unique receipt only in the in-process receiver. It does not establish real-receiver idempotency, network ACK semantics, or an exactly-once guarantee.
+**Current synthetic evidence:** `medihub acceptance-demo` simulates acceptance with a lost acknowledgement, then reopens separate temporary file-backed worker-outbox and receiver-inbox stores. It demonstrates duplicate sends with one receipt across simulated worker and receiver restarts in a local synthetic SQLite fixture. It does not establish a real receiver's idempotency, network ACK semantics, or an exactly-once guarantee.
 
 ### Batching and data volume
 

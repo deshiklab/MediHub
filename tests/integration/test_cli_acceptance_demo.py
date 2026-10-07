@@ -44,6 +44,7 @@ def test_acceptance_demo_runs_all_synthetic_stages_and_emits_only_aggregate_resu
     assert summary["fault_drill"]["final_acknowledged_deliveries"] == 1
     assert summary["fault_drill"]["routing_policy_holds"] == 1
     assert summary["ambiguous_ack_drill"]["simulated_worker_restarts"] == 1
+    assert summary["ambiguous_ack_drill"]["simulated_receiver_restarts"] == 1
     assert summary["ambiguous_ack_drill"]["delivery_attempts"] == 2
     assert summary["ambiguous_ack_drill"]["retryable_failures"] == 1
     assert summary["ambiguous_ack_drill"]["final_acknowledged_deliveries"] == 1

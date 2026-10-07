@@ -408,6 +408,9 @@ async def run_synthetic_acceptance_demo(
         _check("fault_network_disabled", fault_drill.network_enabled, False),
         _check("ambiguous_ack_one_event_inserted", ambiguous_ack_drill.events_inserted, 1),
         _check("ambiguous_ack_worker_restarted", ambiguous_ack_drill.simulated_worker_restarts, 1),
+        _check(
+            "ambiguous_ack_receiver_restarted", ambiguous_ack_drill.simulated_receiver_restarts, 1
+        ),
         _check("ambiguous_ack_attempt_history", ambiguous_ack_drill.delivery_attempts, 2),
         _check("ambiguous_ack_lost_once", ambiguous_ack_drill.retryable_failures, 1),
         _check("ambiguous_ack_retry_acknowledged", ambiguous_ack_drill.acknowledged_attempts, 1),
