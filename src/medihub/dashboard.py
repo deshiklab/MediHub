@@ -3,6 +3,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from importlib.resources import files
+from uuid import UUID
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -15,6 +16,7 @@ from medihub.application.management_workbench import (
     SyntheticMappingEntryDraft,
     SyntheticMappingPreviewRequest,
     SyntheticMappingTestVectorDraft,
+    SyntheticReceiverFaultRequest,
 )
 from medihub.application.operations import SyntheticOperationsDashboard
 
@@ -168,9 +170,31 @@ def create_dashboard_app(
     async def run_synthetic_mapping_tests() -> dict[str, object]:
         return await workbench.run_mapping_tests()
 
+    @app.get("/api/management/deliveries/{event_id}", include_in_schema=False)
+    async def get_synthetic_delivery_detail(event_id: UUID) -> dict[str, object]:
+        return await workbench.synthetic_delivery_detail(event_id)
+
+    @app.post("/api/management/deliveries/{event_id}/retry", include_in_schema=False)
+    async def replay_synthetic_delivery(event_id: UUID) -> dict[str, object]:
+        return await workbench.replay_synthetic_delivery(event_id)
+
     @app.get("/api/management/destinations", include_in_schema=False)
     async def list_synthetic_destinations() -> dict[str, object]:
         return await workbench.destinations()
+
+    @app.get("/api/management/destinations/test-receiver/faults", include_in_schema=False)
+    async def synthetic_test_receiver_fault_status() -> dict[str, object]:
+        return await workbench.test_receiver_fault_status()
+
+    @app.post("/api/management/destinations/test-receiver/faults", include_in_schema=False)
+    async def arm_synthetic_test_receiver_fault(
+        request: SyntheticReceiverFaultRequest,
+    ) -> dict[str, object]:
+        return await workbench.arm_test_receiver_fault(request)
+
+    @app.delete("/api/management/destinations/test-receiver/faults", include_in_schema=False)
+    async def clear_synthetic_test_receiver_fault() -> dict[str, object]:
+        return await workbench.clear_test_receiver_fault()
 
     @app.post("/api/management/destinations/test", include_in_schema=False)
     async def test_synthetic_destination() -> dict[str, object]:

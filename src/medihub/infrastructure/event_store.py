@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pydantic import ValidationError
 from sqlalchemy import and_, or_, select
@@ -19,6 +19,7 @@ from medihub.domain import (
     DeliveryAttempt,
     DeliveryStatus,
     Destination,
+    EventOrigin,
     ObservationEvent,
 )
 from medihub.ports import AuditStore, EventStore, OutboxStore
@@ -42,6 +43,15 @@ class OutboxLeaseLostError(RuntimeError):
 
 class OutboxStateError(RuntimeError):
     """The persistent outbox violates an expected state invariant."""
+
+
+class SyntheticDeliveryReplayError(ValueError):
+    """Safe rejection for replay controls limited to terminal synthetic intents."""
+
+    def __init__(self, code: str, status_code: int = 409) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
 
 
 def _canonical_payload(event: ObservationEvent) -> tuple[dict[str, object], str]:
@@ -260,6 +270,79 @@ class SqlAlchemyEventStore(EventStore, OutboxStore, AuditStore):
             )
             for record in records
         )
+
+    async def requeue_terminal_synthetic_delivery(
+        self,
+        event_id: UUID,
+        destination_id: str,
+        *,
+        now: datetime,
+        max_attempts: int,
+    ) -> None:
+        """Queue an explicit replay of a terminal, patient-free synthetic intent.
+
+        Existing attempt rows and their attempt numbers are preserved. This is a
+        local demo control, not a general outbox replay API.
+        """
+
+        moment = _require_aware(now, "now")
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be positive")
+        async with self._sessions.begin() as session:
+            outbox = await session.scalar(
+                select(DeliveryOutboxRecord)
+                .where(
+                    DeliveryOutboxRecord.event_id == event_id,
+                    DeliveryOutboxRecord.destination_id == destination_id,
+                )
+                .with_for_update()
+            )
+            event_record = await session.get(EventRecord, event_id)
+            if (
+                outbox is None
+                or event_record is None
+                or event_record.origin != EventOrigin.SYNTHETIC.value
+            ):
+                raise SyntheticDeliveryReplayError("synthetic_delivery_not_found", 404)
+            try:
+                event = ObservationEvent.model_validate(event_record.payload)
+            except ValidationError:
+                raise SyntheticDeliveryReplayError("synthetic_delivery_not_found", 404) from None
+            if (
+                event.event_id != event_id
+                or event.origin is not EventOrigin.SYNTHETIC
+                or event.patient is not None
+                or event.encounter_reference is not None
+            ):
+                raise SyntheticDeliveryReplayError("synthetic_delivery_not_found", 404)
+            if outbox.status not in {
+                DeliveryStatus.REJECTED.value,
+                DeliveryStatus.PERMANENT_FAILURE.value,
+            }:
+                raise SyntheticDeliveryReplayError("synthetic_delivery_not_terminal")
+            if outbox.attempt_count >= max_attempts:
+                raise SyntheticDeliveryReplayError("synthetic_delivery_retry_limit_reached")
+            if outbox.lease_token is not None or outbox.lease_expires_at is not None:
+                raise SyntheticDeliveryReplayError("synthetic_delivery_lease_active")
+
+            outbox.status = DeliveryStatus.QUEUED.value
+            outbox.next_attempt_at = moment
+            outbox.acknowledgement_id = None
+            outbox.acknowledged_at = None
+            session.add(
+                _audit_record(
+                    _audit_event(
+                        site_id=event.site_id,
+                        actor_id="system:synthetic-workbench",
+                        action=AuditAction.DELIVERY_REPLAYED,
+                        resource_type="delivery_outbox",
+                        resource_id=str(outbox.outbox_id),
+                        occurred_at=moment,
+                        correlation_id=str(event.event_id),
+                        reason_code="operator_requested_synthetic_replay",
+                    )
+                )
+            )
 
     async def claim_next(
         self,

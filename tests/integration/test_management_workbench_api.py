@@ -176,6 +176,96 @@ async def _request_workbench():
             assert receiver_test.json()["status"] == "passed"
             assert receiver_test.json()["network_enabled"] is False
 
+            fault_status = await client.get("/api/management/destinations/test-receiver/faults")
+            assert fault_status.status_code == 200
+            assert fault_status.json()["armed_fault"] is None
+            assert fault_status.json()["network_enabled"] is False
+            armed_retry = await client.post(
+                "/api/management/destinations/test-receiver/faults",
+                json={"mode": "retry_once"},
+            )
+            assert armed_retry.status_code == 200
+            assert armed_retry.json()["armed_fault"] == "retry_once"
+            duplicate_arm = await client.post(
+                "/api/management/destinations/test-receiver/faults",
+                json={"mode": "reject_once"},
+            )
+            assert duplicate_arm.status_code == 409
+            assert duplicate_arm.json() == {"error": "synthetic_fault_already_armed"}
+            injected_retry = await client.post("/api/management/destinations/test")
+            assert injected_retry.json()["status"] == "failed"
+            assert injected_retry.json()["network_enabled"] is False
+            after_retry_fault = (await client.get("/api/dashboard")).json()
+            failed_delivery = next(
+                row
+                for row in after_retry_fault["recent_deliveries"]
+                if row["status"] == "retryable_failure"
+            )
+            assert failed_delivery["error_code"] == "synthetic_test_retryable_failure"
+            await asyncio.sleep(2.1)
+            recovered_send = await client.post("/api/management/destinations/test")
+            assert recovered_send.json()["status"] == "passed"
+            after_recovery = (await client.get("/api/dashboard")).json()
+            retried_delivery = next(
+                row
+                for row in after_recovery["recent_deliveries"]
+                if row["event_id"] == failed_delivery["event_id"]
+            )
+            assert retried_delivery["status"] == "acknowledged"
+            assert retried_delivery["attempts"] == 2
+
+            armed_rejection = await client.post(
+                "/api/management/destinations/test-receiver/faults",
+                json={"mode": "reject_once"},
+            )
+            assert armed_rejection.json()["armed_fault"] == "reject_once"
+            injected_rejection = await client.post("/api/management/destinations/test")
+            assert injected_rejection.json()["status"] == "failed"
+            rejected_snapshot = (await client.get("/api/dashboard")).json()
+            rejected_delivery = next(
+                row for row in rejected_snapshot["recent_deliveries"] if row["status"] == "rejected"
+            )
+            assert rejected_delivery["error_code"] == "synthetic_test_receiver_rejected"
+            detail = await client.get(f"/api/management/deliveries/{rejected_delivery['event_id']}")
+            assert detail.status_code == 200
+            detail_data = detail.json()
+            assert detail_data["scope"] == "synthetic_only"
+            assert detail_data["network_enabled"] is False
+            assert detail_data["event"]["origin"] == "synthetic"
+            assert detail_data["delivery"]["status"] == "rejected"
+            assert detail_data["delivery"]["retry_allowed"] is True
+            assert len(detail_data["attempts"]) == 1
+            assert "patient" not in detail.text.lower()
+            assert "payload" not in detail.text.lower()
+            replay = await client.post(
+                f"/api/management/deliveries/{rejected_delivery['event_id']}/retry"
+            )
+            assert replay.status_code == 200
+            assert replay.json()["delivery"]["status"] == "acknowledged"
+            assert replay.json()["event"]["event_id"] == rejected_delivery["event_id"]
+            assert len(replay.json()["attempts"]) == 2
+            assert replay.json()["attempts"][-1]["status"] == "acknowledged"
+            after_replay = (await client.get("/api/dashboard")).json()
+            assert any(
+                entry["action"] == "delivery_replayed" for entry in after_replay["recent_activity"]
+            )
+            replay_acknowledged = await client.post(
+                f"/api/management/deliveries/{rejected_delivery['event_id']}/retry"
+            )
+            assert replay_acknowledged.status_code == 409
+            assert replay_acknowledged.json() == {"error": "synthetic_delivery_not_terminal"}
+            fault_status = await client.get("/api/management/destinations/test-receiver/faults")
+            assert fault_status.json()["armed_fault"] is None
+            assert fault_status.json()["faults_injected"] == 2
+            await client.post(
+                "/api/management/destinations/test-receiver/faults",
+                json={"mode": "retry_once"},
+            )
+            cleared_fault = await client.delete("/api/management/destinations/test-receiver/faults")
+            assert cleared_fault.status_code == 200
+            assert cleared_fault.json()["armed_fault"] is None
+            assert cleared_fault.json()["faults_injected"] == 2
+
             current_restore = await client.post("/api/management/mappings/revisions/1.0.1/restore")
             assert current_restore.status_code == 409
             missing_revision = await client.post("/api/management/mappings/revisions/9.9.9/restore")
@@ -213,5 +303,9 @@ def test_management_workbench_is_strict_synthetic_only_and_operational() -> None
     assert "Run all mapping tests" in page.text
     assert "Revision history" in page.text
     assert "Restore as new draft" in page.text
+    assert "Synthetic delivery fault drill" in page.text
+    assert "Inject one retryable failure" in page.text
+    assert "Selected synthetic delivery" in page.text
+    assert "Retry terminal failure" in page.text
     assert "Endpoint and credential fields are not available" in page.text
     assert "no live connections" in page.text.lower()

@@ -4,11 +4,17 @@ import asyncio
 import re
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from medihub.adapters.destinations.fhir_r4 import SyntheticFhirR4DestinationAdapter
+from medihub.adapters.destinations.synthetic_fault_injector import (
+    SyntheticFaultInjectorError,
+    SyntheticFaultMode,
+    SyntheticReceiverFaultInjector,
+)
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
 from medihub.application.ingestion import IngestionService
 from medihub.application.outbox_worker import OutboxWorker
@@ -22,7 +28,10 @@ from medihub.domain import (
     ObservationEvent,
 )
 from medihub.infrastructure.database import Base, create_database_engine
-from medihub.infrastructure.event_store import SqlAlchemyEventStore
+from medihub.infrastructure.event_store import (
+    SqlAlchemyEventStore,
+    SyntheticDeliveryReplayError,
+)
 from medihub.infrastructure.models import (
     AuditEventRecord,
     DeliveryAttemptRecord,
@@ -33,6 +42,17 @@ from medihub.infrastructure.models import (
 
 MAX_RETAINED_EVENTS = 500
 PRUNE_EVERY_EVENTS = 50
+MAX_DEMO_DELIVERY_ATTEMPTS = 5
+TEST_RECEIVER_DESTINATION_ID = "medihub.synthetic-test-receiver"
+
+
+class SyntheticOperationsError(ValueError):
+    """Safe error code for the synthetic-only operator projection."""
+
+    def __init__(self, code: str, status_code: int = 409) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
 
 
 class SyntheticOperationsDashboard:
@@ -75,6 +95,7 @@ class SyntheticOperationsDashboard:
         self._ingestion: IngestionService | None = None
         self._worker: OutboxWorker | None = None
         self._receiver: SyntheticFhirR4DestinationAdapter | None = None
+        self._fault_injector: SyntheticReceiverFaultInjector | None = None
         self._destination: Destination | None = None
         self._blocked_destination: Destination | None = None
         self._generator_task: asyncio.Task[None] | None = None
@@ -103,7 +124,7 @@ class SyntheticOperationsDashboard:
             self._store = SqlAlchemyEventStore(self._sessions)
             self._ingestion = IngestionService(self._store)
             self._destination = Destination(
-                destination_id="medihub.synthetic-test-receiver",
+                destination_id=TEST_RECEIVER_DESTINATION_ID,
                 site_id="synthetic-site",
                 name="MediHub in-process synthetic receiver",
                 protocol=DestinationProtocol.FHIR_R4,
@@ -126,9 +147,11 @@ class SyntheticOperationsDashboard:
                 self._destination,
                 max_seen_event_ids=self._max_retained_events,
             )
+            self._fault_injector = SyntheticReceiverFaultInjector(self._receiver)
             self._worker = OutboxWorker(
                 self._store,
-                {self._destination.destination_id: self._receiver},
+                {self._destination.destination_id: self._fault_injector},
+                max_attempts=MAX_DEMO_DELIVERY_ATTEMPTS,
             )
             self._started_at = datetime.now(UTC)
             self._stop_event.clear()
@@ -192,6 +215,144 @@ class SyntheticOperationsDashboard:
                 "status": status,
                 "unique_test_receipts": receipts,
                 "network_enabled": False,
+            }
+
+    async def arm_synthetic_delivery_fault(
+        self,
+        mode: SyntheticFaultMode,
+    ) -> dict[str, object]:
+        """Arm one synthetic receiver outcome; no network receiver is reachable."""
+
+        async with self._state_lock:
+            if self._fault_injector is None:
+                raise SyntheticFaultInjectorError("synthetic_fault_injector_unavailable")
+            return await self._fault_injector.arm(mode)
+
+    async def clear_synthetic_delivery_fault(self) -> dict[str, object]:
+        """Cancel a pending synthetic test fault without changing delivery records."""
+
+        async with self._state_lock:
+            if self._fault_injector is None:
+                raise SyntheticFaultInjectorError("synthetic_fault_injector_unavailable")
+            return await self._fault_injector.clear()
+
+    async def synthetic_delivery_fault_status(self) -> dict[str, object]:
+        """Expose bounded fault-injection state without event data."""
+
+        async with self._state_lock:
+            if self._fault_injector is None:
+                raise SyntheticFaultInjectorError("synthetic_fault_injector_unavailable")
+            return await self._fault_injector.status()
+
+    async def synthetic_delivery_detail(self, event_id: UUID) -> dict[str, object]:
+        """Read an allowlisted event/outbox/attempt timeline for one synthetic event."""
+
+        async with self._state_lock:
+            if self._sessions is None:
+                raise SyntheticOperationsError("synthetic_runtime_unavailable", 503)
+            detail = await self._load_synthetic_delivery_detail(event_id)
+            if detail is None:
+                raise SyntheticOperationsError("synthetic_delivery_not_found", 404)
+            return detail
+
+    async def replay_synthetic_delivery(self, event_id: UUID) -> dict[str, object]:
+        """Replay one terminal failure at the local test receiver, preserving attempts."""
+
+        async with self._state_lock:
+            if self._store is None or self._worker is None or self._destination is None:
+                raise SyntheticDeliveryReplayError("synthetic_runtime_unavailable", 503)
+            await self._store.requeue_terminal_synthetic_delivery(
+                event_id,
+                self._destination.destination_id,
+                now=datetime.now(UTC),
+                max_attempts=MAX_DEMO_DELIVERY_ATTEMPTS,
+            )
+            while await self._worker.dispatch_once() is not None:
+                pass
+            detail = await self._load_synthetic_delivery_detail(event_id)
+            if detail is None:
+                raise SyntheticDeliveryReplayError("synthetic_delivery_not_found", 404)
+            return detail
+
+    async def _load_synthetic_delivery_detail(
+        self,
+        event_id: UUID,
+    ) -> dict[str, object] | None:
+        if self._sessions is None or self._destination is None:
+            return None
+        async with self._sessions() as session:
+            event_record = await session.get(EventRecord, event_id)
+            if event_record is None or event_record.origin != EventOrigin.SYNTHETIC.value:
+                return None
+            try:
+                event = ObservationEvent.model_validate(event_record.payload)
+            except Exception:
+                return None
+            if (
+                event.event_id != event_id
+                or event.origin is not EventOrigin.SYNTHETIC
+                or event.patient is not None
+                or event.encounter_reference is not None
+            ):
+                return None
+            outbox = await session.scalar(
+                select(DeliveryOutboxRecord).where(
+                    DeliveryOutboxRecord.event_id == event_id,
+                    DeliveryOutboxRecord.destination_id == self._destination.destination_id,
+                )
+            )
+            if outbox is None:
+                return None
+            attempts = (
+                await session.scalars(
+                    select(DeliveryAttemptRecord)
+                    .where(DeliveryAttemptRecord.outbox_id == outbox.outbox_id)
+                    .order_by(DeliveryAttemptRecord.attempt_number)
+                )
+            ).all()
+            return {
+                "scope": "synthetic_only",
+                "network_enabled": False,
+                "event": {
+                    "event_id": str(event.event_id),
+                    "origin": EventOrigin.SYNTHETIC.value,
+                    "device_id": event.device.device_id,
+                    "metric_system": event.metric.system,
+                    "metric_code": event.metric.code,
+                    "value": event.value,
+                    "unit_system": event.source_unit.system,
+                    "unit_code": event.source_unit.code,
+                    "observed_at": self._isoformat(event.observed_at),
+                    "received_at": self._isoformat(event.received_at),
+                },
+                "delivery": {
+                    "destination_id": outbox.destination_id,
+                    "status": outbox.status,
+                    "attempt_count": outbox.attempt_count,
+                    "next_attempt_at": self._isoformat(outbox.next_attempt_at),
+                    "last_error_code": outbox.last_error_code,
+                    "acknowledgement_id": outbox.acknowledgement_id,
+                    "updated_at": self._isoformat(outbox.updated_at),
+                    "retry_allowed": (
+                        outbox.status
+                        in {
+                            DeliveryStatus.REJECTED.value,
+                            DeliveryStatus.PERMANENT_FAILURE.value,
+                        }
+                        and outbox.attempt_count < MAX_DEMO_DELIVERY_ATTEMPTS
+                    ),
+                },
+                "attempts": [
+                    {
+                        "attempt_number": attempt.attempt_number,
+                        "status": attempt.status,
+                        "started_at": self._isoformat(attempt.started_at),
+                        "completed_at": self._isoformat(attempt.completed_at),
+                        "error_code": attempt.error_code,
+                        "acknowledgement_id": attempt.acknowledgement_id,
+                    }
+                    for attempt in attempts
+                ],
             }
 
     async def snapshot(self) -> dict[str, Any]:
@@ -545,6 +706,7 @@ class SyntheticOperationsDashboard:
         self._ingestion = None
         self._worker = None
         self._receiver = None
+        self._fault_injector = None
         self._destination = None
         self._blocked_destination = None
         self._generator_task = None

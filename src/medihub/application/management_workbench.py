@@ -4,11 +4,15 @@ import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pydantic import Field, StringConstraints, ValidationError
 
-from medihub.application.operations import SyntheticOperationsDashboard
+from medihub.adapters.destinations.synthetic_fault_injector import SyntheticFaultInjectorError
+from medihub.application.operations import (
+    SyntheticOperationsDashboard,
+    SyntheticOperationsError,
+)
 from medihub.domain import (
     Coding,
     DeviceReference,
@@ -22,6 +26,7 @@ from medihub.domain import (
     TimeQuality,
 )
 from medihub.domain.base import AwareDateTime, DomainModel
+from medihub.infrastructure.event_store import SyntheticDeliveryReplayError
 
 SIMULATOR_MANUFACTURER = "MediHub Synthetic"
 SIMULATOR_MODEL = "scalar-simulator-v1"
@@ -71,6 +76,10 @@ class SyntheticDeviceRecord(DomainModel):
 
 class SyntheticDeviceStateRequest(DomainModel):
     enabled: bool
+
+
+class SyntheticReceiverFaultRequest(DomainModel):
+    mode: Literal["retry_once", "reject_once"]
 
 
 class SyntheticMappingEntryDraft(DomainModel):
@@ -615,6 +624,39 @@ class SyntheticManagementWorkbench:
             ],
         }
 
+    async def synthetic_delivery_detail(self, event_id: UUID) -> dict[str, object]:
+        try:
+            return await self._operations.synthetic_delivery_detail(event_id)
+        except SyntheticOperationsError as error:
+            raise ManagementWorkbenchError(error.code, error.status_code) from None
+
+    async def replay_synthetic_delivery(self, event_id: UUID) -> dict[str, object]:
+        try:
+            return await self._operations.replay_synthetic_delivery(event_id)
+        except SyntheticDeliveryReplayError as error:
+            raise ManagementWorkbenchError(error.code, error.status_code) from None
+
+    async def test_receiver_fault_status(self) -> dict[str, object]:
+        try:
+            return await self._operations.synthetic_delivery_fault_status()
+        except SyntheticFaultInjectorError as error:
+            raise ManagementWorkbenchError(error.code, 409) from None
+
+    async def arm_test_receiver_fault(
+        self,
+        request: SyntheticReceiverFaultRequest,
+    ) -> dict[str, object]:
+        try:
+            return await self._operations.arm_synthetic_delivery_fault(request.mode)
+        except SyntheticFaultInjectorError as error:
+            raise ManagementWorkbenchError(error.code, 409) from None
+
+    async def clear_test_receiver_fault(self) -> dict[str, object]:
+        try:
+            return await self._operations.clear_synthetic_delivery_fault()
+        except SyntheticFaultInjectorError as error:
+            raise ManagementWorkbenchError(error.code, 409) from None
+
     async def test_destination(self) -> dict[str, object]:
         async with self._lock:
             enabled = next(
@@ -723,4 +765,5 @@ __all__ = [
     "SyntheticMappingPreviewRequest",
     "SyntheticMappingRevision",
     "SyntheticMappingTestVectorDraft",
+    "SyntheticReceiverFaultRequest",
 ]

@@ -192,6 +192,11 @@
         <section class="data-panel" aria-labelledby="deliveries-heading">
           <div class="panel-head"><div><h2 id="deliveries-heading" class="panel-title">Outbox activity</h2><p class="panel-subtitle">Delivery lifecycle at the test receiver</p></div><span id="deliveries-count" class="count">0 intents</span></div>
           <div class="table-wrap"><table><thead><tr><th>Updated</th><th>State</th><th>Attempts</th><th>Event ID</th></tr></thead><tbody id="deliveries-body"><tr><td colspan="4" class="empty">Waiting for delivery intents…</td></tr></tbody></table></div>
+          <div class="destination-card" style="margin:12px">
+            <div class="panel-head"><div><h3 class="panel-title">Selected synthetic delivery</h3><p class="panel-subtitle">Allowlisted event and attempt metadata only</p></div><button id="retry-delivery" class="control-btn subtle" type="button" disabled>Retry terminal failure</button></div>
+            <div id="delivery-detail-status" class="management-status" role="status">Choose Inspect to review a delivery.</div>
+            <pre id="delivery-detail-json" class="management-status" aria-live="polite">No delivery selected.</pre>
+          </div>
         </section>
       </div>
 
@@ -304,6 +309,16 @@
                   <div id="destinations-list" class="destination-card"><strong>Loading local test receiver…</strong></div>
                   <div class="form-actions"><button id="test-destination" class="control-btn primary" type="button">Run local synthetic delivery test</button></div>
                   <div id="destination-status" class="management-status" role="status"></div>
+                  <div class="destination-card">
+                    <strong>Synthetic delivery fault drill</strong>
+                    <small>Arm one fault for the next in-process synthetic send. Retryable faults are retried by the demo worker; terminal rejections remain visible in delivery history. Network remains disabled.</small>
+                    <div class="form-actions">
+                      <button id="inject-retryable-fault" class="control-btn subtle" type="button">Inject one retryable failure</button>
+                      <button id="inject-rejection-fault" class="control-btn subtle" type="button">Inject one terminal rejection</button>
+                      <button id="cancel-delivery-fault" class="control-btn subtle" type="button">Cancel armed fault</button>
+                    </div>
+                    <div id="delivery-fault-status" class="management-status" role="status">Loading fault-injection state…</div>
+                  </div>
                 </div>
                 <div>
                   <div class="destination-card"><strong>FHIR R4 / EMR</strong><small>Not connected. A facility-specific CapabilityStatement, profiles, write behavior, authentication scopes, and approval are required before a connector can be built.</small></div>
@@ -330,6 +345,7 @@
           return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         };
         const setText = (id, value) => { byId(id).textContent = String(value); };
+        let selectedDeliveryEventId = null;
         const appendCell = (row, value, className = "") => {
           const cell = document.createElement("td");
           if (className) cell.className = className;
@@ -383,7 +399,9 @@
             chip.textContent = status.replaceAll("_", " ");
             stateCell.appendChild(chip);
             appendCell(row, number.format(delivery.attempts));
-            appendCell(row, String(delivery.event_id).slice(0, 12), "mono");
+            const eventCell = appendCell(row, String(delivery.event_id).slice(0, 12), "mono");
+            const inspect = makeButton("Inspect", "control-btn subtle", () => showDeliveryDetails(delivery.event_id));
+            eventCell.append(" ", inspect);
             body.appendChild(row);
           }
         };
@@ -447,6 +465,37 @@
           button.addEventListener("click", onClick);
           return button;
         };
+        const showDeliveryDetails = async (eventId) => {
+          selectedDeliveryEventId = eventId;
+          byId("retry-delivery").disabled = true;
+          setText("delivery-detail-status", `Loading synthetic delivery ${eventId}…`);
+          try {
+            const detail = await managementRequest(`/api/management/deliveries/${encodeURIComponent(eventId)}`);
+            byId("delivery-detail-json").textContent = JSON.stringify(detail, null, 2);
+            setText("delivery-detail-status", `${detail.delivery.status} · ${detail.attempts.length} attempt(s) · ${detail.delivery.retry_allowed ? "manual retry available" : "manual retry unavailable"} · network disabled`);
+            byId("retry-delivery").disabled = !detail.delivery.retry_allowed;
+          } catch (error) {
+            byId("delivery-detail-json").textContent = "No safe delivery details available.";
+            setText("delivery-detail-status", error.message);
+            byId("retry-delivery").disabled = true;
+          }
+        };
+        byId("retry-delivery").addEventListener("click", async (event) => {
+          const eventId = selectedDeliveryEventId;
+          if (!eventId) return;
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await managementRequest(`/api/management/deliveries/${encodeURIComponent(eventId)}/retry`, "POST");
+            byId("delivery-detail-json").textContent = JSON.stringify(result, null, 2);
+            setText("delivery-detail-status", `${result.delivery.status} after explicit synthetic replay; original event ID and attempt history preserved.`);
+            await refresh();
+            await showDeliveryDetails(eventId);
+          } catch (error) {
+            setText("delivery-detail-status", error.message);
+            button.disabled = false;
+          }
+        });
         const loadDevices = async () => {
           const data = await managementRequest("/api/management/devices");
           const list = byId("devices-list");
@@ -601,9 +650,16 @@
             list.appendChild(card);
           }
         };
+        const loadDeliveryFaultStatus = async () => {
+          const data = await managementRequest("/api/management/destinations/test-receiver/faults");
+          const labels = { retry_once: "retryable failure", reject_once: "terminal rejection" };
+          const armed = data.armed_fault ? `Armed for next send: ${labels[data.armed_fault]}.` : "No delivery fault armed.";
+          const last = data.last_injected_fault ? ` Last injection: ${labels[data.last_injected_fault]} → ${data.last_outcome}.` : "";
+          setText("delivery-fault-status", `${armed}${last} Total injected: ${data.faults_injected}. Network disabled.`);
+        };
         const loadManagement = async () => {
           try {
-            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions(), loadDestinations()]);
+            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions(), loadDestinations(), loadDeliveryFaultStatus()]);
           } catch (error) {
             setText("device-status", `Management workbench unavailable (${error.message}).`);
           }
@@ -692,6 +748,28 @@
             await loadMappingRevisions();
           } catch (error) { setText("mapping-status", error.message); }
         });
+        const armDeliveryFault = async (mode, buttonId) => {
+          const button = byId(buttonId);
+          button.disabled = true;
+          try {
+            const result = await managementRequest("/api/management/destinations/test-receiver/faults", "POST", { mode });
+            setText("destination-status", `${mode === "retry_once" ? "One retryable failure" : "One terminal rejection"} armed for the next synthetic receiver send; network remains disabled.`);
+            setText("delivery-fault-status", `Armed for next send: ${mode === "retry_once" ? "retryable failure" : "terminal rejection"}.`);
+            if (result.armed_fault !== mode) await loadDeliveryFaultStatus();
+          } catch (error) { setText("delivery-fault-status", error.message); }
+          finally { button.disabled = false; }
+        };
+        byId("inject-retryable-fault").addEventListener("click", () => armDeliveryFault("retry_once", "inject-retryable-fault"));
+        byId("inject-rejection-fault").addEventListener("click", () => armDeliveryFault("reject_once", "inject-rejection-fault"));
+        byId("cancel-delivery-fault").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await managementRequest("/api/management/destinations/test-receiver/faults", "DELETE");
+            setText("delivery-fault-status", `No fault armed. Total injected: ${result.faults_injected}. Network disabled.`);
+          } catch (error) { setText("delivery-fault-status", error.message); }
+          finally { button.disabled = false; }
+        });
         byId("test-destination").addEventListener("click", async (event) => {
           const button = event.currentTarget;
           button.disabled = true;
@@ -727,6 +805,7 @@
             renderDeliveries(data.recent_deliveries);
             renderHolds(data.recent_holds);
             renderActivity(data.recent_activity);
+            await loadDeliveryFaultStatus();
             byId("api-error").classList.remove("visible");
           } catch (_) {
             byId("api-error").classList.add("visible");
