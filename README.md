@@ -19,6 +19,7 @@ The first synthetic-only vertical slice is underway:
 - A bounded, synthetic-only NDJSON replay CLI that validates events and demonstrates event-store deduplication without sending to a receiver.
 - A generic synthetic FHIR R4 Observation mapper and in-process test receiver used by the end-to-end `medihub demo` command; it opens no network connection.
 - A bounded synthetic Load & Capacity Lab (`medihub load-demo`) that measures aggregate local ingest/outbox throughput and acknowledgement latency; it uses in-memory SQLite and the in-process test receiver, not a production stack.
+- A combined synthetic acceptance/resilience lab (`medihub acceptance-demo`) covering pipeline deduplication, patient-free mapping, policy holds, injected retry/rejection and guarded replay, file-backed restart recovery, and bounded load; all stages remain offline and do not qualify a real site.
 - A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only management workbench for simulator devices, mapping previews, bounded revision history/compare/restore, synthetic golden-vector QA, delivery-fault drills, and terminal-failure triage/replay; it has no physical-device controls or external destination configuration.
 - A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
@@ -97,6 +98,15 @@ python -m medihub demo --count 5 --seed 7 \
 ```
 
 The JSON summary reports ingested events, duplicates, acknowledgements, test receipts, and simulator health. The demo validates a small generic R4 Observation shape only; it is not a network integration test or a validator for Bangladesh Core FHIR profiles or a facility contract.
+
+Run the combined synthetic acceptance and resilience workflow (2–100 unique events):
+
+```bash
+python -m medihub acceptance-demo --count 10 --seed 7 \
+  --duplicate-every 2 --start-at 2026-10-07T08:00:00Z
+```
+
+It runs the synthetic pipeline/deduplication, the built-in patient-free mapping, a retry → terminal rejection → guarded replay scenario, the file-backed restart-recovery drill, and the bounded in-memory load profile. JSON contains aggregate checks and metrics only. The command uses disposable/local SQLite stores and in-process receivers, ignores `MEDIHUB_DATABASE_URL`, and never opens a network connection. A pass means only that these code-level synthetic checks passed; facility acceptance, a real device, destination contract, and Bangladesh Core conformance are not tested. See [the acceptance lab limits](docs/SYNTHETIC_ACCEPTANCE_LAB.md).
 
 Run the bounded synthetic load lab (up to 1,000 unique events):
 

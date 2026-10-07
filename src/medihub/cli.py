@@ -13,6 +13,12 @@ import uvicorn
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
+from medihub.application.acceptance_demo import (
+    MAX_SYNTHETIC_ACCEPTANCE_EVENTS,
+    MIN_SYNTHETIC_ACCEPTANCE_EVENTS,
+    SyntheticAcceptanceDemoError,
+    run_synthetic_acceptance_demo,
+)
 from medihub.application.demo import DemoSummary, run_synthetic_demo
 from medihub.application.discovery import validate_profile_file
 from medihub.application.load_demo import (
@@ -126,6 +132,22 @@ def _load_demo_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConf
     )
 
 
+def _acceptance_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConfig:
+    return SyntheticDeviceConfig(
+        site_id=args.site_id,
+        device=DeviceReference(
+            device_id=args.device_id,
+            manufacturer="MediHub Synthetic",
+            model="scalar-simulator-v1",
+            firmware_version="1.0",
+        ),
+        event_count=args.count,
+        seed=args.seed,
+        start_at=args.start_at,
+        duplicate_every=args.duplicate_every,
+    )
+
+
 async def _write_synthetic_events(config: SyntheticDeviceConfig) -> None:
     adapter = SyntheticDeviceAdapter(config)
     try:
@@ -159,6 +181,30 @@ def _build_parser() -> argparse.ArgumentParser:
         help="run a synthetic event through the in-process test receiver",
     )
     _add_simulation_arguments(demo)
+
+    acceptance_demo = commands.add_parser(
+        "acceptance-demo",
+        help="run combined synthetic-only pipeline, mapping, recovery, and bounded-load checks",
+    )
+    acceptance_demo.add_argument(
+        "--count",
+        type=int,
+        default=10,
+        help=(
+            "unique synthetic events for the bounded stages "
+            f"({MIN_SYNTHETIC_ACCEPTANCE_EVENTS}–{MAX_SYNTHETIC_ACCEPTANCE_EVENTS})"
+        ),
+    )
+    acceptance_demo.add_argument("--seed", type=int, default=7)
+    acceptance_demo.add_argument("--site-id", default="synthetic-site")
+    acceptance_demo.add_argument("--device-id", default="sim-device-001")
+    acceptance_demo.add_argument("--start-at", type=_parse_datetime)
+    acceptance_demo.add_argument(
+        "--duplicate-every",
+        type=int,
+        default=2,
+        help="redeliver every Nth event to exercise deduplication; 0 disables",
+    )
 
     recovery_demo = commands.add_parser(
         "recovery-demo",
@@ -259,6 +305,22 @@ def _write_demo_summary(summary: DemoSummary) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.command == "acceptance-demo":
+        if not MIN_SYNTHETIC_ACCEPTANCE_EVENTS <= args.count <= MAX_SYNTHETIC_ACCEPTANCE_EVENTS:
+            parser.error("synthetic_acceptance_event_limit_exceeded")
+        try:
+            config = _acceptance_config_from_args(args)
+        except ValueError as error:
+            parser.error(f"invalid synthetic acceptance options ({type(error).__name__})")
+        try:
+            summary = asyncio.run(run_synthetic_acceptance_demo(config))
+        except SyntheticAcceptanceDemoError as error:
+            parser.error(f"synthetic acceptance demo stopped ({error.code})")
+        except Exception as error:
+            parser.error(f"synthetic acceptance demo failed ({type(error).__name__})")
+        print(json.dumps(asdict(summary), sort_keys=True))
+        return 0 if summary.status == "passed" else 1
+
     if args.command == "dashboard":
         if not 1 <= args.port <= 65_535:
             parser.error("--port must be between 1 and 65535")
