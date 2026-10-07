@@ -110,6 +110,7 @@ def test_dashboard_tabs_render_distinct_page_routes() -> None:
         "/devices": "devices",
         "/mappings": "mappings",
         "/api-setup": "api-setup",
+        "/help": "help",
     }
 
     async def exercise_pages() -> None:
@@ -134,7 +135,16 @@ def test_dashboard_tabs_render_distinct_page_routes() -> None:
                         'href="/api-setup#destination-workbench" data-page-link="api-setup"'
                         in response.text
                     )
+                    assert 'href="/help" data-page-link="help"' in response.text
+                    assert 'id="language-select"' in response.text
+                    assert 'value="bn">বাংলা</option>' in response.text
 
+                help_page = await client.get("/help")
+                assert 'data-current-page="help"' in help_page.text
+                assert "Bangladesh deployment considerations" in help_page.text
+                assert "never enter patient details" in help_page.text
+                assert "প্রিভিউতে MediHub কী করে" in help_page.text
+                assert "docs/user-guide.md" in help_page.text
                 assert "window.location.replace(legacyPages[window.location.hash])" in response.text
 
                 device_page = await client.get("/devices")

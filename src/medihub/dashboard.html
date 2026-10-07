@@ -24,6 +24,14 @@
         color: var(--text);
       }
       * { box-sizing: border-box; }
+      :root[lang="bn"] { font-family: "Noto Sans Bengali", "Noto Sans Bengali UI", "Hind Siliguri", system-ui, sans-serif; }
+      :root[lang="bn"] h1, :root[lang="bn"] h2, :root[lang="bn"] h3, :root[lang="bn"] h4,
+      :root[lang="bn"] .brand, :root[lang="bn"] .brand small, :root[lang="bn"] .eyebrow,
+      :root[lang="bn"] .setup-nav a, :root[lang="bn"] .mode-pill, :root[lang="bn"] .refresh-pill,
+      :root[lang="bn"] .state, :root[lang="bn"] .metric-label, :root[lang="bn"] .metric-value,
+      :root[lang="bn"] .panel-title, :root[lang="bn"] .form-field, :root[lang="bn"] .device-stat span,
+      :root[lang="bn"] .catalog-status, :root[lang="bn"] .device-badge,
+      :root[lang="bn"] .device-flow-step span, :root[lang="bn"] .status-chip, :root[lang="bn"] th { letter-spacing: normal; }
       body { margin: 0; min-width: 320px; background: radial-gradient(ellipse at 82% -20%, #193046 0, transparent 42%), var(--canvas); }
       .shell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 30px 0 48px; }
       .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 27px; border-bottom: 1px solid var(--line); }
@@ -31,6 +39,9 @@
       .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: #042b2a; font-size: 21px; font-weight: 850; background: linear-gradient(145deg, #8cf2d9, #46c8c2); box-shadow: 0 6px 24px #31c9bb2c; }
       .brand small { display: block; color: var(--muted); letter-spacing: .12em; font-size: 9px; font-weight: 700; margin-top: 3px; }
       .top-actions { display: flex; align-items: center; gap: 12px; }
+      .language-control { display: inline-flex; align-items: center; gap: 7px; color: #aab9c9; font-size: 10px; font-weight: 700; }
+      .language-control select { min-height: 34px; padding: 6px 9px; border: 1px solid #2b3c4f; border-radius: 8px; background: #101722; color: var(--text); font: inherit; cursor: pointer; }
+      .language-control select:focus-visible { outline: 2px solid #3b827b; outline-offset: 2px; }
       .mode-pill, .refresh-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border-radius: 999px; border: 1px solid var(--line); color: #cbd5e1; background: #111925c7; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
       .mode-pill { color: var(--teal); border-color: #245c5a; background: #0e2929; }
       .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px #5eead41c; animation: pulse 1.8s ease-in-out infinite; }
@@ -93,7 +104,20 @@
       .setup-nav a:hover, .setup-nav a:focus-visible { color: var(--teal); border-color: #37726b; outline: none; }
       .setup-nav a[aria-current="page"] { color: #052c2b; border-color: var(--teal); background: var(--teal); }
       body:not([data-current-page="operations"]) [data-page-panel="operations"] { display: none !important; }
-      body[data-current-page="operations"] .management { display: none !important; }
+      body[data-current-page="operations"] .management,
+      body[data-current-page="help"] .management { display: none !important; }
+      .help-page { display: none; margin-top: 23px; }
+      body[data-current-page="help"] .help-page { display: block; }
+      .help-lead { margin: 0 0 16px; padding: 15px 17px; border: 1px solid #2e7168; border-radius: 12px; background: #102622; color: #b8e7dc; font-size: 12px; line-height: 1.65; }
+      .help-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+      .help-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(150deg, #141e2b, #101722 80%); }
+      .help-card.full { grid-column: 1 / -1; }
+      .help-card h2, .help-card h3 { margin: 0 0 9px; font-size: 14px; }
+      .help-card p, .help-card li { color: #a9b8c8; font-size: 11px; line-height: 1.65; }
+      .help-card p { margin: 7px 0; }
+      .help-card ul, .help-card ol { margin: 8px 0 0; padding-left: 20px; }
+      .help-card code { padding: 2px 5px; border-radius: 5px; background: #09111a; color: #a5d6cb; font-size: .92em; overflow-wrap: anywhere; }
+      .help-link { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
       body[data-current-page="devices"] #mapping-workbench,
       body[data-current-page="devices"] #destination-workbench,
       body[data-current-page="mappings"] #device-workbench,
@@ -178,8 +202,8 @@
       .device-export-tools .form-field { flex: 1 1 130px; }
       .device-export-tools .control-btn { flex: 0 0 auto; }
       .form-field input:disabled, .form-field select:disabled { opacity: .7; color: #93a3b5; cursor: not-allowed; }
-      @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid, .device-section-grid { grid-template-columns: 1fr; } .management-panel.full, .device-subpanel.full { grid-column: auto; } .device-flow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-      @media (max-width: 650px) { .shell { width: min(100% - 24px, 1240px); padding-top: 16px; } .topbar { align-items: flex-start; } .top-actions { align-items: flex-end; flex-direction: column; gap: 6px; } .refresh-pill { display: none; } .intro { display: block; padding-top: 25px; } .updated { padding-top: 14px; } .health-grid { grid-template-columns: 1fr; gap: 9px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .metric-card { min-height: 94px; padding: 13px; } .metric-value { font-size: 24px; } .management-head { display: block; } .setup-nav { overflow-x: auto; flex-wrap: nowrap; } .setup-nav a { flex: 0 0 auto; } .form-grid { grid-template-columns: 1fr; } .workbench-row { align-items: flex-start; flex-wrap: wrap; } .workbench-row .row-actions { width: 100%; justify-content: flex-start; } .footer { display: block; } .footer span { display: block; margin-bottom: 5px; } }
+      @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid, .device-section-grid, .help-grid { grid-template-columns: 1fr; } .management-panel.full, .device-subpanel.full, .help-card.full { grid-column: auto; } .device-flow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 650px) { .shell { width: min(100% - 24px, 1240px); padding-top: 16px; } .topbar { align-items: flex-start; } .top-actions { align-items: flex-end; flex-direction: column; gap: 6px; } .language-control { justify-content: flex-end; } .refresh-pill { display: none; } .intro { display: block; padding-top: 25px; } .updated { padding-top: 14px; } .health-grid { grid-template-columns: 1fr; gap: 9px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .metric-card { min-height: 94px; padding: 13px; } .metric-value { font-size: 24px; } .management-head { display: block; } .setup-nav { overflow-x: auto; flex-wrap: nowrap; } .setup-nav a { flex: 0 0 auto; } .form-grid { grid-template-columns: 1fr; } .workbench-row { align-items: flex-start; flex-wrap: wrap; } .workbench-row .row-actions { width: 100%; justify-content: flex-start; } .footer { display: block; } .footer span { display: block; margin-bottom: 5px; } }
       @media (max-width: 650px) { .device-stats, .device-section-grid, .device-catalog-grid, .device-flow-steps { grid-template-columns: 1fr; } .device-picker { width: 100%; min-width: 0; } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
@@ -189,6 +213,7 @@
       <header class="topbar">
         <div class="brand"><span class="brand-mark" aria-hidden="true">+</span><span>MediHub<small>INTEGRATION GATEWAY</small></span></div>
         <div class="top-actions">
+          <label class="language-control" for="language-select"><span id="language-label">Language</span><select id="language-select" aria-label="Interface language"><option value="en">English</option><option value="bn">বাংলা</option></select></label>
           <span class="mode-pill"><span class="pulse" aria-hidden="true"></span>Synthetic-only lab</span>
           <span class="refresh-pill">Ephemeral controls · no live connections</span>
         </div>
@@ -198,6 +223,7 @@
         <a href="/devices#device-workbench" data-page-link="devices">Device management</a>
         <a href="/mappings#mapping-workbench" data-page-link="mappings">Data mapping</a>
         <a href="/api-setup#destination-workbench" data-page-link="api-setup">EMR / EMS APIs</a>
+        <a href="/help" data-page-link="help">Help / user guide</a>
       </nav>
 
       <section class="intro" id="overview" aria-labelledby="page-title">
@@ -260,6 +286,94 @@
       <section class="data-panel activity-panel" data-page-panel="operations" aria-labelledby="activity-heading">
         <div class="panel-head"><div><h2 id="activity-heading" class="panel-title">Synthetic audit activity</h2><p class="panel-subtitle">Curated system actions · reason codes only · no payload or actor IDs</p></div><span id="activity-count" class="count">0 recent</span></div>
         <div class="table-wrap"><table><thead><tr><th>Recorded</th><th>Action</th><th>Resource type</th><th>Reason code</th></tr></thead><tbody id="activity-body"><tr><td colspan="4" class="empty">Waiting for audit events…</td></tr></tbody></table></div>
+      </section>
+
+      <section class="help-page" id="help-content" data-page-panel="help" aria-labelledby="help-title">
+        <div class="help-lead"><strong>Important scope:</strong> This guide describes the local synthetic preview only. It is not a clinical product, a live device connector, or an EMR/EMS integration. Use generated demo data only; never enter patient details, real measurements, credentials, or live endpoints.</div>
+        <div class="help-grid">
+          <article class="help-card full">
+            <h2 id="help-title">1. What MediHub does in this preview</h2>
+            <p>MediHub demonstrates a local, synthetic device-to-ingestion-to-outbox workflow. The app generates arbitrary sample values, keeps curated event and delivery metadata for the running process, and sends test deliveries only to an in-process receiver. No physical device, remote service, facility system, or patient record is contacted.</p>
+            <ul>
+              <li><strong>Safe for:</strong> product walkthroughs, software development, mapping exercises, and test-flow demonstrations with synthetic values.</li>
+              <li><strong>Not for:</strong> diagnosis, treatment, clinical monitoring, production operations, real patient information, or live integration configuration.</li>
+              <li>Most workbench changes and registrations are temporary in-memory drafts and reset when the server restarts.</li>
+            </ul>
+          </article>
+          <article class="help-card">
+            <h2>2. Operations overview</h2>
+            <ol>
+              <li>Open <strong>Operations</strong> to review the synthetic source and in-process receiver status.</li>
+              <li>Read the metric cards for generated events, duplicate replays, delivery attempts, acknowledgements, pending work, and policy holds.</li>
+              <li>Review recent events, outbox activity, policy holds, and curated audit actions. Event identifiers are shortened in the table.</li>
+              <li>Use <strong>Inspect</strong> on a delivery to view its allowlisted synthetic details. A terminal synthetic failure can be manually retried when the control is enabled.</li>
+            </ol>
+            <p>A displayed “healthy” state describes only the local demo components; it is not a facility or device health signal.</p>
+          </article>
+          <article class="help-card">
+            <h2>3. Device management</h2>
+            <ol>
+              <li>Open <strong>Device management</strong> and choose <strong>Register simulator</strong> to add a demo device to the running process.</li>
+              <li>Use <strong>Set active</strong> or <strong>Set inactive</strong> to control whether that simulator can emit demo samples. These controls never operate hardware.</li>
+              <li>Select a simulator and choose <strong>Emit sample</strong> to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.</li>
+              <li>The catalog contains illustrative device categories only. Selecting one prepares a non-secret draft; it does not verify compatibility or configure an API.</li>
+              <li>Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.</li>
+            </ol>
+            <p>The device API form accepts only non-secret draft metadata. Endpoint, authentication, hardware discovery, and real device API calls are intentionally unavailable.</p>
+          </article>
+          <article class="help-card">
+            <h2>4. Mapping drafts and tests</h2>
+            <ul>
+              <li>Add an exact source metric and unit to a mapping draft. Identity rules preserve the synthetic scalar; linear rules apply the configured scale and offset, with the requested decimal precision.</li>
+              <li>Use <strong>Preview mapping</strong> with a selected simulator and synthetic value to check a match. A missing exact code/unit match should remain unmapped rather than being guessed.</li>
+              <li>Golden test vectors capture synthetic inputs and expected normalized outputs. Run the tests after changing a draft; passing tests are not clinical validation or approval.</li>
+              <li>Revision history is temporary and lets you compare or restore a prior version as a new inactive draft. Mapping activation remains disabled.</li>
+            </ul>
+          </article>
+          <article class="help-card">
+            <h2>5. EMR / EMS API workbench</h2>
+            <p>The cards describe planning targets, not available integrations. FHIR R4 / EMR and HL7 v2 / interface-engine / EMS connection controls are locked; the app has no network sender, endpoint form, credential store, or live activation.</p>
+            <p>Before any separate real deployment is designed, the responsible facility and authorized technical teams must agree on the interface contract, message and resource profiles, patient-context rules, acknowledgement and idempotency behavior, security controls, test environment, and operational ownership. Do not paste production URLs, tokens, keys, or connection details here.</p>
+          </article>
+          <article class="help-card">
+            <h2>6. Bangladesh deployment considerations</h2>
+            <p>Bangladesh is a required deployment context for MediHub planning, but this demo is not ready for deployment in a Bangladeshi facility. A future implementation needs local clinical and technical discovery, facility approval, an assessment of applicable Bangladesh laws and regulator guidance, data-residency and hosting decisions, language/accessibility review, and a documented security and privacy assessment.</p>
+            <p>Validate the exact device models, facility workflows, terminology, units, connectivity constraints, support arrangements, and approved synthetic test endpoint with each participating facility. No local legal, regulatory, or interoperability approval is implied by this preview.</p>
+          </article>
+          <article class="help-card">
+            <h2>7. Privacy and safety</h2>
+            <ul>
+              <li>Use only the arbitrary values generated by the simulator. Do not enter names, identifiers, dates of birth, contact details, clinical notes, real readings, or other personal or health information.</li>
+              <li>Do not add credentials or secrets. Do not interpret demo events, mappings, delivery receipts, or status indicators as clinical or production evidence.</li>
+              <li>Exports are created in your browser from recent synthetic rows. Store and share them only as non-sensitive test artifacts.</li>
+              <li>The preview is not a production control plane: it does not provide authenticated operator roles, facility scoping, durable configuration management, or production-grade audit controls.</li>
+            </ul>
+          </article>
+          <article class="help-card">
+            <h2>8. Troubleshooting</h2>
+            <ul>
+              <li><strong>No sample appears:</strong> confirm that a simulator is registered and active, then select it and emit a sample. Refresh the device flow.</li>
+              <li><strong>Mapping preview has no match:</strong> compare the source metric code and unit exactly with a draft rule; check the selected simulator and add a synthetic test vector.</li>
+              <li><strong>Delivery is queued or failed:</strong> inspect the delivery and its attempts. Use manual retry only when enabled; retries remain local to the synthetic receiver.</li>
+              <li><strong>Changes disappeared:</strong> simulator and mapping setup is held in process memory and resets on server restart.</li>
+              <li><strong>Page data looks stale:</strong> the operations view refreshes automatically. Reload the page if the browser has lost its connection to the local demo server.</li>
+            </ul>
+          </article>
+          <article class="help-card">
+            <h2>9. Glossary</h2>
+            <ul>
+              <li><strong>Synthetic:</strong> generated demonstration data that does not represent a person or a real device reading.</li>
+              <li><strong>Outbox:</strong> a local record of a delivery intent and its attempts; the demo receiver runs in the same process.</li>
+              <li><strong>Idempotency:</strong> handling a repeated event identifier without creating a second test receipt.</li>
+              <li><strong>Mapping draft:</strong> an inactive, temporary rule for converting an exact synthetic source code/unit to an example normalized code/unit.</li>
+              <li><strong>FHIR R4 / HL7 v2:</strong> standards named as future planning targets only; neither is connected in this preview.</li>
+            </ul>
+          </article>
+          <article class="help-card full">
+            <h2>10. Maintained documentation</h2>
+            <p>The repository's <code>docs/user-guide.md</code> contains the detailed operator guide, step-by-step workflows, safety boundaries, troubleshooting, and the Bangladesh deployment-readiness checklist. Review it alongside the project README before adapting this demo.</p>
+          </article>
+        </div>
       </section>
 
       <section class="management" aria-labelledby="workbench-heading">
@@ -515,6 +629,13 @@
             workbenchTitle: "EMR / EMS connection APIs",
             workbenchDescription: "FHIR R4 and HL7 v2 are planning targets only; configure real endpoints only after facility contract, security, and sandbox approval.",
           },
+          help: {
+            title: "Help & user guide",
+            eyebrow: "Operator help / synthetic preview",
+            description: "Learn how to use the local synthetic workbench safely, understand each page, and review the Bangladesh deployment boundary.",
+            workbenchTitle: "Help & user guide",
+            workbenchDescription: "Step-by-step guidance for the demo workflows, synthetic-data limits, troubleshooting, and future integration planning.",
+          },
         };
         const currentPage = Object.hasOwn(pageContent, document.body.dataset.currentPage)
           ? document.body.dataset.currentPage
@@ -531,11 +652,512 @@
         });
 
         const byId = (id) => document.getElementById(id);
-        const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+        const bengali = {
+          "MediHub · Synthetic operations": "MediHub · সিন্থেটিক কার্যক্রম",
+          "INTEGRATION GATEWAY": "ইন্টিগ্রেশন গেটওয়ে",
+          Language: "ভাষা",
+          "Interface language": "ইন্টারফেসের ভাষা",
+          "Dashboard pages": "ড্যাশবোর্ডের পৃষ্ঠা",
+          "Synthetic-only lab": "শুধু সিন্থেটিক পরীক্ষাগার",
+          "Ephemeral controls · no live connections": "অস্থায়ী নিয়ন্ত্রণ · কোনো লাইভ সংযোগ নেই",
+          Operations: "কার্যক্রম",
+          "Device management": "ডিভাইস ব্যবস্থাপনা",
+          "Data mapping": "ডেটা ম্যাপিং",
+          "EMR / EMS APIs": "EMR / EMS API",
+          "Help / user guide": "সহায়তা / ব্যবহারকারী নির্দেশিকা",
+          "Operations overview / local preview": "কার্যক্রমের সারসংক্ষেপ / স্থানীয় প্রিভিউ",
+          "Integration operations": "ইন্টিগ্রেশন কার্যক্রম",
+          "Monitor the synthetic device → ingestion → outbox flow and review recent events, deliveries, and policy holds. All values are generated locally; no external connection is made.": "সিন্থেটিক ডিভাইস → গ্রহণ → আউটবক্স প্রবাহ পর্যবেক্ষণ করুন এবং সাম্প্রতিক ইভেন্ট, ডেলিভারি ও নীতি-হোল্ড পর্যালোচনা করুন। সব মান স্থানীয়ভাবে তৈরি হয়; কোনো বাহ্যিক সংযোগ করা হয় না।",
+          "Last updated": "সর্বশেষ হালনাগাদ",
+          "Waiting for first snapshot…": "প্রথম স্ন্যাপশটের অপেক্ষায়…",
+          "Development data only.": "শুধু উন্নয়ন ও পরীক্ষার ডেটা।",
+          "Values are arbitrary synthetic scalars, not patient measurements. Setup changes are ephemeral and reset when the server restarts. No live device, external API, EMR/EMS endpoint, credential, or patient context is supported by this workbench.": "মানগুলো কৃত্রিম পরীক্ষামূলক সংখ্যা—রোগীর পরিমাপ নয়। সেটআপের পরিবর্তন অস্থায়ী এবং সার্ভার পুনরায় চালু হলে মুছে যায়। এই ওয়ার্কবেঞ্চে কোনো বাস্তব ডিভাইস, বাহ্যিক API, EMR/EMS এন্ডপয়েন্ট, পরিচয়-প্রমাণ বা রোগীর তথ্য সমর্থিত নয়।",
+          "Adapter health": "অ্যাডাপ্টারের অবস্থা",
+          "Synthetic device source": "সিন্থেটিক ডিভাইস উৎস",
+          "Waiting for health check": "স্বাস্থ্য-পরীক্ষার অপেক্ষায়",
+          Starting: "শুরু হচ্ছে",
+          "Destination adapter": "গন্তব্য অ্যাডাপ্টার",
+          "In-process FHIR R4 test receiver": "প্রসেসের ভেতরের FHIR R4 পরীক্ষামূলক রিসিভার",
+          "generic synthetic Observation · no network": "সাধারণ সিন্থেটিক Observation · নেটওয়ার্ক নেই",
+          "Synthetic pipeline metrics": "সিন্থেটিক পাইপলাইনের মেট্রিক",
+          "Events retained": "সংরক্ষিত ইভেন্ট",
+          "Unique event IDs": "স্বতন্ত্র ইভেন্ট ID",
+          Duplicates: "ডুপ্লিকেট",
+          "Idempotent replays": "আইডেমপোটেন্ট পুনঃপ্রেরণ",
+          "Delivery attempts": "ডেলিভারির চেষ্টা",
+          "Outbox dispatches": "আউটবক্স থেকে পাঠানো",
+          Acknowledged: "নিশ্চিত হয়েছে",
+          "Synthetic test receipts": "সিন্থেটিক পরীক্ষার রসিদ",
+          Pending: "অপেক্ষমাণ",
+          "Queued or retryable": "সারিতে বা পুনঃচেষ্টাযোগ্য",
+          "Blocked routes": "অবরুদ্ধ রুট",
+          "Policy holds": "নীতি-হোল্ড",
+          "Recent synthetic events": "সাম্প্রতিক সিন্থেটিক ইভেন্ট",
+          "Curated fields only · payloads are not exposed": "নির্বাচিত ক্ষেত্রমাত্র · পেলোড দেখানো হয় না",
+          Received: "গৃহীত",
+          Device: "ডিভাইস",
+          Reading: "রিডিং",
+          "Event ID": "ইভেন্ট ID",
+          "Waiting for synthetic events…": "সিন্থেটিক ইভেন্টের অপেক্ষায়…",
+          "Outbox activity": "আউটবক্স কার্যক্রম",
+          "Delivery lifecycle at the test receiver": "পরীক্ষামূলক রিসিভারে ডেলিভারির ধাপ",
+          Updated: "হালনাগাদ",
+          State: "অবস্থা",
+          Attempts: "চেষ্টা",
+          "Waiting for delivery intents…": "ডেলিভারি অনুরোধের অপেক্ষায়…",
+          "Selected synthetic delivery": "নির্বাচিত সিন্থেটিক ডেলিভারি",
+          "Allowlisted event and attempt metadata only": "অনুমোদিত ইভেন্ট ও চেষ্টার মেটাডেটা মাত্র",
+          "Retry terminal failure": "চূড়ান্ত ব্যর্থতার পুনঃচেষ্টা",
+          "Choose Inspect to review a delivery.": "ডেলিভারি পর্যালোচনা করতে ‘বিস্তারিত দেখুন’ নির্বাচন করুন।",
+          "No delivery selected.": "কোনো ডেলিভারি নির্বাচন করা হয়নি।",
+          "Durable policy holds": "স্থায়ী নীতি-হোল্ড",
+          "Stable reason codes only · no auto-override or patient details": "স্থিতিশীল কারণ-কোডমাত্র · স্বয়ংক্রিয় ওভাররাইড বা রোগীর তথ্য নেই",
+          Recorded: "রেকর্ড করা হয়েছে",
+          Destination: "গন্তব্য",
+          "Reason code": "কারণ-কোড",
+          "Waiting for policy decisions…": "নীতি-সিদ্ধান্তের অপেক্ষায়…",
+          "Synthetic audit activity": "সিন্থেটিক অডিট কার্যক্রম",
+          "Curated system actions · reason codes only · no payload or actor IDs": "নির্বাচিত সিস্টেম কার্যক্রম · শুধু কারণ-কোড · পেলোড বা ব্যবহারকারী ID নেই",
+          Action: "কার্যক্রম",
+          "Resource type": "রিসোর্সের ধরন",
+          "Waiting for audit events…": "অডিট ইভেন্টের অপেক্ষায়…",
+          "Configuration workbench / synthetic only": "কনফিগারেশন ওয়ার্কবেঞ্চ / শুধু সিন্থেটিক",
+          "Synthetic workbench": "সিন্থেটিক ওয়ার্কবেঞ্চ",
+          "Controls edit temporary in-memory simulator and mapping records. Live device and destination activation remains disabled.": "নিয়ন্ত্রণগুলো সাময়িক মেমোরিতে থাকা সিমুলেটর ও ম্যাপিং রেকর্ড সম্পাদনা করে। বাস্তব ডিভাইস ও গন্তব্য সক্রিয় করা নিষ্ক্রিয়।",
+          "Live activation disabled": "বাস্তব সংযোগ সক্রিয় করা নিষ্ক্রিয়",
+          "Synthetic inventory · activation controls affect demo simulators only": "সিন্থেটিক তালিকা · সক্রিয়/নিষ্ক্রিয় নিয়ন্ত্রণ শুধু ডেমো সিমুলেটরে কাজ করে",
+          "Register simulator": "সিমুলেটর নিবন্ধন করুন",
+          "Manage demo simulator state and review discovery candidates. Catalog categories are illustrative—not verified device support. Exact manufacturer, model, firmware, protocol, and facility approval are required before a real integration can be planned.": "ডেমো সিমুলেটরের অবস্থা পরিচালনা করুন এবং সম্ভাব্য ডিভাইসের তালিকা দেখুন। ক্যাটালগের বিভাগগুলো কেবল উদাহরণ—যাচাইকৃত ডিভাইস-সমর্থন নয়। বাস্তব ইন্টিগ্রেশন পরিকল্পনার আগে সঠিক নির্মাতা, মডেল, ফার্মওয়্যার, প্রোটোকল এবং প্রতিষ্ঠানের অনুমোদন যাচাই করতে হবে।",
+          "Device management summary": "ডিভাইস ব্যবস্থাপনার সারাংশ",
+          "Demo devices": "ডেমো ডিভাইস",
+          "Temporary simulator inventory": "সাময়িক সিমুলেটর তালিকা",
+          Active: "সক্রিয়",
+          "Enabled for local demo samples": "স্থানীয় ডেমো নমুনার জন্য চালু",
+          "Discovery candidates": "অনুসন্ধানের সম্ভাব্য ডিভাইস",
+          "Illustrative categories · no compatibility claim": "উদাহরণমূলক বিভাগ · সামঞ্জস্যের নিশ্চয়তা নয়",
+          "Managed devices": "পরিচালিত ডিভাইস",
+          "Active / inactive is local simulator state; physical device connections are disabled.": "সক্রিয়/নিষ্ক্রিয় অবস্থা শুধু স্থানীয় সিমুলেটরের; বাস্তব ডিভাইস সংযোগ বন্ধ।",
+          "Loading simulator inventory…": "সিমুলেটরের তালিকা লোড হচ্ছে…",
+          "Device integration catalog": "ডিভাইস ইন্টিগ্রেশন ক্যাটালগ",
+          "Candidate device classes for discovery—not a supported/connected device list.": "অনুসন্ধানের সম্ভাব্য ডিভাইসের ধরন—সমর্থিত বা সংযুক্ত ডিভাইসের তালিকা নয়।",
+          "Device API configuration": "ডিভাইস API কনফিগারেশন",
+          "Non-secret local draft only · no endpoint, credential, or live connection is stored.": "শুধু স্থানীয়, গোপন তথ্যবিহীন খসড়া · কোনো এন্ডপয়েন্ট, পরিচয়-প্রমাণ বা বাস্তব সংযোগ সংরক্ষিত হয় না।",
+          "Selected simulator": "নির্বাচিত সিমুলেটর",
+          "Device class": "ডিভাইসের ধরন",
+          "Not selected / discovery required": "নির্বাচিত নয় / অনুসন্ধান প্রয়োজন",
+          "Multiparameter monitor": "মাল্টিপ্যারামিটার মনিটর",
+          "Pulse oximeter": "পালস অক্সিমিটার",
+          "Blood-pressure monitor": "রক্তচাপ মনিটর",
+          Thermometer: "থার্মোমিটার",
+          "ECG recorder": "ECG রেকর্ডার",
+          "Glucose meter": "গ্লুকোজ মিটার",
+          "Candidate transport": "সম্ভাব্য ট্রান্সপোর্ট",
+          "To be confirmed": "যাচাই করা বাকি",
+          "HTTP / vendor API": "HTTP / ভেন্ডর API",
+          "HL7 v2 via interface engine": "ইন্টারফেস ইঞ্জিনের মাধ্যমে HL7 v2",
+          "Serial / USB adapter": "সিরিয়াল / USB অ্যাডাপ্টার",
+          "Bluetooth LE adapter": "Bluetooth LE অ্যাডাপ্টার",
+          "Vendor gateway": "ভেন্ডর গেটওয়ে",
+          "Payload profile": "পেলোড প্রোফাইল",
+          "Vendor-defined JSON": "ভেন্ডর-নির্ধারিত JSON",
+          "HL7 v2 message": "HL7 v2 বার্তা",
+          "FHIR R4 API": "FHIR R4 API",
+          "Draft poll interval (seconds)": "খসড়া পোল ব্যবধান (সেকেন্ড)",
+          "External endpoint": "বাহ্যিক এন্ডপয়েন্ট",
+          "Not collected in this preview": "এই প্রিভিউতে সংগ্রহ করা হয় না",
+          "Authentication / secrets": "প্রমাণীকরণ / গোপন তথ্য",
+          "Not configured · browser secret entry disabled": "কনফিগার করা হয়নি · ব্রাউজারে গোপন তথ্য দেওয়া নিষ্ক্রিয়",
+          "Connection status": "সংযোগের অবস্থা",
+          "Synthetic simulator only": "শুধু সিন্থেটিক সিমুলেটর",
+          "Local demo control route: POST /api/management/devices/{device_id}/emit · not a device-facing integration API": "স্থানীয় ডেমো নিয়ন্ত্রণ রুট: POST /api/management/devices/{device_id}/emit · এটি ডিভাইস-সংযোগ API নয়",
+          "Save local draft": "স্থানীয় খসড়া সংরক্ষণ করুন",
+          "Activate connector": "কানেক্টর সক্রিয় করুন",
+          "Live connector activation is not available in this preview": "এই প্রিভিউতে বাস্তব কানেক্টর সক্রিয় করা যায় না",
+          "No device API draft saved for this simulator.": "এই সিমুলেটরের জন্য কোনো ডিভাইস API খসড়া সংরক্ষিত নেই।",
+          "Device-wise data mapping": "ডিভাইসভিত্তিক ডেটা ম্যাপিং",
+          "Selected-device context · synthetic rules remain draft/preview only.": "নির্বাচিত ডিভাইসের প্রসঙ্গ · সিন্থেটিক নিয়ম শুধু খসড়া/প্রিভিউতে থাকে।",
+          "Open mapping workbench": "ম্যাপিং ওয়ার্কবেঞ্চ খুলুন",
+          "Loading the local synthetic mapping profile…": "স্থানীয় সিন্থেটিক ম্যাপিং প্রোফাইল লোড হচ্ছে…",
+          "Source code · unit": "উৎস কোড · একক",
+          Rule: "নিয়ম",
+          "Normalized code · unit": "স্বাভাবিকীকৃত কোড · একক",
+          "Loading mapping rules…": "ম্যাপিং নিয়ম লোড হচ্ছে…",
+          "This preview shares one inactive mapping set across its simulator devices. A real per-device assignment requires a validated source specification and stays disabled here.": "এই প্রিভিউতে সব সিমুলেটরের জন্য একই নিষ্ক্রিয় ম্যাপিং সেট ব্যবহৃত হয়। প্রতি ডিভাইসের বাস্তব ম্যাপিং দিতে যাচাইকৃত উৎস-নির্দিষ্টকরণ প্রয়োজন; এখানে তা বন্ধ।",
+          "Device-wise data flow": "ডিভাইসভিত্তিক ডেটা প্রবাহ",
+          "Live synthetic source → MediHub ingestion → outbox → in-process test sink. Mapping rules below remain preview-only.": "সিন্থেটিক উৎস → MediHub-এ গ্রহণ → আউটবক্স → প্রসেসের ভেতরের পরীক্ষামূলক গন্তব্য। নিচের ম্যাপিং নিয়ম শুধু প্রিভিউতে থাকে।",
+          "Refresh flow": "প্রবাহ হালনাগাদ করুন",
+          Source: "উৎস",
+          "Loading…": "লোড হচ্ছে…",
+          "Synthetic device": "সিন্থেটিক ডিভাইস",
+          "Data export": "ডেটা এক্সপোর্ট",
+          "Download up to 12 curated recent synthetic rows for the selected simulator only.": "শুধু নির্বাচিত সিমুলেটরের সর্বোচ্চ ১২টি বাছাই করা সাম্প্রতিক সিন্থেটিক সারি ডাউনলোড করুন।",
+          "File format": "ফাইলের ধরন",
+          "Export selected device": "নির্বাচিত ডিভাইস এক্সপোর্ট করুন",
+          "No export requested.": "কোনো এক্সপোর্ট অনুরোধ করা হয়নি।",
+          "Integration safety": "ইন্টিগ্রেশন নিরাপত্তা",
+          "Before connecting a real device": "বাস্তব ডিভাইস যুক্ত করার আগে",
+          "Hardware discovery": "হার্ডওয়্যার অনুসন্ধান",
+          Disabled: "নিষ্ক্রিয়",
+          "Real device API calls": "বাস্তব ডিভাইস API কল",
+          "Stored device measurements": "সংরক্ষিত ডিভাইস পরিমাপ",
+          "Synthetic demo values only": "শুধু সিন্থেটিক ডেমো মান",
+          "Versioned draft rules · preview only · never activated": "সংস্করণযুক্ত খসড়া নিয়ম · শুধু প্রিভিউ · কখনো সক্রিয় নয়",
+          "Reset demo rules": "ডেমো নিয়ম রিসেট করুন",
+          "Loading synthetic mapping set…": "সিন্থেটিক ম্যাপিং সেট লোড হচ্ছে…",
+          "Source code + unit": "উৎস কোড + একক",
+          Operation: "অপারেশন",
+          "Normalized code + unit": "স্বাভাবিকীকৃত কোড + একক",
+          "Loading rules…": "নিয়ম লোড হচ্ছে…",
+          "Add a synthetic draft rule.": "একটি সিন্থেটিক খসড়া নিয়ম যোগ করুন।",
+          "Code systems are fixed to example.invalid / UCUM, and entries stay in memory.": "কোড-সিস্টেম example.invalid / UCUM-এ স্থির; এন্ট্রিগুলো শুধু মেমোরিতে থাকে।",
+          "Source metric code": "উৎস মেট্রিক কোড",
+          "Source unit code": "উৎস একক কোড",
+          "Normalized metric code": "স্বাভাবিকীকৃত মেট্রিক কোড",
+          "Normalized unit code": "স্বাভাবিকীকৃত একক কোড",
+          Identity: "অপরিবর্তিত",
+          Linear: "রৈখিক",
+          Scale: "স্কেল",
+          Offset: "অফসেট",
+          "Decimal places": "দশমিক স্থান",
+          "Add draft mapping": "খসড়া ম্যাপিং যোগ করুন",
+          "Preview with a synthetic scalar.": "একটি সিন্থেটিক সংখ্যামান দিয়ে প্রিভিউ করুন।",
+          "Exact metric/unit and simulator scope are required.": "মেট্রিক/একক হুবহু মিলতে হবে এবং সিমুলেটর নির্বাচন করতে হবে।",
+          Simulator: "সিমুলেটর",
+          "Synthetic value": "সিন্থেটিক মান",
+          "Preview mapping": "ম্যাপিং প্রিভিউ করুন",
+          "No preview run yet.": "এখনো কোনো প্রিভিউ চালানো হয়নি।",
+          "Golden test vectors": "গোল্ডেন টেস্ট ভেক্টর",
+          "· synthetic inputs and expected normalized outputs only. Passing vectors does not approve or activate a mapping.": "· শুধু সিন্থেটিক ইনপুট ও প্রত্যাশিত স্বাভাবিকীকৃত আউটপুট। ভেক্টর পাস করলেই ম্যাপিং অনুমোদিত বা সক্রিয় হয় না।",
+          "Run all mapping tests": "সব ম্যাপিং পরীক্ষা চালান",
+          "Loading mapping tests…": "ম্যাপিং পরীক্ষা লোড হচ্ছে…",
+          Vector: "ভেক্টর",
+          "Source test": "উৎস পরীক্ষা",
+          "Expected output": "প্রত্যাশিত আউটপুট",
+          "Loading vectors…": "ভেক্টর লোড হচ্ছে…",
+          "Add a synthetic golden vector for the current mapping set.": "বর্তমান ম্যাপিং সেটের জন্য একটি সিন্থেটিক গোল্ডেন ভেক্টর যোগ করুন।",
+          "Synthetic input value": "সিন্থেটিক ইনপুট মান",
+          "Expected normalized metric": "প্রত্যাশিত স্বাভাবিকীকৃত মেট্রিক",
+          "Expected normalized unit": "প্রত্যাশিত স্বাভাবিকীকৃত একক",
+          "Expected normalized value": "প্রত্যাশিত স্বাভাবিকীকৃত মান",
+          "Add test vector": "টেস্ট ভেক্টর যোগ করুন",
+          "No test run yet.": "এখনো কোনো পরীক্ষা চালানো হয়নি।",
+          "Revision history": "সংস্করণ ইতিহাস",
+          "· compare immutable synthetic snapshots or restore an older snapshot as a new inactive draft version. History is in memory and capped at 100 revisions.": "· অপরিবর্তনীয় সিন্থেটিক স্ন্যাপশট তুলনা করুন অথবা পুরোনো স্ন্যাপশটকে নতুন নিষ্ক্রিয় খসড়া সংস্করণ হিসেবে ফিরিয়ে আনুন। ইতিহাস মেমোরিতে থাকে এবং সর্বোচ্চ ১০০টি সংস্করণ রাখা হয়।",
+          "Loading revision history…": "সংস্করণ ইতিহাস লোড হচ্ছে…",
+          Version: "সংস্করণ",
+          Change: "পরিবর্তন",
+          Entries: "এন্ট্রি",
+          Actions: "কাজ",
+          "Loading revisions…": "সংস্করণগুলো লোড হচ্ছে…",
+          "Select “Compare to current” on a revision to inspect its synthetic rule changes.": "কোনো সংস্করণের সিন্থেটিক নিয়মের পরিবর্তন দেখতে ‘বর্তমানের সঙ্গে তুলনা’ নির্বাচন করুন।",
+          "Destination / API setup": "গন্তব্য / API সেটআপ",
+          "Connection management is intentionally locked to the local synthetic test receiver": "সংযোগ ব্যবস্থাপনা ইচ্ছাকৃতভাবে স্থানীয় সিন্থেটিক পরীক্ষামূলক রিসিভারে সীমাবদ্ধ",
+          "Loading local test receiver…": "স্থানীয় পরীক্ষামূলক রিসিভার লোড হচ্ছে…",
+          "Run local synthetic delivery test": "স্থানীয় সিন্থেটিক ডেলিভারি পরীক্ষা চালান",
+          "Synthetic delivery fault drill": "সিন্থেটিক ডেলিভারি ত্রুটি-পরীক্ষা",
+          "Arm one fault on the next in-process synthetic send: a retryable failure or rejection before acceptance, or receiver acceptance with its acknowledgement lost. Retries use the stable event ID. Network remains disabled.": "পরবর্তী অভ্যন্তরীণ সিন্থেটিক পাঠানোর জন্য একটি ত্রুটি নির্ধারণ করুন: গ্রহণের আগে পুনঃচেষ্টাযোগ্য ব্যর্থতা বা প্রত্যাখ্যান, অথবা রিসিভার গ্রহণ করার পর স্বীকৃতি হারানো। পুনঃচেষ্টায় একই ইভেন্ট ID ব্যবহৃত হয়। নেটওয়ার্ক বন্ধ থাকে।",
+          "Inject one retryable failure": "একটি পুনঃচেষ্টাযোগ্য ব্যর্থতা তৈরি করুন",
+          "Inject one terminal rejection": "একটি চূড়ান্ত প্রত্যাখ্যান তৈরি করুন",
+          "Lose one acknowledgement after acceptance": "গ্রহণের পর একটি স্বীকৃতি হারান",
+          "Cancel armed fault": "নির্ধারিত ত্রুটি বাতিল করুন",
+          "Loading fault-injection state…": "ত্রুটি-নির্ধারণের অবস্থা লোড হচ্ছে…",
+          "FHIR R4 / EMR connection API": "FHIR R4 / EMR সংযোগ API",
+          "Target profile only. A facility-approved CapabilityStatement, resource profiles, patient-association policy, idempotency behavior, and write permissions are required before implementation.": "শুধু লক্ষ্য প্রোফাইল। বাস্তবায়নের আগে প্রতিষ্ঠানের অনুমোদিত CapabilityStatement, রিসোর্স প্রোফাইল, রোগী-সংযুক্তি নীতি, আইডেমপোটেন্সি আচরণ এবং লেখার অনুমতি দরকার।",
+          "Base URL": "বেস URL",
+          "Not collected · configure through secure deployment controls": "সংগ্রহ করা হয় না · নিরাপদ ডিপ্লয়মেন্ট নিয়ন্ত্রণে কনফিগার করতে হবে",
+          Authentication: "প্রমাণীকরণ",
+          "Facility authorization / scopes not configured": "প্রতিষ্ঠানের অনুমোদন / স্কোপ কনফিগার করা হয়নি",
+          "Connection state": "সংযোগের অবস্থা",
+          "Disconnected · network disabled": "সংযোগ বিচ্ছিন্ন · নেটওয়ার্ক বন্ধ",
+          "Configure EMR API": "EMR API কনফিগার করুন",
+          "HL7 v2 / interface engine / EMS connection API": "HL7 v2 / ইন্টারফেস ইঞ্জিন / EMS সংযোগ API",
+          "Target profile only. Confirm message type/version, MSH/ACK semantics, transport, patient-context rules, and authorized synthetic test endpoint with the facility.": "শুধু লক্ষ্য প্রোফাইল। প্রতিষ্ঠানের সঙ্গে বার্তার ধরন/সংস্করণ, MSH/ACK-এর নিয়ম, ট্রান্সপোর্ট, রোগী-প্রসঙ্গের নিয়ম এবং অনুমোদিত সিন্থেটিক পরীক্ষার এন্ডপয়েন্ট নিশ্চিত করুন।",
+          "Host / port": "হোস্ট / পোর্ট",
+          "Not collected · no endpoint configured": "সংগ্রহ করা হয় না · কোনো এন্ডপয়েন্ট কনফিগার করা নেই",
+          "Transport / ACK profile": "ট্রান্সপোর্ট / ACK প্রোফাইল",
+          "To be confirmed · not configured": "যাচাই বাকি · কনফিগার করা হয়নি",
+          "Configure EMS API": "EMS API কনফিগার করুন",
+          "Connection API controls are locked.": "সংযোগ API-এর নিয়ন্ত্রণগুলো বন্ধ রাখা হয়েছে।",
+          "This preview has no network sender, secrets store, management authentication, real endpoint, or live activation.": "এই প্রিভিউতে নেটওয়ার্ক প্রেরক, গোপন তথ্য সংরক্ষণাগার, ব্যবস্থাপনা প্রমাণীকরণ, বাস্তব এন্ডপয়েন্ট বা লাইভ সক্রিয়করণ নেই।",
+          "For real deployments, management endpoints require authenticated roles, site scoping, approved contracts, external secret management, and a security review. This synthetic preview is not a production control plane.": "বাস্তব ডিপ্লয়মেন্টে ব্যবস্থাপনা এন্ডপয়েন্টের জন্য যাচাইকৃত ভূমিকা, সাইট-সীমা, অনুমোদিত চুক্তি, বাহ্যিক গোপন তথ্য ব্যবস্থাপনা এবং নিরাপত্তা পর্যালোচনা দরকার। এই সিন্থেটিক প্রিভিউ উৎপাদন ব্যবস্থাপনা প্ল্যাটফর্ম নয়।",
+          "Dashboard refresh failed. Retrying automatically.": "ড্যাশবোর্ড হালনাগাদ ব্যর্থ হয়েছে। স্বয়ংক্রিয়ভাবে আবার চেষ্টা হচ্ছে।",
+          "MediHub local operator preview": "MediHub স্থানীয় অপারেটর প্রিভিউ",
+          "· in-memory setup controls · synthetic mode": "· মেমোরিভিত্তিক সেটআপ নিয়ন্ত্রণ · সিন্থেটিক মোড",
+          "At-least-once delivery model · receiver idempotency demonstrated with stable event IDs": "অন্তত একবার ডেলিভারি মডেল · স্থিতিশীল ইভেন্ট ID দিয়ে রিসিভারের আইডেমপোটেন্সি প্রদর্শিত",
+          "Help & user guide": "সহায়তা ও ব্যবহারকারী নির্দেশিকা",
+          "Operator help / synthetic preview": "অপারেটর সহায়তা / সিন্থেটিক প্রিভিউ",
+          "Learn how to use the local synthetic workbench safely, understand each page, and review the Bangladesh deployment boundary.": "স্থানীয় সিন্থেটিক ওয়ার্কবেঞ্চ নিরাপদে ব্যবহার, প্রতিটি পৃষ্ঠা বোঝা এবং বাংলাদেশের ডিপ্লয়মেন্ট-সীমা পর্যালোচনা শিখুন।",
+          "Step-by-step guidance for the demo workflows, synthetic-data limits, troubleshooting, and future integration planning.": "ডেমো কাজের ধাপ, সিন্থেটিক ডেটার সীমা, সমস্যা সমাধান এবং ভবিষ্যৎ ইন্টিগ্রেশন পরিকল্পনার নির্দেশিকা।",
+          "Important scope:": "গুরুত্বপূর্ণ সীমা:",
+          "This guide describes the local synthetic preview only. It is not a clinical product, a live device connector, or an EMR/EMS integration. Use generated demo data only; never enter patient details, real measurements, credentials, or live endpoints.": "এই নির্দেশিকা শুধু স্থানীয় সিন্থেটিক প্রিভিউ সম্পর্কে। এটি ক্লিনিক্যাল পণ্য, বাস্তব ডিভাইস কানেক্টর বা EMR/EMS ইন্টিগ্রেশন নয়। শুধু তৈরি করা ডেমো ডেটা ব্যবহার করুন; রোগীর তথ্য, বাস্তব পরিমাপ, পরিচয়-প্রমাণ বা লাইভ এন্ডপয়েন্ট কখনো দেবেন না।",
+          "1. What MediHub does in this preview": "১. এই প্রিভিউতে MediHub কী করে",
+          "MediHub demonstrates a local, synthetic device-to-ingestion-to-outbox workflow. The app generates arbitrary sample values, keeps curated event and delivery metadata for the running process, and sends test deliveries only to an in-process receiver. No physical device, remote service, facility system, or patient record is contacted.": "MediHub স্থানীয় সিন্থেটিক ডিভাইস-থেকে-গ্রহণ-থেকে-আউটবক্স কার্যপ্রবাহ প্রদর্শন করে। অ্যাপটি কৃত্রিম নমুনা মান তৈরি করে, চলমান প্রসেসে নির্বাচিত ইভেন্ট ও ডেলিভারি মেটাডেটা রাখে এবং শুধু প্রসেসের ভেতরের রিসিভারে পরীক্ষামূলক ডেলিভারি পাঠায়। কোনো বাস্তব ডিভাইস, দূরবর্তী সেবা, প্রতিষ্ঠানের সিস্টেম বা রোগীর রেকর্ডে যোগাযোগ করা হয় না।",
+          "Safe for:": "যার জন্য উপযোগী:",
+          "product walkthroughs, software development, mapping exercises, and test-flow demonstrations with synthetic values.": "সিন্থেটিক মান দিয়ে পণ্য পরিচিতি, সফটওয়্যার উন্নয়ন, ম্যাপিং অনুশীলন এবং পরীক্ষামূলক প্রবাহ প্রদর্শন।",
+          "Not for:": "যার জন্য ব্যবহার করা যাবে না:",
+          "diagnosis, treatment, clinical monitoring, production operations, real patient information, or live integration configuration.": "রোগনির্ণয়, চিকিৎসা, ক্লিনিক্যাল পর্যবেক্ষণ, উৎপাদন কার্যক্রম, বাস্তব রোগীর তথ্য বা লাইভ ইন্টিগ্রেশন কনফিগারেশন।",
+          "Most workbench changes and registrations are temporary in-memory drafts and reset when the server restarts.": "ওয়ার্কবেঞ্চের অধিকাংশ পরিবর্তন ও নিবন্ধন মেমোরিতে থাকা অস্থায়ী খসড়া; সার্ভার পুনরায় চালু হলে সেগুলো রিসেট হয়।",
+          "2. Operations overview": "২. কার্যক্রমের সারসংক্ষেপ",
+          "Open Operations to review the synthetic source and in-process receiver status.": "সিন্থেটিক উৎস ও অভ্যন্তরীণ রিসিভারের অবস্থা দেখতে ‘কার্যক্রম’ খুলুন।",
+          "Read the metric cards for generated events, duplicate replays, delivery attempts, acknowledgements, pending work, and policy holds.": "তৈরি ইভেন্ট, ডুপ্লিকেট পুনঃপ্রেরণ, ডেলিভারির চেষ্টা, স্বীকৃতি, অপেক্ষমাণ কাজ এবং নীতি-হোল্ডের মেট্রিক কার্ড দেখুন।",
+          "Review recent events, outbox activity, policy holds, and curated audit actions. Event identifiers are shortened in the table.": "সাম্প্রতিক ইভেন্ট, আউটবক্স কার্যক্রম, নীতি-হোল্ড ও নির্বাচিত অডিট কার্যক্রম পর্যালোচনা করুন। টেবিলে ইভেন্ট শনাক্তকারী সংক্ষিপ্ত করা হয়।",
+          "Use Inspect on a delivery to view its allowlisted synthetic details. A terminal synthetic failure can be manually retried when the control is enabled.": "ডেলিভারির অনুমোদিত সিন্থেটিক বিবরণ দেখতে ‘বিস্তারিত দেখুন’ ব্যবহার করুন। নিয়ন্ত্রণটি চালু থাকলে চূড়ান্ত সিন্থেটিক ব্যর্থতা হাতে পুনঃচেষ্টা করা যায়।",
+          "A displayed “healthy” state describes only the local demo components; it is not a facility or device health signal.": "“স্বাভাবিক” অবস্থা শুধু স্থানীয় ডেমো উপাদান বোঝায়; এটি কোনো প্রতিষ্ঠান বা ডিভাইসের স্বাস্থ্য-সংকেত নয়।",
+          "3. Device management": "৩. ডিভাইস ব্যবস্থাপনা",
+          "Open Device management and choose Register simulator to add a demo device to the running process.": "চলমান প্রসেসে ডেমো ডিভাইস যোগ করতে ‘ডিভাইস ব্যবস্থাপনা’ খুলে ‘সিমুলেটর নিবন্ধন করুন’ নির্বাচন করুন।",
+          "Use Set active or Set inactive to control whether that simulator can emit demo samples. These controls never operate hardware.": "সিমুলেটর ডেমো নমুনা পাঠাতে পারবে কি না তা নিয়ন্ত্রণ করতে ‘সক্রিয় করুন’ বা ‘নিষ্ক্রিয় করুন’ ব্যবহার করুন। এই নিয়ন্ত্রণ হার্ডওয়্যার পরিচালনা করে না।",
+          "Select a simulator and choose Emit sample to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.": "একটি সিমুলেটর বেছে ‘নমুনা পাঠান’ নির্বাচন করে স্থানীয় পাইপলাইনে সিন্থেটিক নমুনা চালান। উৎস, গ্রহণ, আউটবক্স ও পরীক্ষামূলক গন্তব্যের ধাপ দেখতে ডিভাইসভিত্তিক প্রবাহ দেখুন।",
+          "The catalog contains illustrative device categories only. Selecting one prepares a non-secret draft; it does not verify compatibility or configure an API.": "ক্যাটালগে শুধু উদাহরণমূলক ডিভাইসের ধরন আছে। কোনোটি বেছে নিলে গোপন তথ্যবিহীন খসড়া তৈরি হয়; সামঞ্জস্য যাচাই বা API কনফিগার হয় না।",
+          "Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.": "এক্সপোর্ট নিয়ন্ত্রণ দিয়ে সর্বোচ্চ ১২টি বাছাই করা সাম্প্রতিক সিন্থেটিক সারি CSV বা JSON হিসেবে ডাউনলোড করুন। ফাইলগুলোকে পরীক্ষার উপকরণ হিসেবে রাখুন এবং বাস্তব তথ্য যোগ করবেন না।",
+          "The device API form accepts only non-secret draft metadata. Endpoint, authentication, hardware discovery, and real device API calls are intentionally unavailable.": "ডিভাইস API ফর্ম শুধু গোপন তথ্যবিহীন খসড়া মেটাডেটা নেয়। এন্ডপয়েন্ট, প্রমাণীকরণ, হার্ডওয়্যার অনুসন্ধান এবং বাস্তব ডিভাইস API কল ইচ্ছাকৃতভাবে অনুপলব্ধ।",
+          "4. Mapping drafts and tests": "৪. ম্যাপিং খসড়া ও পরীক্ষা",
+          "Add an exact source metric and unit to a mapping draft. Identity rules preserve the synthetic scalar; linear rules apply the configured scale and offset, with the requested decimal precision.": "ম্যাপিং খসড়ায় উৎস মেট্রিক ও এককের হুবহু মান যোগ করুন। অপরিবর্তিত নিয়ম সিন্থেটিক সংখ্যা অপরিবর্তিত রাখে; রৈখিক নিয়ম নির্ধারিত স্কেল, অফসেট ও দশমিক নির্ভুলতা প্রয়োগ করে।",
+          "Use Preview mapping with a selected simulator and synthetic value to check a match. A missing exact code/unit match should remain unmapped rather than being guessed.": "মিল পরীক্ষা করতে নির্বাচিত সিমুলেটর ও সিন্থেটিক মান দিয়ে ‘ম্যাপিং প্রিভিউ করুন’ ব্যবহার করুন। কোড/এককের হুবহু মিল না পেলে অনুমান না করে ম্যাপিং ছাড়া রাখুন।",
+          "Golden test vectors capture synthetic inputs and expected normalized outputs. Run the tests after changing a draft; passing tests are not clinical validation or approval.": "গোল্ডেন টেস্ট ভেক্টরে সিন্থেটিক ইনপুট ও প্রত্যাশিত স্বাভাবিকীকৃত আউটপুট থাকে। খসড়া বদলানোর পর পরীক্ষা চালান; পাস করলেই ক্লিনিক্যাল যাচাই বা অনুমোদন হয় না।",
+          "Revision history is temporary and lets you compare or restore a prior version as a new inactive draft. Mapping activation remains disabled.": "সংস্করণ ইতিহাস অস্থায়ী; এটি আগের সংস্করণ তুলনা করতে বা নতুন নিষ্ক্রিয় খসড়া হিসেবে ফিরিয়ে আনতে দেয়। ম্যাপিং সক্রিয় করা বন্ধ।",
+          "5. EMR / EMS API workbench": "৫. EMR / EMS API ওয়ার্কবেঞ্চ",
+          "The cards describe planning targets, not available integrations. FHIR R4 / EMR and HL7 v2 / interface-engine / EMS connection controls are locked; the app has no network sender, endpoint form, credential store, or live activation.": "কার্ডগুলো পরিকল্পনার লক্ষ্য বর্ণনা করে, চালু ইন্টিগ্রেশন নয়। FHIR R4 / EMR এবং HL7 v2 / ইন্টারফেস-ইঞ্জিন / EMS সংযোগের নিয়ন্ত্রণ বন্ধ; অ্যাপে নেটওয়ার্ক প্রেরক, এন্ডপয়েন্ট ফর্ম, পরিচয়-প্রমাণ সংরক্ষণ বা লাইভ সক্রিয়করণ নেই।",
+          "Before any separate real deployment is designed, the responsible facility and authorized technical teams must agree on the interface contract, message and resource profiles, patient-context rules, acknowledgement and idempotency behavior, security controls, test environment, and operational ownership. Do not paste production URLs, tokens, keys, or connection details here.": "আলাদা বাস্তব ডিপ্লয়মেন্ট পরিকল্পনার আগে দায়িত্বপ্রাপ্ত প্রতিষ্ঠান ও অনুমোদিত প্রযুক্তি দলকে ইন্টারফেস চুক্তি, বার্তা ও রিসোর্স প্রোফাইল, রোগী-প্রসঙ্গের নিয়ম, স্বীকৃতি ও আইডেমপোটেন্সি আচরণ, নিরাপত্তা নিয়ন্ত্রণ, পরীক্ষার পরিবেশ এবং পরিচালনার দায়িত্বে একমত হতে হবে। এখানে উৎপাদন URL, টোকেন, কী বা সংযোগের বিবরণ দেবেন না।",
+          "6. Bangladesh deployment considerations": "৬. বাংলাদেশে ডিপ্লয়মেন্টের বিবেচনা",
+          "Bangladesh is a required deployment context for MediHub planning, but this demo is not ready for deployment in a Bangladeshi facility. A future implementation needs local clinical and technical discovery, facility approval, an assessment of applicable Bangladesh laws and regulator guidance, data-residency and hosting decisions, language/accessibility review, and a documented security and privacy assessment.": "MediHub পরিকল্পনার জন্য বাংলাদেশ আবশ্যিক ডিপ্লয়মেন্ট প্রেক্ষাপট, তবে এই ডেমো বাংলাদেশের কোনো প্রতিষ্ঠানে ব্যবহারের জন্য প্রস্তুত নয়। ভবিষ্যৎ বাস্তবায়নে স্থানীয় ক্লিনিক্যাল ও প্রযুক্তিগত অনুসন্ধান, প্রতিষ্ঠানের অনুমোদন, প্রযোজ্য বাংলাদেশি আইন ও নিয়ন্ত্রক নির্দেশনার মূল্যায়ন, ডেটা কোথায় থাকবে ও হোস্টিং সিদ্ধান্ত, ভাষা/অ্যাক্সেসিবিলিটি পর্যালোচনা এবং নথিভুক্ত নিরাপত্তা ও গোপনীয়তা মূল্যায়ন দরকার।",
+          "Validate the exact device models, facility workflows, terminology, units, connectivity constraints, support arrangements, and approved synthetic test endpoint with each participating facility. No local legal, regulatory, or interoperability approval is implied by this preview.": "প্রতিটি অংশগ্রহণকারী প্রতিষ্ঠানের সঙ্গে সঠিক ডিভাইস মডেল, কাজের ধারা, পরিভাষা, একক, সংযোগের সীমাবদ্ধতা, সহায়তার ব্যবস্থা এবং অনুমোদিত সিন্থেটিক পরীক্ষার এন্ডপয়েন্ট যাচাই করুন। এই প্রিভিউ কোনো স্থানীয় আইনি, নিয়ন্ত্রক বা আন্তঃকার্যক্ষমতার অনুমোদন বোঝায় না।",
+          "7. Privacy and safety": "৭. গোপনীয়তা ও নিরাপত্তা",
+          "Use only the arbitrary values generated by the simulator. Do not enter names, identifiers, dates of birth, contact details, clinical notes, real readings, or other personal or health information.": "সিমুলেটর-তৈরি কৃত্রিম মানই শুধু ব্যবহার করুন। নাম, শনাক্তকারী, জন্মতারিখ, যোগাযোগের তথ্য, ক্লিনিক্যাল নোট, বাস্তব রিডিং বা অন্য ব্যক্তিগত/স্বাস্থ্যতথ্য দেবেন না।",
+          "Do not add credentials or secrets. Do not interpret demo events, mappings, delivery receipts, or status indicators as clinical or production evidence.": "পরিচয়-প্রমাণ বা গোপন তথ্য যোগ করবেন না। ডেমো ইভেন্ট, ম্যাপিং, ডেলিভারি রসিদ বা অবস্থা-সূচককে ক্লিনিক্যাল বা উৎপাদন-পর্যায়ের প্রমাণ হিসেবে ধরবেন না।",
+          "Exports are created in your browser from recent synthetic rows. Store and share them only as non-sensitive test artifacts.": "সাম্প্রতিক সিন্থেটিক সারি থেকে আপনার ব্রাউজারে এক্সপোর্ট তৈরি হয়। এগুলো শুধু সংবেদনশীলতাহীন পরীক্ষার উপকরণ হিসেবে সংরক্ষণ ও ভাগ করুন।",
+          "The preview is not a production control plane: it does not provide authenticated operator roles, facility scoping, durable configuration management, or production-grade audit controls.": "এই প্রিভিউ উৎপাদন নিয়ন্ত্রণ-প্ল্যাটফর্ম নয়: এতে যাচাইকৃত অপারেটর ভূমিকা, প্রতিষ্ঠানভিত্তিক সীমা, স্থায়ী কনফিগারেশন ব্যবস্থাপনা বা উৎপাদন-মানের অডিট নিয়ন্ত্রণ নেই।",
+          "8. Troubleshooting": "৮. সমস্যা সমাধান",
+          "No sample appears: confirm that a simulator is registered and active, then select it and emit a sample. Refresh the device flow.": "নমুনা দেখা যাচ্ছে না: সিমুলেটর নিবন্ধিত ও সক্রিয় কি না নিশ্চিত করুন, তারপর সেটি বেছে নমুনা পাঠান। ডিভাইস প্রবাহ হালনাগাদ করুন।",
+          "Mapping preview has no match: compare the source metric code and unit exactly with a draft rule; check the selected simulator and add a synthetic test vector.": "ম্যাপিং প্রিভিউতে মিল নেই: খসড়া নিয়মের সঙ্গে উৎস মেট্রিক কোড ও একক হুবহু তুলনা করুন; নির্বাচিত সিমুলেটর যাচাই করে সিন্থেটিক টেস্ট ভেক্টর যোগ করুন।",
+          "Delivery is queued or failed: inspect the delivery and its attempts. Use manual retry only when enabled; retries remain local to the synthetic receiver.": "ডেলিভারি সারিতে বা ব্যর্থ: ডেলিভারি ও চেষ্টাগুলো দেখুন। চালু থাকলেই হাতে পুনঃচেষ্টা করুন; পুনঃচেষ্টা সিন্থেটিক রিসিভারের মধ্যেই থাকে।",
+          "Changes disappeared: simulator and mapping setup is held in process memory and resets on server restart.": "পরিবর্তন হারিয়ে গেছে: সিমুলেটর ও ম্যাপিং সেটআপ প্রসেসের মেমোরিতে থাকে এবং সার্ভার পুনরায় চালু হলে রিসেট হয়।",
+          "Page data looks stale: the operations view refreshes automatically. Reload the page if the browser has lost its connection to the local demo server.": "পৃষ্ঠার তথ্য পুরোনো মনে হলে: কার্যক্রমের পৃষ্ঠা স্বয়ংক্রিয়ভাবে হালনাগাদ হয়। ব্রাউজারের স্থানীয় ডেমো সার্ভারের সঙ্গে সংযোগ বিচ্ছিন্ন হলে পৃষ্ঠা আবার লোড করুন।",
+          "9. Glossary": "৯. পরিভাষা",
+          "Synthetic: generated demonstration data that does not represent a person or a real device reading.": "সিন্থেটিক: তৈরি করা প্রদর্শনী ডেটা, যা কোনো ব্যক্তি বা বাস্তব ডিভাইসের রিডিং নয়।",
+          "Outbox: a local record of a delivery intent and its attempts; the demo receiver runs in the same process.": "আউটবক্স: ডেলিভারি অনুরোধ ও চেষ্টার স্থানীয় রেকর্ড; ডেমো রিসিভার একই প্রসেসে চলে।",
+          "Idempotency: handling a repeated event identifier without creating a second test receipt.": "আইডেমপোটেন্সি: পুনরাবৃত্ত ইভেন্ট শনাক্তকারী সামলে দ্বিতীয় পরীক্ষামূলক রসিদ তৈরি না করা।",
+          "Mapping draft: an inactive, temporary rule for converting an exact synthetic source code/unit to an example normalized code/unit.": "ম্যাপিং খসড়া: নির্দিষ্ট সিন্থেটিক উৎস কোড/একককে উদাহরণমূলক স্বাভাবিকীকৃত কোড/এককে রূপান্তরের অস্থায়ী, নিষ্ক্রিয় নিয়ম।",
+          "FHIR R4 / HL7 v2: standards named as future planning targets only; neither is connected in this preview.": "FHIR R4 / HL7 v2: ভবিষ্যৎ পরিকল্পনার লক্ষ্য হিসেবে উল্লেখিত মান; এই প্রিভিউতে কোনোটিই সংযুক্ত নয়।",
+          "10. Maintained documentation": "১০. রক্ষণাবেক্ষণকৃত নথিপত্র",
+          "The repository's docs/user-guide.md contains the detailed operator guide, step-by-step workflows, safety boundaries, troubleshooting, and the Bangladesh deployment-readiness checklist. Review it alongside the project README before adapting this demo.": "রিপোজিটরির docs/user-guide.md-এ বিস্তারিত অপারেটর নির্দেশিকা, ধাপে ধাপে কাজের ধারা, নিরাপত্তার সীমা, সমস্যা সমাধান এবং বাংলাদেশে ডিপ্লয়মেন্ট-প্রস্তুতির তালিকা রয়েছে। এই ডেমো পরিবর্তন বা অভিযোজনের আগে প্রকল্পের README-সহ এটি পর্যালোচনা করুন।",
+          "Device integration workbench / synthetic only": "ডিভাইস ইন্টিগ্রেশন ওয়ার্কবেঞ্চ / শুধু সিন্থেটিক",
+          "Mapping workbench / synthetic only": "ম্যাপিং ওয়ার্কবেঞ্চ / শুধু সিন্থেটিক",
+          "Destination API workbench / synthetic only": "গন্তব্য API ওয়ার্কবেঞ্চ / শুধু সিন্থেটিক",
+          "Device integration lab": "ডিভাইস ইন্টিগ্রেশন ল্যাব",
+          "Mapping drafts & QA": "ম্যাপিং খসড়া ও গুণমান যাচাই",
+          "EMR / EMS connection APIs": "EMR / EMS সংযোগ API",
+          "Review illustrative device categories, simulator activation, draft API settings, device-level flow, mapping, and synthetic data export. No physical device is discovered or connected.": "উদাহরণমূলক ডিভাইসের বিভাগ, সিমুলেটর সক্রিয়করণ, API খসড়া সেটিং, ডিভাইসভিত্তিক প্রবাহ, ম্যাপিং এবং সিন্থেটিক ডেটা এক্সপোর্ট পর্যালোচনা করুন। কোনো বাস্তব ডিভাইস খোঁজা বা সংযুক্ত করা হয় না।",
+          "Browse discovery candidates and manage local simulator drafts. Catalog entries do not imply verified compatibility or live integration.": "অনুসন্ধানের সম্ভাব্য ডিভাইস দেখুন এবং স্থানীয় সিমুলেটর খসড়া পরিচালনা করুন। ক্যাটালগে থাকা তথ্য যাচাইকৃত সামঞ্জস্য বা লাইভ ইন্টিগ্রেশন বোঝায় না।",
+          "Review synthetic-only mapping drafts, previews, golden test vectors, and revision history. Mapping activation is disabled.": "শুধু সিন্থেটিক ম্যাপিং খসড়া, প্রিভিউ, গোল্ডেন টেস্ট ভেক্টর ও সংস্করণ ইতিহাস পর্যালোচনা করুন। ম্যাপিং সক্রিয় করা বন্ধ।",
+          "Exercise exact-match mapping examples and compare inactive revisions using patient-free simulator values only.": "শুধু রোগী-তথ্যবিহীন সিমুলেটর মান দিয়ে হুবহু-মিল ম্যাপিং উদাহরণ পরীক্ষা এবং নিষ্ক্রিয় সংস্করণ তুলনা করুন।",
+          "Review the planned EMR/FHIR and EMS/HL7 connection requirements and run local delivery drills. External endpoints, credentials, and live activation remain unavailable.": "পরিকল্পিত EMR/FHIR ও EMS/HL7 সংযোগের শর্ত পর্যালোচনা করুন এবং স্থানীয় ডেলিভারি পরীক্ষা চালান। বাহ্যিক এন্ডপয়েন্ট, পরিচয়-প্রমাণ ও লাইভ সক্রিয়করণ অনুপলব্ধ।",
+          "FHIR R4 and HL7 v2 are planning targets only; configure real endpoints only after facility contract, security, and sandbox approval.": "FHIR R4 ও HL7 v2 শুধু পরিকল্পনার লক্ষ্য; প্রতিষ্ঠানের চুক্তি, নিরাপত্তা ও স্যান্ডবক্স অনুমোদনের পরেই বাস্তব এন্ডপয়েন্ট কনফিগার করার পরিকল্পনা করা যাবে।",
+          "Open": "খুলুন",
+          "Use": "ব্যবহার করুন",
+          "or": "বা",
+          "Select a simulator and choose": "একটি সিমুলেটর নির্বাচন করে",
+          "Example category · vendor interface and exact model require discovery": "উদাহরণ বিভাগ · ভেন্ডর ইন্টারফেস ও সঠিক মডেল অনুসন্ধান করা দরকার",
+          "Example category · transport and message format are unverified": "উদাহরণ বিভাগ · ট্রান্সপোর্ট ও বার্তার ধরন যাচাই করা হয়নি",
+          "Example category · confirm model, firmware, and source codes": "উদাহরণ বিভাগ · মডেল, ফার্মওয়্যার ও উৎস কোড নিশ্চিত করুন",
+          "Example category · interface and units require source review": "উদাহরণ বিভাগ · ইন্টারফেস ও একক যাচাইয়ের জন্য উৎস পর্যালোচনা দরকার",
+          "Example category · waveform and metadata scope require discovery": "উদাহরণ বিভাগ · ওয়েভফর্ম ও মেটাডেটার পরিধি অনুসন্ধান করা দরকার",
+          "Example category · device profile and units are not verified": "উদাহরণ বিভাগ · ডিভাইস প্রোফাইল ও একক যাচাই করা হয়নি",
+          "Example category": "উদাহরণ বিভাগ",
+          "and choose": "এবং নির্বাচন করুন",
+          "to review the synthetic source and in-process receiver status.": "সিন্থেটিক উৎস ও প্রসেসের ভেতরের রিসিভারের অবস্থা পর্যালোচনা করতে।",
+          "to add a demo device to the running process.": "চলমান প্রসেসে একটি ডেমো ডিভাইস যোগ করতে।",
+          "to control whether that simulator can emit demo samples. These controls never operate hardware.": "সিমুলেটরটি ডেমো নমুনা পাঠাতে পারবে কি না নিয়ন্ত্রণ করতে। এই নিয়ন্ত্রণ হার্ডওয়্যার পরিচালনা করে না।",
+          "to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.": "স্থানীয় পাইপলাইনে একটি সিন্থেটিক নমুনা চালাতে। উৎস, গ্রহণ, আউটবক্স ও পরীক্ষামূলক গন্তব্যের ধাপ দেখতে ডিভাইসভিত্তিক প্রবাহ পর্যালোচনা করুন।",
+          "on a delivery to view its allowlisted synthetic details. A terminal synthetic failure can be manually retried when the control is enabled.": "ডেলিভারির অনুমোদিত সিন্থেটিক বিবরণ দেখতে। নিয়ন্ত্রণ চালু থাকলে চূড়ান্ত সিন্থেটিক ব্যর্থতা হাতে পুনঃচেষ্টা করা যায়।",
+          "with a selected simulator and synthetic value to check a match. A missing exact code/unit match should remain unmapped rather than being guessed.": "নির্বাচিত সিমুলেটর ও সিন্থেটিক মান দিয়ে মিল যাচাই করতে। কোড/এককের হুবহু মিল না পেলে অনুমান না করে ম্যাপিং ছাড়া রাখতে হবে।",
+          "confirm that a simulator is registered and active, then select it and emit a sample. Refresh the device flow.": "সিমুলেটর নিবন্ধিত ও সক্রিয় কি না নিশ্চিত করে সেটি নির্বাচন করুন এবং নমুনা পাঠান। ডিভাইস প্রবাহ হালনাগাদ করুন।",
+          "compare the source metric code and unit exactly with a draft rule; check the selected simulator and add a synthetic test vector.": "উৎস মেট্রিক কোড ও একক খসড়া নিয়মের সঙ্গে হুবহু তুলনা করুন; নির্বাচিত সিমুলেটর যাচাই করে একটি সিন্থেটিক টেস্ট ভেক্টর যোগ করুন।",
+          "inspect the delivery and its attempts. Use manual retry only when enabled; retries remain local to the synthetic receiver.": "ডেলিভারি ও তার চেষ্টাগুলো পর্যালোচনা করুন। চালু থাকলেই হাতে পুনঃচেষ্টা করুন; পুনঃচেষ্টা সিন্থেটিক রিসিভারের মধ্যেই থাকে।",
+          "simulator and mapping setup is held in process memory and resets on server restart.": "সিমুলেটর ও ম্যাপিং সেটআপ প্রসেসের মেমোরিতে থাকে এবং সার্ভার পুনরায় চালু হলে রিসেট হয়।",
+          "the operations view refreshes automatically. Reload the page if the browser has lost its connection to the local demo server.": "কার্যক্রমের পৃষ্ঠা স্বয়ংক্রিয়ভাবে হালনাগাদ হয়। ব্রাউজারের স্থানীয় ডেমো সার্ভারের সংযোগ বিচ্ছিন্ন হলে পৃষ্ঠা আবার লোড করুন।",
+          "Changes disappeared:": "পরিবর্তন হারিয়ে গেছে:",
+          "Delivery is queued or failed:": "ডেলিভারি সারিতে বা ব্যর্থ:",
+          "Mapping preview has no match:": "ম্যাপিং প্রিভিউতে মিল নেই:",
+          "No sample appears:": "নমুনা দেখা যাচ্ছে না:",
+          "Page data looks stale:": "পৃষ্ঠার তথ্য পুরোনো মনে হচ্ছে:",
+          "Synthetic:": "সিন্থেটিক:",
+          "Outbox:": "আউটবক্স:",
+          "Idempotency:": "আইডেমপোটেন্সি:",
+          "Mapping draft:": "ম্যাপিং খসড়া:",
+          "FHIR R4 / HL7 v2:": "FHIR R4 / HL7 v2:",
+          "generated demonstration data that does not represent a person or a real device reading.": "তৈরি করা প্রদর্শনী ডেটা, যা কোনো ব্যক্তি বা বাস্তব ডিভাইসের রিডিং নয়।",
+          "a local record of a delivery intent and its attempts; the demo receiver runs in the same process.": "ডেলিভারি অনুরোধ ও চেষ্টার স্থানীয় রেকর্ড; ডেমো রিসিভার একই প্রসেসে চলে।",
+          "handling a repeated event identifier without creating a second test receipt.": "পুনরাবৃত্ত ইভেন্ট শনাক্তকারী সামলে দ্বিতীয় পরীক্ষামূলক রসিদ তৈরি না করা।",
+          "an inactive, temporary rule for converting an exact synthetic source code/unit to an example normalized code/unit.": "নির্দিষ্ট সিন্থেটিক উৎস কোড/একককে উদাহরণমূলক স্বাভাবিকীকৃত কোড/এককে রূপান্তরের অস্থায়ী, নিষ্ক্রিয় নিয়ম।",
+          "standards named as future planning targets only; neither is connected in this preview.": "ভবিষ্যৎ পরিকল্পনার লক্ষ্য হিসেবে উল্লেখিত মান; এই প্রিভিউতে কোনোটিই সংযুক্ত নয়।",
+          "The repository's": "রিপোজিটরির",
+          "contains the detailed operator guide, step-by-step workflows, safety boundaries, troubleshooting, and the Bangladesh deployment-readiness checklist. Review it alongside the project README before adapting this demo.": "এ বিস্তারিত অপারেটর নির্দেশিকা, ধাপে ধাপে কাজের ধারা, নিরাপত্তার সীমা, সমস্যা সমাধান এবং বাংলাদেশে ডিপ্লয়মেন্ট-প্রস্তুতির তালিকা রয়েছে। এই ডেমো পরিবর্তনের আগে প্রকল্পের README-সহ এটি পর্যালোচনা করুন।",
+          "Inspect": "বিস্তারিত দেখুন",
+          "No synthetic events yet": "এখনো কোনো সিন্থেটিক ইভেন্ট নেই",
+          "No delivery intents yet": "এখনো কোনো ডেলিভারি অনুরোধ নেই",
+          "No policy holds": "কোনো নীতি-হোল্ড নেই",
+          "No audit events": "কোনো অডিট ইভেন্ট নেই",
+          "Discovery required": "অনুসন্ধান প্রয়োজন",
+          "Use in draft": "খসড়ায় ব্যবহার করুন",
+          "No simulator selected": "কোনো সিমুলেটর নির্বাচিত নয়",
+          "Register a synthetic simulator before preparing a local API draft.": "স্থানীয় API খসড়া তৈরির আগে একটি সিন্থেটিক সিমুলেটর নিবন্ধন করুন।",
+          "Active synthetic simulator · no external API": "সক্রিয় সিন্থেটিক সিমুলেটর · বাহ্যিক API নেই",
+          "Inactive synthetic simulator · no external API": "নিষ্ক্রিয় সিন্থেটিক সিমুলেটর · বাহ্যিক API নেই",
+          "No draft mapping rules": "কোনো খসড়া ম্যাপিং নিয়ম নেই",
+          "Waiting for a synthetic device snapshot. No physical device data is read.": "সিন্থেটিক ডিভাইস স্ন্যাপশটের অপেক্ষায়। বাস্তব ডিভাইসের কোনো তথ্য পড়া হয় না।",
+          "Device source": "ডিভাইস উৎস",
+          "MediHub ingestion": "MediHub-এ গ্রহণ",
+          Outbox: "আউটবক্স",
+          "Test destination": "পরীক্ষামূলক গন্তব্য",
+          Inactive: "নিষ্ক্রিয়",
+          "In-process receiver": "প্রসেসের ভেতরের রিসিভার",
+          "Waiting for delivery": "ডেলিভারির অপেক্ষায়",
+          "Waiting for sample": "নমুনার অপেক্ষায়",
+          "Connected": "সংযুক্ত",
+          "Local synthetic sink only · EMR/EMS routes disabled": "শুধু স্থানীয় সিন্থেটিক গন্তব্য · EMR/EMS রুট বন্ধ",
+          "No recent sample for this device": "এই ডিভাইসের কোনো সাম্প্রতিক নমুনা নেই",
+          "No recent delivery for this device": "এই ডিভাইসের কোনো সাম্প্রতিক ডেলিভারি নেই",
+          "Set inactive": "নিষ্ক্রিয় করুন",
+          "Set active": "সক্রিয় করুন",
+          "Emit sample": "নমুনা পাঠান",
+          "View details": "বিস্তারিত দেখুন",
+          "No simulator registrations.": "কোনো সিমুলেটর নিবন্ধিত নেই।",
+          "No simulator registered": "কোনো সিমুলেটর নিবন্ধিত নয়",
+          "No enabled simulator": "কোনো সক্রিয় সিমুলেটর নেই",
+          "No synthetic mapping rules": "কোনো সিন্থেটিক ম্যাপিং নিয়ম নেই",
+          "Loading synthetic mapping rules…": "সিন্থেটিক ম্যাপিং নিয়ম লোড হচ্ছে…",
+          "No mapping test vectors": "কোনো ম্যাপিং টেস্ট ভেক্টর নেই",
+          "Compare to current": "বর্তমানের সঙ্গে তুলনা",
+          "Restore as new draft": "নতুন খসড়া হিসেবে ফিরিয়ে আনুন",
+          "current": "বর্তমান",
+          "identity": "অপরিবর্তিত",
+          "linear": "রৈখিক",
+          acknowledged: "নিশ্চিত হয়েছে",
+          queued: "সারিতে আছে",
+          sent: "পাঠানো হয়েছে",
+          "retryable failure": "পুনঃচেষ্টাযোগ্য ব্যর্থতা",
+          "permanent failure": "স্থায়ী ব্যর্থতা",
+          rejected: "প্রত্যাখ্যাত",
+          connected: "সংযুক্ত",
+          healthy: "স্বাভাবিক",
+          degraded: "আংশিক বিঘ্নিত",
+          in_process: "প্রসেসের ভেতরে",
+          true: "হ্যাঁ",
+          false: "না",
+        };
+        const dynamicTranslations = [
+          [/^(\d+) events$/, (_, count) => `${count}টি ইভেন্ট`],
+          [/^(-?\d+(?:\.\d+)?) · synthetic$/, (_, value) => `${value} · সিন্থেটিক`],
+          [/^(\d+) intents$/, (_, count) => `${count}টি ডেলিভারি অনুরোধ`],
+          [/^(\d+) holds$/, (_, count) => `${count}টি নীতি-হোল্ড`],
+          [/^(\d+) recent$/, (_, count) => `${count}টি সাম্প্রতিক`],
+          [/^(\d+) recent sample\(s\)$/, (_, count) => `${count}টি সাম্প্রতিক নমুনা`],
+          [/^(\d+) recent sample row\(s\)$/, (_, count) => `${count}টি সাম্প্রতিক নমুনা-সারি`],
+          [/^(\d+) attempt\(s\)$/, (_, count) => `${count}টি চেষ্টা`],
+          [/^(.+) is now (active|inactive) in the local simulator only\.$/, (_, id, state) => `${id} এখন শুধু স্থানীয় সিমুলেটরে ${state === "active" ? "সক্রিয়" : "নিষ্ক্রিয়"}।`],
+          [/^(.+) selected for (.+); save the local draft to keep it in this page session\.$/, (_, profile, id) => `${profile} এই পৃষ্ঠা-সেশনের খসড়ায় রাখার জন্য ${id}-এর ক্ষেত্রে নির্বাচিত হয়েছে।`],
+          [/^Non-secret draft saved for (.+) in this page session; not connected or activated\.$/, (_, id) => `${id}-এর জন্য গোপন তথ্যবিহীন খসড়া এই পৃষ্ঠা-সেশনে সংরক্ষিত; সংযুক্ত বা সক্রিয় নয়।`],
+          [/^Non-secret API discovery draft saved for (.+) in this page session\. It is not connected or activated\.$/, (_, id) => `${id}-এর জন্য গোপন তথ্যবিহীন API অনুসন্ধান-খসড়া এই পৃষ্ঠা-সেশনে সংরক্ষিত। এটি সংযুক্ত বা সক্রিয় নয়।`],
+          [/^(.+) registered as an in-memory simulator\.$/, (_, id) => `${id} মেমোরিভিত্তিক সিমুলেটর হিসেবে নিবন্ধিত হয়েছে।`],
+          [/^Downloaded (\d+) curated synthetic row\(s\) for (.+); no external export service was called\.$/, (_, count, id) => `${id}-এর জন্য ${count}টি বাছাই করা সিন্থেটিক সারি ডাউনলোড হয়েছে; কোনো বাহ্যিক এক্সপোর্ট সেবা ব্যবহৃত হয়নি।`],
+          [/^(.+) · (\d+) recent sample row\(s\) · mapping is preview-only · external delivery disabled\.$/, (_, id, count) => `${id} · ${count}টি সাম্প্রতিক নমুনা-সারি · ম্যাপিং শুধু প্রিভিউ · বাহ্যিক ডেলিভারি বন্ধ।`],
+          [/^No device API draft saved for (.+)\.$/, (_, id) => `${id}-এর জন্য কোনো ডিভাইস API খসড়া সংরক্ষিত নেই।`],
+          [/^No device API draft saved for (.+) in this page session\.$/, (_, id) => `এই পৃষ্ঠা-সেশনে ${id}-এর জন্য কোনো ডিভাইস API খসড়া সংরক্ষিত নেই।`],
+          [/^No recent synthetic rows are available for (.+)\.$/, (_, id) => `${id}-এর জন্য কোনো সাম্প্রতিক সিন্থেটিক সারি নেই।`],
+          [/^Export failed \((.+)\)\.$/, (_, error) => `এক্সপোর্ট ব্যর্থ হয়েছে (${error})।`],
+          [/^Workbench unavailable \((.+)\)\.$/, (_, error) => `ওয়ার্কবেঞ্চ অনুপলব্ধ (${error})।`],
+        ];
+        const translateValue = (value) => {
+          const text = String(value);
+          if (activeLanguage !== "bn") return text;
+          if (Object.hasOwn(bengali, text)) return bengali[text];
+          for (const [pattern, replacement] of dynamicTranslations) {
+            const match = text.match(pattern);
+            if (match) return replacement(...match);
+          }
+          return text;
+        };
+        let activeLanguage = "en";
+        try {
+          activeLanguage = window.localStorage.getItem("medihub-language") === "bn" ? "bn" : "en";
+        } catch (_) {
+          activeLanguage = "en";
+        }
+        const originalText = new WeakMap();
+        const originalAttributes = new WeakMap();
+        const translatableAttributes = ["aria-label", "title", "placeholder"];
+        const translateTextNode = (node) => {
+          if (!originalText.has(node)) originalText.set(node, node.nodeValue || "");
+          const source = originalText.get(node);
+          const whitespace = source.match(/^(\s*)(.*?)(\s*)$/s);
+          const translated = `${whitespace[1]}${translateValue(whitespace[2])}${whitespace[3]}`;
+          if (node.nodeValue !== translated) node.nodeValue = translated;
+        };
+        const translateAttributes = (element) => {
+          let saved = originalAttributes.get(element);
+          if (!saved) {
+            saved = {};
+            originalAttributes.set(element, saved);
+          }
+          for (const name of translatableAttributes) {
+            if (!element.hasAttribute(name)) continue;
+            if (!Object.hasOwn(saved, name)) saved[name] = element.getAttribute(name);
+            const source = saved[name];
+            const translated = activeLanguage === "bn" ? translateValue(source) : source;
+            if (element.getAttribute(name) !== translated) element.setAttribute(name, translated);
+          }
+        };
+        const translateSubtree = (root) => {
+          if (root.nodeType === Node.TEXT_NODE) {
+            if (!root.parentElement?.closest("script, style")) translateTextNode(root);
+            return;
+          }
+          if (root.nodeType !== Node.ELEMENT_NODE && root !== document) return;
+          if (root.nodeType === Node.ELEMENT_NODE) translateAttributes(root);
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          let node;
+          while ((node = walker.nextNode())) {
+            if (!node.parentElement?.closest("script, style")) translateTextNode(node);
+          }
+          if (root.nodeType === Node.ELEMENT_NODE) {
+            root.querySelectorAll("[aria-label], [title], [placeholder]").forEach(translateAttributes);
+          }
+        };
+        let number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+        const languageSelect = byId("language-select");
+        const applyLanguage = (language, persist = true) => {
+          activeLanguage = language === "bn" ? "bn" : "en";
+          document.documentElement.lang = activeLanguage;
+          languageSelect.value = activeLanguage;
+          number = new Intl.NumberFormat(activeLanguage === "bn" ? "bn-BD" : undefined, { maximumFractionDigits: 0 });
+          document.title = `MediHub · ${translateValue(page.title)}`;
+          translateSubtree(document.body);
+          if (persist) {
+            try { window.localStorage.setItem("medihub-language", activeLanguage); } catch (_) { /* preference is optional */ }
+          }
+        };
+        languageSelect.addEventListener("change", (event) => applyLanguage(event.currentTarget.value));
+        applyLanguage(activeLanguage, false);
+        try {
+          new MutationObserver((records) => {
+            for (const record of records) {
+              if (record.type === "characterData") translateTextNode(record.target);
+              for (const node of record.addedNodes || []) translateSubtree(node);
+              if (record.type === "attributes") translateAttributes(record.target);
+            }
+          }).observe(document.body, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: translatableAttributes,
+          });
+        } catch (_) { /* keep the English UI usable if mutation observation is unavailable */ }
         const time = (value) => {
           if (!value) return "—";
           const date = new Date(value);
-          return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          const locale = activeLanguage === "bn" ? "bn-BD" : undefined;
+          return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
         };
         const setText = (id, value) => { byId(id).textContent = String(value); };
         let selectedDeliveryEventId = null;

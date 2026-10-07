@@ -25,7 +25,7 @@ from medihub.application.operations import SyntheticOperationsDashboard
 from medihub.observability import MediHubMetrics
 
 DASHBOARD_HTML = files("medihub").joinpath("dashboard.html").read_text(encoding="utf-8")
-DashboardPage = Literal["operations", "devices", "mappings", "api-setup"]
+DashboardPage = Literal["operations", "devices", "mappings", "api-setup", "help"]
 
 
 def _render_dashboard_page(page: DashboardPage) -> HTMLResponse:
@@ -130,6 +130,10 @@ def create_dashboard_app(
     @app.get("/api-setup", response_class=HTMLResponse, include_in_schema=False)
     async def api_setup_page() -> HTMLResponse:
         return _render_dashboard_page("api-setup")
+
+    @app.get("/help", response_class=HTMLResponse, include_in_schema=False)
+    async def help_page() -> HTMLResponse:
+        return _render_dashboard_page("help")
 
     @app.get("/healthz", include_in_schema=False)
     async def health_check() -> JSONResponse:
