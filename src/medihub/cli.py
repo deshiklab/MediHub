@@ -15,6 +15,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
 from medihub.application.demo import DemoSummary, run_synthetic_demo
 from medihub.application.discovery import validate_profile_file
+from medihub.application.load_demo import (
+    MAX_SYNTHETIC_LOAD_EVENTS,
+    run_synthetic_load_demo,
+)
 from medihub.application.mapping_discovery import validate_mapping_worksheet_file
 from medihub.application.operations import SyntheticOperationsDashboard
 from medihub.application.recovery_demo import (
@@ -105,6 +109,23 @@ def _recovery_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConfi
     )
 
 
+def _load_demo_config_from_args(args: argparse.Namespace) -> SyntheticDeviceConfig:
+    return SyntheticDeviceConfig(
+        site_id=args.site_id,
+        device=DeviceReference(
+            device_id=args.device_id,
+            manufacturer="MediHub Synthetic",
+            model="scalar-simulator-v1",
+            firmware_version="1.0",
+        ),
+        event_count=args.count,
+        seed=args.seed,
+        start_at=args.start_at,
+        interval_ms=args.interval_ms,
+        duplicate_every=args.duplicate_every,
+    )
+
+
 async def _write_synthetic_events(config: SyntheticDeviceConfig) -> None:
     adapter = SyntheticDeviceAdapter(config)
     try:
@@ -153,6 +174,28 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=0,
         help="redeliver every Nth synthetic event to exercise event-ID deduplication",
+    )
+
+    load_demo = commands.add_parser(
+        "load-demo",
+        help="profile a bounded synthetic batch through the in-process outbox and receiver",
+    )
+    load_demo.add_argument(
+        "--count",
+        type=int,
+        default=100,
+        help=f"unique synthetic events (1–{MAX_SYNTHETIC_LOAD_EVENTS})",
+    )
+    load_demo.add_argument("--seed", type=int, default=7)
+    load_demo.add_argument("--site-id", default="synthetic-site")
+    load_demo.add_argument("--device-id", default="sim-device-001")
+    load_demo.add_argument("--start-at", type=_parse_datetime)
+    load_demo.add_argument("--interval-ms", type=int, default=1_000)
+    load_demo.add_argument(
+        "--duplicate-every",
+        type=int,
+        default=0,
+        help="redeliver every Nth synthetic event to exercise idempotency",
     )
 
     dashboard = commands.add_parser(
@@ -249,6 +292,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error(f"synthetic recovery demo stopped ({error.code})")
         except Exception as error:
             parser.error(f"synthetic recovery demo failed ({type(error).__name__})")
+        print(json.dumps(asdict(summary), sort_keys=True))
+        return 0
+
+    if args.command == "load-demo":
+        if not 1 <= args.count <= MAX_SYNTHETIC_LOAD_EVENTS:
+            parser.error("synthetic_load_event_limit_exceeded")
+        try:
+            config = _load_demo_config_from_args(args)
+        except ValueError as error:
+            parser.error(f"invalid synthetic load options ({type(error).__name__})")
+        try:
+            summary = asyncio.run(run_synthetic_load_demo(config))
+        except Exception as error:
+            parser.error(f"synthetic load demo failed ({type(error).__name__})")
         print(json.dumps(asdict(summary), sort_keys=True))
         return 0
 

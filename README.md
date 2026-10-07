@@ -18,6 +18,7 @@ The first synthetic-only vertical slice is underway:
 - A single-item outbox dispatcher with database leases, attempt history, ACK/rejection handling, bounded exponential retries, and expired-lease recovery. Delivery is at-least-once; receivers should deduplicate on the stable event ID.
 - A bounded, synthetic-only NDJSON replay CLI that validates events and demonstrates event-store deduplication without sending to a receiver.
 - A generic synthetic FHIR R4 Observation mapper and in-process test receiver used by the end-to-end `medihub demo` command; it opens no network connection.
+- A bounded synthetic Load & Capacity Lab (`medihub load-demo`) that measures aggregate local ingest/outbox throughput and acknowledgement latency; it uses in-memory SQLite and the in-process test receiver, not a production stack.
 - A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only management workbench for simulator devices, mapping previews, bounded revision history/compare/restore, synthetic golden-vector QA, delivery-fault drills, and terminal-failure triage/replay; it has no physical-device controls or external destination configuration.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
 - A Phase 0 integration-discovery worksheet and strict local TOML profile preflight; it reports safe blocker codes and never enables connectivity.
@@ -95,6 +96,15 @@ python -m medihub demo --count 5 --seed 7 \
 ```
 
 The JSON summary reports ingested events, duplicates, acknowledgements, test receipts, and simulator health. The demo validates a small generic R4 Observation shape only; it is not a network integration test or a validator for Bangladesh Core FHIR profiles or a facility contract.
+
+Run the bounded synthetic load lab (up to 1,000 unique events):
+
+```bash
+python -m medihub load-demo --count 100 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z --duplicate-every 10
+```
+
+It reports aggregate event, duplicate, delivery, throughput, and p50/p95 acknowledgement-latency metrics. It always uses in-memory SQLite and the in-process synthetic receiver, ignores `MEDIHUB_DATABASE_URL`, prints no event payloads, and never opens a network connection. Treat the numbers only as local functional profiling—not production sizing, site SLOs, network performance, clinical readiness, or a validated load test. See [the lab metric definitions and limits](docs/SYNTHETIC_LOAD_LAB.md).
 
 Create the local SQLite schema for persistent replay (the default database file is ignored by Git):
 
