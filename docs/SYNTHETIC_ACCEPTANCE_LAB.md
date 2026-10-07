@@ -29,23 +29,25 @@ The JSON output contains stage summaries, aggregate pass/fail assertions, and lo
 |---|---|
 | Pipeline and deduplication | Simulator → ingestion → event store/outbox → synthetic FHIR-shaped in-process receiver; expected duplicate count, unique inserts, acknowledgements, and unique receipts. |
 | Mapping | Exact-scope, identity mapping of the simulator's `example.invalid` scalar code and dimensionless unit using a built-in synthetic-only mapping; verifies complete, non-partial, synthetic-only results. |
-| Routing and fault/replay | Persists one expected policy hold for a destination that does not accept synthetic data; injects one retryable failure, then one terminal rejection; exercises the guarded synthetic terminal replay; verifies the final acknowledgement and empty pending queue. |
+| Routing and fault/replay | Persists one expected policy hold for a destination that does not accept synthetic data; injects one retryable failure, then one terminal rejection; exercises guarded synthetic terminal replay; verifies final acknowledgement and an empty pending queue. |
+| Ambiguous acknowledgement | The synthetic receiver accepts an event, then the one-shot injector withholds its ACK. The worker is restarted against a temporary file-backed outbox, retries with the same event ID, and receives an ACK. Checks two receiver sends against one unique synthetic receipt. |
 | Restart recovery | Calls the existing file-backed recovery drill, including an unfinished lease, simulated process restart, transient failure, retry, and queue drain. Its temporary SQLite database is removed at exit. |
 | Bounded load | Calls the existing in-memory load lab with the same unique-event count and duplicate setting; reports aggregate throughput and acknowledgement latency without asserting environment-dependent performance thresholds. |
 
-The command combines these stages rather than sharing a single database between them: the pipeline/fault stages use in-memory SQLite, the recovery stage uses a disposable temporary SQLite file, and all receivers are in-process. It does not read `MEDIHUB_DATABASE_URL`, persist a report, or open sockets.
+The command combines these stages rather than sharing a single database between them: the pipeline/fault/load stages use in-memory SQLite, and the acknowledgement-loss and existing recovery drills each use a disposable temporary SQLite file. All receivers are in-process. It does not read `MEDIHUB_DATABASE_URL`, persist a report, or open sockets.
 
 ## Reading the result
 
 - `status` and `checks` report only the implemented synthetic invariants.
-- `pipeline`, `mapping`, `fault_drill`, `restart_recovery`, and `bounded_load` contain aggregate evidence for each stage.
+- `pipeline`, `mapping`, `fault_drill`, `ambiguous_ack_drill`, `restart_recovery`, and `bounded_load` contain aggregate evidence for each stage.
+- `ambiguous_ack_drill` should report two receiver delivery attempts, one duplicate attempt, and one unique test receipt. This is evidence only for the in-process receiver's stable-ID behavior; see the [ACK-loss drill details](SYNTHETIC_ACK_LOSS_DRILL.md).
 - `network_enabled` is always `false`; the fault injector and load summary also report their transport limits.
 - `facility_qualification` is always `not_performed`. A passing run means only that these repository scenarios passed locally.
 - Load rates and latency are useful for comparing code changes in a consistent environment. They are not a throughput guarantee, production benchmark, hospital SLO, or capacity sign-off.
 
 ## Safety and validation limits
 
-The source is MediHub's deterministic scalar simulator, not a medical device. The mapping and generic FHIR R4 shape are synthetic examples, not BD-Core profile validation or an actual receiving-system contract. The local receiver cannot establish network behavior, authentication, authorization, server capability, message acknowledgement semantics, facility workflow, patient association, operational readiness, or regulatory status.
+The source is MediHub's deterministic scalar simulator, not a medical device. The mapping and generic FHIR R4 shape are synthetic examples, not BD-Core profile validation or an actual receiving-system contract. The local receiver cannot establish network behavior, authentication, authorization, server capability, whether a real receiver durably enforces idempotency, actual acknowledgement/loss semantics, facility workflow, patient association, operational readiness, or regulatory status.
 
 Do not use real observations, patient identifiers, facility credentials, or production endpoints with this command. Do not describe a passing result as device certification, clinical validation, Bangladesh Core conformance, production readiness, or site acceptance. Those require the named Bangladesh facility, approved device/interface, receiving-system contract, patient-context workflow, security/privacy review, and the responsible clinical/biomedical/IT owners.
 

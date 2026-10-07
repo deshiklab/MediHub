@@ -8,7 +8,7 @@ from medihub.adapters.destinations.fhir_r4 import SyntheticFhirR4DestinationAdap
 from medihub.domain import ClaimedDelivery, DeliveryAttempt, DeliveryStatus, EventOrigin
 from medihub.domain.delivery import Destination
 
-SyntheticFaultMode = Literal["retry_once", "reject_once"]
+SyntheticFaultMode = Literal["retry_once", "reject_once", "ack_lost_once"]
 
 
 class SyntheticFaultInjectorError(ValueError):
@@ -20,11 +20,11 @@ class SyntheticFaultInjectorError(ValueError):
 
 
 class SyntheticReceiverFaultInjector:
-    """Wrap the local FHIR test sink with a single pending synthetic failure.
+    """Wrap the local FHIR test sink with one pending synthetic delivery fault.
 
-    This wrapper cannot construct a network connection. It only injects one
-    deterministic outcome into the in-process receiver path, then delegates all
-    later attempts to the wrapped synthetic receiver.
+    This wrapper cannot construct a network connection. It can inject retry or
+    rejection outcomes before acceptance, or suppress one ACK after the local
+    receiver accepts an event; later sends delegate normally to that receiver.
     """
 
     def __init__(self, receiver: SyntheticFhirR4DestinationAdapter) -> None:
@@ -42,6 +42,8 @@ class SyntheticReceiverFaultInjector:
         return self._receiver.destination
 
     async def arm(self, mode: SyntheticFaultMode) -> dict[str, object]:
+        if mode not in {"retry_once", "reject_once", "ack_lost_once"}:
+            raise SyntheticFaultInjectorError("synthetic_fault_mode_invalid")
         async with self._lock:
             if self._armed_fault is not None:
                 raise SyntheticFaultInjectorError("synthetic_fault_already_armed")
@@ -79,13 +81,35 @@ class SyntheticReceiverFaultInjector:
                 if fault == "retry_once":
                     status = DeliveryStatus.RETRYABLE_FAILURE
                     error_code = "synthetic_test_retryable_failure"
-                else:
+                    self._last_outcome = status.value
+                elif fault == "reject_once":
                     status = DeliveryStatus.REJECTED
                     error_code = "synthetic_test_receiver_rejected"
-                self._last_outcome = status.value
+                    self._last_outcome = status.value
+                else:
+                    self._last_outcome = "acknowledgement_loss_pending"
 
         if fault is None:
             return await self._receiver.send(delivery)
+
+        if fault == "ack_lost_once":
+            receiver_attempt = await self._receiver.send(delivery)
+            if receiver_attempt.status is not DeliveryStatus.ACKNOWLEDGED:
+                async with self._lock:
+                    self._last_outcome = receiver_attempt.status.value
+                return receiver_attempt
+            async with self._lock:
+                self._last_outcome = "receiver_acknowledgement_lost_after_acceptance"
+            return DeliveryAttempt(
+                attempt_id=delivery.attempt_id,
+                event_id=delivery.event.event_id,
+                destination_id=delivery.destination_id,
+                attempt_number=delivery.attempt_number,
+                status=DeliveryStatus.RETRYABLE_FAILURE,
+                started_at=delivery.started_at,
+                completed_at=receiver_attempt.completed_at,
+                error_code="synthetic_test_ack_lost_after_acceptance",
+            )
 
         completed_at = max(datetime.now(UTC), delivery.started_at)
         return DeliveryAttempt(

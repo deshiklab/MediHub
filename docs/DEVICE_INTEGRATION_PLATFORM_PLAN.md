@@ -405,6 +405,8 @@ If “EMS” means Emergency Medical Services, implement it as a separate workfl
 - Define queue retention/outage capacity from real expected device rates and the facility’s recovery objectives; do not rely on memory-only queues. MQTT, if introduced, is transport—not the authoritative record or substitute for the durable outbox.
 - Fan-out is per destination: a successful EHR delivery and a failed analytics delivery must have separate states.
 
+**Current synthetic evidence:** `medihub acceptance-demo` now simulates a receiver accepting an event while its acknowledgement is lost, then restarts the worker against a temporary file-backed outbox. It demonstrates duplicate sends with one unique receipt only in the in-process receiver. It does not establish real-receiver idempotency, network ACK semantics, or an exactly-once guarantee.
+
 ### Batching and data volume
 
 Batch where the device and target workflows permit it; avoid an HTTP call for every high-frequency sample. Configure source sampling/forwarding rates with the facility and manufacturer. Do not silently down-sample or aggregate data and label it as original device output. High-rate waveforms require a separate throughput, retention, security, and receiving-system design. FHIR `SampledData` or a suitable IHE/DICOM waveform workflow may be relevant only if the target actually supports the chosen profile; images use DICOM/PACS workflows, not the scalar observation pipeline. [10][14]

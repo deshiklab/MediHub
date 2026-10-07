@@ -43,6 +43,16 @@ def test_acceptance_demo_runs_all_synthetic_stages_and_emits_only_aggregate_resu
     assert summary["fault_drill"]["manual_replays"] == 1
     assert summary["fault_drill"]["final_acknowledged_deliveries"] == 1
     assert summary["fault_drill"]["routing_policy_holds"] == 1
+    assert summary["ambiguous_ack_drill"]["simulated_worker_restarts"] == 1
+    assert summary["ambiguous_ack_drill"]["delivery_attempts"] == 2
+    assert summary["ambiguous_ack_drill"]["retryable_failures"] == 1
+    assert summary["ambiguous_ack_drill"]["final_acknowledged_deliveries"] == 1
+    assert summary["ambiguous_ack_drill"]["receiver_delivery_attempts"] == 2
+    assert summary["ambiguous_ack_drill"]["receiver_duplicate_attempts"] == 1
+    assert summary["ambiguous_ack_drill"]["unique_test_receipts"] == 1
+    assert summary["ambiguous_ack_drill"]["faults_injected"] == 1
+    assert summary["ambiguous_ack_drill"]["fault_injector_clear"] is True
+    assert summary["ambiguous_ack_drill"]["network_enabled"] is False
     assert summary["restart_recovery"]["simulated_process_restarts"] == 1
     assert summary["restart_recovery"]["expired_leases_recovered"] == 1
     assert summary["restart_recovery"]["pending_deliveries"] == 0

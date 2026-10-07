@@ -265,6 +265,18 @@ async def _request_workbench():
             assert cleared_fault.status_code == 200
             assert cleared_fault.json()["armed_fault"] is None
             assert cleared_fault.json()["faults_injected"] == 2
+            armed_ack_loss = await client.post(
+                "/api/management/destinations/test-receiver/faults",
+                json={"mode": "ack_lost_once"},
+            )
+            assert armed_ack_loss.status_code == 200
+            assert armed_ack_loss.json()["armed_fault"] == "ack_lost_once"
+            cleared_ack_loss = await client.delete(
+                "/api/management/destinations/test-receiver/faults"
+            )
+            assert cleared_ack_loss.status_code == 200
+            assert cleared_ack_loss.json()["armed_fault"] is None
+            assert cleared_ack_loss.json()["faults_injected"] == 2
 
             current_restore = await client.post("/api/management/mappings/revisions/1.0.1/restore")
             assert current_restore.status_code == 409
@@ -305,6 +317,8 @@ def test_management_workbench_is_strict_synthetic_only_and_operational() -> None
     assert "Restore as new draft" in page.text
     assert "Synthetic delivery fault drill" in page.text
     assert "Inject one retryable failure" in page.text
+    assert "Inject one terminal rejection" in page.text
+    assert "Lose one acknowledgement after acceptance" in page.text
     assert "Selected synthetic delivery" in page.text
     assert "Retry terminal failure" in page.text
     assert "Endpoint and credential fields are not available" in page.text

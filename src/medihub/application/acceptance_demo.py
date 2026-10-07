@@ -12,6 +12,11 @@ from medihub.adapters.destinations.synthetic_fault_injector import (
     SyntheticReceiverFaultInjector,
 )
 from medihub.adapters.devices.simulator import SyntheticDeviceAdapter, SyntheticDeviceConfig
+from medihub.application.ambiguous_delivery_demo import (
+    SyntheticAmbiguousDeliveryDemoError,
+    SyntheticAmbiguousDeliveryDemoSummary,
+    run_synthetic_ambiguous_delivery_demo,
+)
 from medihub.application.demo import DemoSummary, run_synthetic_demo
 from medihub.application.ingestion import IngestionService
 from medihub.application.load_demo import (
@@ -115,6 +120,7 @@ class SyntheticAcceptanceDemoSummary:
     pipeline: DemoSummary
     mapping: SyntheticAcceptanceMappingSummary
     fault_drill: SyntheticAcceptanceFaultSummary
+    ambiguous_ack_drill: SyntheticAmbiguousDeliveryDemoSummary
     restart_recovery: SyntheticRecoveryDemoSummary
     bounded_load: SyntheticLoadDemoSummary
     checks: tuple[SyntheticAcceptanceCheck, ...]
@@ -341,12 +347,12 @@ async def _run_fault_drill(config: SyntheticDeviceConfig) -> SyntheticAcceptance
 async def run_synthetic_acceptance_demo(
     config: SyntheticDeviceConfig,
 ) -> SyntheticAcceptanceDemoSummary:
-    """Run pipeline, mapping, fault/replay, restart, and bounded-load stages offline.
+    """Run pipeline, mapping, fault/replay, ACK-loss, recovery, and load stages offline.
 
-    The run uses synthetic simulator events, in-memory SQLite for the pipeline and
-    fault stages, a temporary file-backed SQLite DB for the recovery drill, and
-    in-process test receivers. It never reads ``MEDIHUB_DATABASE_URL`` or opens a
-    device/network connection.
+    The run uses synthetic simulator events, in-memory SQLite for pipeline, fault,
+    and load stages, separate temporary file-backed SQLite stores for ACK-loss and
+    recovery drills, and in-process test receivers. It never reads
+    ``MEDIHUB_DATABASE_URL`` or opens a device/network connection.
     """
 
     if not MIN_SYNTHETIC_ACCEPTANCE_EVENTS <= config.event_count <= MAX_SYNTHETIC_ACCEPTANCE_EVENTS:
@@ -360,6 +366,10 @@ async def run_synthetic_acceptance_demo(
     pipeline = await run_synthetic_demo(config)
     mapping = await _run_mapping_stage(config)
     fault_drill = await _run_fault_drill(config)
+    try:
+        ambiguous_ack_drill = await run_synthetic_ambiguous_delivery_demo(config)
+    except SyntheticAmbiguousDeliveryDemoError as error:
+        raise SyntheticAcceptanceDemoError(f"acceptance_{error.code}") from None
     try:
         recovery = await run_synthetic_recovery_demo(config)
     except SyntheticRecoveryDemoError as error:
@@ -396,6 +406,29 @@ async def run_synthetic_acceptance_demo(
         _check("fault_count", fault_drill.faults_injected, 2),
         _check("fault_injector_cleared", fault_drill.fault_injector_clear, True),
         _check("fault_network_disabled", fault_drill.network_enabled, False),
+        _check("ambiguous_ack_one_event_inserted", ambiguous_ack_drill.events_inserted, 1),
+        _check("ambiguous_ack_worker_restarted", ambiguous_ack_drill.simulated_worker_restarts, 1),
+        _check("ambiguous_ack_attempt_history", ambiguous_ack_drill.delivery_attempts, 2),
+        _check("ambiguous_ack_lost_once", ambiguous_ack_drill.retryable_failures, 1),
+        _check("ambiguous_ack_retry_acknowledged", ambiguous_ack_drill.acknowledged_attempts, 1),
+        _check(
+            "ambiguous_ack_final_outbox_acknowledged",
+            ambiguous_ack_drill.final_acknowledged_deliveries,
+            1,
+        ),
+        _check("ambiguous_ack_queue_drained", ambiguous_ack_drill.pending_deliveries, 0),
+        _check("ambiguous_ack_receiver_sends", ambiguous_ack_drill.receiver_delivery_attempts, 2),
+        _check(
+            "ambiguous_ack_duplicate_delivery", ambiguous_ack_drill.receiver_duplicate_attempts, 1
+        ),
+        _check(
+            "ambiguous_ack_unique_receiver_receipt", ambiguous_ack_drill.unique_test_receipts, 1
+        ),
+        _check("ambiguous_ack_fault_injected_once", ambiguous_ack_drill.faults_injected, 1),
+        _check(
+            "ambiguous_ack_fault_injector_clear", ambiguous_ack_drill.fault_injector_clear, True
+        ),
+        _check("ambiguous_ack_network_disabled", ambiguous_ack_drill.network_enabled, False),
         _check("recovery_events_inserted", recovery.events_inserted, config.event_count),
         _check("recovery_duplicates_detected", recovery.duplicate_events, duplicates_expected),
         _check(
@@ -430,6 +463,7 @@ async def run_synthetic_acceptance_demo(
         pipeline=pipeline,
         mapping=mapping,
         fault_drill=fault_drill,
+        ambiguous_ack_drill=ambiguous_ack_drill,
         restart_recovery=recovery,
         bounded_load=load,
         checks=checks,

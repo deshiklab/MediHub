@@ -324,10 +324,11 @@
                   <div id="destination-status" class="management-status" role="status"></div>
                   <div class="destination-card">
                     <strong>Synthetic delivery fault drill</strong>
-                    <small>Arm one fault for the next in-process synthetic send. Retryable faults are retried by the demo worker; terminal rejections remain visible in delivery history. Network remains disabled.</small>
+                    <small>Arm one fault on the next in-process synthetic send: a retryable failure or rejection before acceptance, or receiver acceptance with its acknowledgement lost. Retries use the stable event ID. Network remains disabled.</small>
                     <div class="form-actions">
                       <button id="inject-retryable-fault" class="control-btn subtle" type="button">Inject one retryable failure</button>
                       <button id="inject-rejection-fault" class="control-btn subtle" type="button">Inject one terminal rejection</button>
+                      <button id="inject-ack-loss-fault" class="control-btn subtle" type="button">Lose one acknowledgement after acceptance</button>
                       <button id="cancel-delivery-fault" class="control-btn subtle" type="button">Cancel armed fault</button>
                     </div>
                     <div id="delivery-fault-status" class="management-status" role="status">Loading fault-injection state…</div>
@@ -716,11 +717,19 @@
             list.appendChild(card);
           }
         };
+        const deliveryFaultLabels = {
+          retry_once: "retryable failure",
+          reject_once: "terminal rejection",
+          ack_lost_once: "acknowledgement lost after receiver acceptance",
+        };
         const loadDeliveryFaultStatus = async () => {
           const data = await managementRequest("/api/management/destinations/test-receiver/faults");
-          const labels = { retry_once: "retryable failure", reject_once: "terminal rejection" };
-          const armed = data.armed_fault ? `Armed for next send: ${labels[data.armed_fault]}.` : "No delivery fault armed.";
-          const last = data.last_injected_fault ? ` Last injection: ${labels[data.last_injected_fault]} → ${data.last_outcome}.` : "";
+          const armed = data.armed_fault
+            ? `Armed for next send: ${deliveryFaultLabels[data.armed_fault] || "unknown fault"}.`
+            : "No delivery fault armed.";
+          const last = data.last_injected_fault
+            ? ` Last injection: ${deliveryFaultLabels[data.last_injected_fault] || "unknown fault"} → ${data.last_outcome}.`
+            : "";
           setText("delivery-fault-status", `${armed}${last} Total injected: ${data.faults_injected}. Network disabled.`);
         };
         const loadManagement = async () => {
@@ -825,17 +834,19 @@
         });
         const armDeliveryFault = async (mode, buttonId) => {
           const button = byId(buttonId);
+          const label = deliveryFaultLabels[mode] || "delivery fault";
           button.disabled = true;
           try {
             const result = await managementRequest("/api/management/destinations/test-receiver/faults", "POST", { mode });
-            setText("destination-status", `${mode === "retry_once" ? "One retryable failure" : "One terminal rejection"} armed for the next synthetic receiver send; network remains disabled.`);
-            setText("delivery-fault-status", `Armed for next send: ${mode === "retry_once" ? "retryable failure" : "terminal rejection"}.`);
+            setText("destination-status", `${label} armed for the next synthetic receiver send; network remains disabled.`);
+            setText("delivery-fault-status", `Armed for next send: ${label}.`);
             if (result.armed_fault !== mode) await loadDeliveryFaultStatus();
           } catch (error) { setText("delivery-fault-status", error.message); }
           finally { button.disabled = false; }
         };
         byId("inject-retryable-fault").addEventListener("click", () => armDeliveryFault("retry_once", "inject-retryable-fault"));
         byId("inject-rejection-fault").addEventListener("click", () => armDeliveryFault("reject_once", "inject-rejection-fault"));
+        byId("inject-ack-loss-fault").addEventListener("click", () => armDeliveryFault("ack_lost_once", "inject-ack-loss-fault"));
         byId("cancel-delivery-fault").addEventListener("click", async (event) => {
           const button = event.currentTarget;
           button.disabled = true;

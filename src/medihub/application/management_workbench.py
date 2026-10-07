@@ -79,7 +79,7 @@ class SyntheticDeviceStateRequest(DomainModel):
 
 
 class SyntheticReceiverFaultRequest(DomainModel):
-    mode: Literal["retry_once", "reject_once"]
+    mode: Literal["retry_once", "reject_once", "ack_lost_once"]
 
 
 class SyntheticMappingEntryDraft(DomainModel):
