@@ -279,11 +279,11 @@ def test_device_actions_and_generated_statuses_are_localized(page: Page) -> None
     expect(page.locator("#devices-list .device-row small")).to_contain_text("শুধু সিন্থেটিক")
     expect(page.get_by_role("button", name="নিষ্ক্রিয় করুন")).to_be_visible()
 
-    page.get_by_role("button", name="নিষ্ক্রিয় করুন").click()
+    page.get_by_role("button", name="নিষ্ক্রিয় করুন", exact=True).click()
     expect(page.locator("#device-status")).to_contain_text(
         "sim-device-001 এখন শুধু স্থানীয় সিমুলেটরে নিষ্ক্রিয়।"
     )
-    page.get_by_role("button", name="সক্রিয় করুন").click()
+    page.get_by_role("button", name="সক্রিয় করুন", exact=True).click()
     expect(page.locator("#device-status")).to_contain_text(
         "sim-device-001 এখন শুধু স্থানীয় সিমুলেটরে সক্রিয়।"
     )
