@@ -27,6 +27,7 @@ from medihub.application.load_demo import (
 )
 from medihub.application.mapping_discovery import validate_mapping_worksheet_file
 from medihub.application.operations import SyntheticOperationsDashboard
+from medihub.application.receiver_contract import validate_receiver_contract_file
 from medihub.application.recovery_demo import (
     SyntheticRecoveryDemoError,
     run_synthetic_recovery_demo,
@@ -274,6 +275,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="path to a local integration-discovery TOML profile",
     )
 
+    validate_contract = commands.add_parser(
+        "validate-contract",
+        help="check a local TOML receiver contract; never opens a connection",
+    )
+    validate_contract.add_argument(
+        "contract",
+        type=Path,
+        help="path to a local receiver-contract TOML worksheet",
+    )
+
     validate_mapping = commands.add_parser(
         "validate-mapping",
         help="check a local TOML field-mapping worksheet; never activates mappings",
@@ -388,6 +399,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "validate-profile":
         report = validate_profile_file(args.profile)
+        print(json.dumps(report.to_dict(), sort_keys=True))
+        return report.exit_code
+
+    if args.command == "validate-contract":
+        report = validate_receiver_contract_file(args.contract)
         print(json.dumps(report.to_dict(), sort_keys=True))
         return report.exit_code
 

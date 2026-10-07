@@ -765,7 +765,7 @@ This is a planning analysis, not a Bangladesh legal opinion or a DGDA classifica
 
 1. Secure a Bangladesh pilot sponsor/facility and name its clinical, biomedical/clinical-engineering, IT/interface, and privacy/security owners; confirm the intended first workflow and whether a Health ID/UHID path is available.
 2. Add the first device and destination interface specification (or vendor-approved manuals) to the project in a restricted location if they contain confidential content; provide a sanitized version for engineering documentation.
-3. Complete the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md) and obtain a named hardware test device plus a synthetic test destination.
+3. Complete the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md), document the receiver behavior in the [strict local contract worksheet](RECEIVER_CONTRACT.md), and obtain a named hardware test device plus a synthetic test destination. `medihub validate-contract` checks documentation completeness only; connectivity remains disabled.
 4. Start with a Python modular monolith, event schema, simulator, and the patient-association/outbox domain before implementing any real protocol.
 5. Use `medihub acceptance-demo` as the offline, synthetic code-level regression gate for pipeline deduplication, mapping, policy holds, retry/replay, restart recovery, and bounded load. Treat it only as implementation evidence—not device, facility, destination-contract, or Bangladesh Core acceptance.
 6. Select the first connector from the receiving-system contract—not from a general preference for FHIR or v2—and add a separate contract-driven acceptance suite only after the facility and authorized interfaces are named.

@@ -2,7 +2,7 @@
 
 ## Purpose and boundary
 
-MediHub is continuing Phase 0 discovery because the first authorized device, receiving system, facility, and clinical association workflow have not yet been specified. This preflight provides a structured worksheet and a local validator; it does **not** implement, configure, or enable a device/EHR connection.
+MediHub is continuing Phase 0 discovery because the first authorized device, receiving system, facility, and clinical association workflow have not yet been specified. This preflight provides a structured worksheet and a local validator; the companion [receiver-contract preflight](RECEIVER_CONTRACT.md) records ACK, idempotency, retry/error, and limit semantics. Neither implements, configures, or enables a device/EHR connection.
 
 A profile reported as `discovery_complete` means only that the profile is structurally complete and every listed discovery gate has an approved or documented not-applicable decision with an evidence reference. It is **not** production authorization, regulatory approval, a safety case, a conformance claim, or permission to connect. `connectivity_enabled` is always `false` in the validator output. Connector code remains synthetic/in-process until the exact authorized interface contract and clinical workflow are supplied and separately reviewed.
 
@@ -40,6 +40,7 @@ Use the example TOML as the machine-readable checklist. Resolve the following wi
 
 - Name the exact receiving product/system and interface/version, confirming whether an interface engine is the actual receiver. For FHIR, record the base/version, CapabilityStatement, profiles, scopes, and write behavior; for HL7 v2, record the version/profile, message examples, ACK rules, and approved MLLP route. Keep hostnames, ports, tokens, and raw endpoints out of this profile.
 - Specify acknowledgment meaning, idempotency/replay behavior, error codes, mapping/versioning, rate limits, downtime handling, and support/rollback ownership. Obtain the facility-approved contract and synthetic test receiver or sandbox procedure.
+- Record the ACK, duplicate, retry/error, timeout, and limit facts in the local [receiver-contract worksheet](RECEIVER_CONTRACT.md). Its validator checks documented completeness only; it never connects and cannot verify receiver behavior.
 - Complete the [machine-readable protocol/field mapping worksheet](DEVICE_MAPPING_WORKSHEET.md) before coding: source field/code/unit/state → canonical field → destination field/profile. Leave unknown mappings explicitly unresolved; link the approved worksheet using an evidence reference.
 - A generic FHIR R4 mapper or a public sandbox is not evidence of Bangladesh Core or facility-contract conformance, nor is it production access.
 
