@@ -588,7 +588,7 @@ The durations below are planning ranges, not promises. Access to device manuals/
 
 **Exit gate:** operators can identify a disconnected device, an unresolved patient, and a rejected destination message without reading raw PHI logs; service can restore its local queue after restart.
 
-**Current synthetic preview:** a small [management workbench](SYNTHETIC_MANAGEMENT_WORKBENCH.md) demonstrates in-memory simulator registration, synthetic mapping drafts/previews, version-tagged golden-vector QA with stale-result detection, bounded revision history/compare/restore controls, a one-shot synthetic delivery fault drill, an allowlisted delivery-attempt timeline with guarded terminal-failure replay, and a local test-receiver check. It has no authentication, persistence, physical-device controls, endpoint/credential fields, or live activation; it does not satisfy Phase 6.
+**Current synthetic preview:** a small [management workbench](SYNTHETIC_MANAGEMENT_WORKBENCH.md) demonstrates in-memory simulator registration, synthetic mapping drafts/previews, version-tagged golden-vector QA with stale-result detection, bounded revision history/compare/restore controls, a one-shot synthetic delivery fault drill, an allowlisted delivery-attempt timeline with guarded terminal-failure replay, and a local test-receiver check. It exposes a minimal `/healthz` probe and a privacy-minimized, low-cardinality Prometheus `/metrics` endpoint for synthetic operations; see [observability limits](SYNTHETIC_OBSERVABILITY.md). It has no authentication, persistence, physical-device controls, endpoint/credential fields, or live activation; it does not satisfy Phase 6.
 
 ### Phase 7 — Controlled site pilot
 

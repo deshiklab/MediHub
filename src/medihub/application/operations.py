@@ -39,6 +39,7 @@ from medihub.infrastructure.models import (
     EventRecord,
     RoutingHoldRecord,
 )
+from medihub.observability import RuntimeMetricsSnapshot
 
 MAX_RETAINED_EVENTS = 500
 PRUNE_EVERY_EVENTS = 50
@@ -187,6 +188,67 @@ class SyntheticOperationsDashboard:
                 "mode": "synthetic_demo",
                 "receiver": "in_process_test_sink",
             }
+
+    async def metrics_snapshot(self) -> RuntimeMetricsSnapshot:
+        """Return aggregate telemetry without exposing event or identity fields."""
+
+        async with self._state_lock:
+            if self._sessions is None:
+                return RuntimeMetricsSnapshot()
+
+            async with self._sessions() as session:
+                event_count = await session.scalar(
+                    select(func.count())
+                    .select_from(EventRecord)
+                    .where(EventRecord.origin == EventOrigin.SYNTHETIC.value)
+                )
+                status_rows = await session.execute(
+                    select(DeliveryOutboxRecord.status, func.count()).group_by(
+                        DeliveryOutboxRecord.status
+                    )
+                )
+                delivery_counts = {status: 0 for status in DeliveryStatus}
+                for status, count in status_rows:
+                    delivery_counts[DeliveryStatus(status)] = int(count)
+
+                attempts = await session.scalar(
+                    select(func.coalesce(func.sum(DeliveryOutboxRecord.attempt_count), 0))
+                )
+                hold_count = await session.scalar(
+                    select(func.count())
+                    .select_from(RoutingHoldRecord)
+                    .join(EventRecord, EventRecord.event_id == RoutingHoldRecord.event_id)
+                    .where(EventRecord.origin == EventOrigin.SYNTHETIC.value)
+                )
+                audit_count = await session.scalar(
+                    select(func.count())
+                    .select_from(AuditEventRecord)
+                    .where(AuditEventRecord.site_id == "synthetic-site")
+                )
+
+            source = self._source_health
+            started_at = self._started_at
+            return RuntimeMetricsSnapshot(
+                ready=(self._source_health is not None and self._last_error_code is None),
+                uptime_seconds=(
+                    max(0.0, (datetime.now(UTC) - started_at).total_seconds())
+                    if started_at is not None
+                    else 0.0
+                ),
+                events_received=self._events_received,
+                duplicate_events=self._duplicate_events,
+                events_retained=int(event_count or 0),
+                routing_holds_retained=int(hold_count or 0),
+                audit_events_retained=int(audit_count or 0),
+                delivery_attempts_retained=int(attempts or 0),
+                delivery_counts=tuple(
+                    (status, delivery_counts[status]) for status in DeliveryStatus
+                ),
+                unique_test_receipts=(
+                    self._receiver.unique_receipt_count if self._receiver is not None else 0
+                ),
+                source_health=source.status if source is not None else None,
+            )
 
     async def emit_synthetic_sample(self, device_id: str) -> dict[str, object]:
         """Emit one sample for a registered simulator into the local test sink only."""

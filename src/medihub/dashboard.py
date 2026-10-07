@@ -3,11 +3,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from importlib.resources import files
+from time import perf_counter
 from uuid import UUID
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST
 
 from medihub.application.management_workbench import (
     ManagementWorkbenchError,
@@ -19,6 +21,7 @@ from medihub.application.management_workbench import (
     SyntheticReceiverFaultRequest,
 )
 from medihub.application.operations import SyntheticOperationsDashboard
+from medihub.observability import MediHubMetrics
 
 DASHBOARD_HTML = files("medihub").joinpath("dashboard.html").read_text(encoding="utf-8")
 
@@ -30,6 +33,7 @@ def create_dashboard_app(
 
     operations = runtime or SyntheticOperationsDashboard()
     workbench = SyntheticManagementWorkbench(operations)
+    metrics = MediHubMetrics()
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -70,16 +74,29 @@ def create_dashboard_app(
 
     @app.middleware("http")
     async def add_safety_headers(request, call_next):  # type: ignore[no-untyped-def]
-        response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
-        )
-        return response
+        started_at = perf_counter()
+        response: Response | None = None
+        try:
+            response = await call_next(request)
+            return response
+        finally:
+            if request.scope.get("path") != "/metrics":
+                route = request.scope.get("route")
+                metrics.observe_http_request(
+                    method=request.method,
+                    route=getattr(route, "path", None),
+                    status_code=response.status_code if response is not None else 500,
+                    duration_seconds=perf_counter() - started_at,
+                )
+            if response is not None:
+                response.headers["Cache-Control"] = "no-store"
+                response.headers["X-Content-Type-Options"] = "nosniff"
+                response.headers["X-Frame-Options"] = "DENY"
+                response.headers["Referrer-Policy"] = "no-referrer"
+                response.headers["Content-Security-Policy"] = (
+                    "default-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; "
+                    "script-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+                )
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def dashboard_page() -> HTMLResponse:
@@ -90,6 +107,14 @@ def create_dashboard_app(
         health = await operations.health()
         code = 200 if health["status"] == "ready" else 503
         return JSONResponse(health, status_code=code)
+
+    @app.get("/metrics", include_in_schema=False)
+    async def prometheus_metrics() -> Response:
+        metrics.set_runtime_snapshot(await operations.metrics_snapshot())
+        return Response(
+            content=metrics.render(),
+            headers={"Content-Type": CONTENT_TYPE_LATEST},
+        )
 
     @app.get("/api/dashboard", include_in_schema=False)
     async def dashboard_snapshot() -> dict[str, object]:
@@ -200,4 +225,7 @@ def create_dashboard_app(
     async def test_synthetic_destination() -> dict[str, object]:
         return await workbench.test_destination()
 
+    metrics.set_route_templates(
+        route.path for route in app.routes if isinstance(getattr(route, "path", None), str)
+    )
     return app
