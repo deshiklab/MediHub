@@ -250,6 +250,11 @@ class ReceiverContract(DomainModel):
             blockers.add("receiver_retryable_outcomes_missing")
         if not failure_handling.permanent_codes:
             blockers.add("receiver_permanent_outcomes_missing")
+        if "transport_timeout" not in failure_handling.retryable_codes:
+            if "transport_timeout" in failure_handling.permanent_codes:
+                blockers.add("receiver_timeout_not_retryable")
+            else:
+                blockers.add("receiver_timeout_outcome_unclassified")
         if failure_handling.retry_hint_behavior is RetryHintBehavior.UNKNOWN:
             blockers.add("receiver_retry_hint_behavior_unknown")
 
@@ -288,39 +293,55 @@ class ReceiverContractCheckReport:
         return 0 if self.readiness == "contract_documented" else 1
 
 
+@dataclass(frozen=True, slots=True)
+class ReceiverContractFileResult:
+    """Validated local model plus its sanitized report; never serialize the model."""
+
+    contract: ReceiverContract | None
+    report: ReceiverContractCheckReport
+
+
 def validate_receiver_contract_file(path: Path) -> ReceiverContractCheckReport:
-    """Validate local TOML contract structure and readiness; never open a connection."""
+    """Validate local TOML and return only the sanitized report."""
+
+    return load_receiver_contract_file(path).report
+
+
+def load_receiver_contract_file(path: Path) -> ReceiverContractFileResult:
+    """Load a local contract and its safe report; never open a connection."""
 
     try:
         with path.open("rb") as contract_file:
             content = contract_file.read(MAX_RECEIVER_CONTRACT_SIZE_BYTES + 1)
     except OSError:
-        return _invalid_contract("contract_file_unreadable")
+        return ReceiverContractFileResult(None, _invalid_contract("contract_file_unreadable"))
     if len(content) > MAX_RECEIVER_CONTRACT_SIZE_BYTES:
-        return _invalid_contract("contract_file_too_large")
+        return ReceiverContractFileResult(None, _invalid_contract("contract_file_too_large"))
 
     try:
         parsed = tomllib.loads(content.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError):
-        return _invalid_contract("invalid_toml")
+        return ReceiverContractFileResult(None, _invalid_contract("invalid_toml"))
 
     try:
         contract = ReceiverContract.model_validate(parsed)
     except ValidationError as error:
-        return ReceiverContractCheckReport(
+        report = ReceiverContractCheckReport(
             schema_valid=False,
             readiness="invalid_contract",
             blockers=(),
             errors=_safe_validation_errors(error),
         )
+        return ReceiverContractFileResult(None, report)
 
     blockers = contract.readiness_blockers()
-    return ReceiverContractCheckReport(
+    report = ReceiverContractCheckReport(
         schema_valid=True,
         readiness="contract_documented" if not blockers else "not_ready",
         blockers=blockers,
         errors=(),
     )
+    return ReceiverContractFileResult(contract, report)
 
 
 def _require_limit(blockers: set[str], name: str, limit: ReceiverLimit) -> None:
@@ -411,11 +432,13 @@ __all__ = [
     "ReceiverAcknowledgement",
     "ReceiverContract",
     "ReceiverContractCheckReport",
+    "ReceiverContractFileResult",
     "ReceiverFailureHandling",
     "ReceiverIdempotency",
     "ReceiverLimit",
     "ReceiverLimits",
     "ReceiverProtocol",
     "RetryHintBehavior",
+    "load_receiver_contract_file",
     "validate_receiver_contract_file",
 ]

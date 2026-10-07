@@ -12,50 +12,9 @@ from medihub.cli import main
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CONTRACT = REPOSITORY_ROOT / "config" / "receiver-contract.example.toml"
 
-COMPLETE_CONTRACT = """\
-schema_version = "1.0"
-contract_id = "synthetic-receiver-contract"
-discovery_profile_id = "synthetic-contract-check"
-receiver_name = "In-process synthetic test receiver"
-protocol = "fhir_r4"
-interface_version = "FHIR R4 synthetic fixture v1"
-
-[contract_evidence]
-status = "approved"
-reference = "SYNTH-RECEIVER-CONTRACT-001"
-
-[acknowledgement]
-level = "application"
-meaning = "durably_stored"
-success_codes = ["http_201"]
-
-[idempotency]
-key_kind = "fhir_identifier"
-key_location = "observation_identifier"
-duplicate_outcome = "same_acknowledgement"
-retention = "indefinite"
-survives_receiver_restart = true
-
-[failure_handling]
-retryable_codes = ["http_429", "http_503", "transport_timeout"]
-permanent_codes = ["http_400", "http_422"]
-retry_hint_behavior = "not_supported"
-
-[limits]
-request_timeout_seconds = 10.0
-
-[limits.requests_per_minute]
-status = "specified"
-value = 60
-
-[limits.events_per_request]
-status = "specified"
-value = 1
-
-[limits.request_bytes]
-status = "specified"
-value = 1048576
-"""
+COMPLETE_CONTRACT = (
+    REPOSITORY_ROOT / "tests" / "fixtures" / "receiver-contract.synthetic-complete.toml"
+).read_text(encoding="utf-8")
 
 
 def test_example_contract_is_valid_but_reports_unresolved_receiver_facts() -> None:
@@ -72,6 +31,7 @@ def test_example_contract_is_valid_but_reports_unresolved_receiver_facts() -> No
     assert "receiver_idempotency_key_unknown" in report.blockers
     assert "receiver_restart_idempotency_unverified" in report.blockers
     assert "receiver_request_timeout_missing" in report.blockers
+    assert "receiver_timeout_outcome_unclassified" in report.blockers
     assert "receiver_rate_limit_unknown" in report.blockers
 
 
@@ -169,6 +129,25 @@ def test_transport_ack_is_not_treated_as_application_acceptance(tmp_path: Path) 
     assert report.readiness == "not_ready"
     assert "receiver_acknowledgement_not_application_level" in report.blockers
     assert report.connectivity_enabled is False
+
+
+def test_transport_timeout_must_be_classified_as_retryable(tmp_path: Path) -> None:
+    contract_path = tmp_path / "permanent-timeout.toml"
+    contract_path.write_text(
+        COMPLETE_CONTRACT.replace(
+            'retryable_codes = ["http_429", "http_503", "transport_timeout"]',
+            'retryable_codes = ["http_429", "http_503"]',
+        ).replace(
+            'permanent_codes = ["http_400", "http_422"]',
+            'permanent_codes = ["http_400", "http_422", "transport_timeout"]',
+        ),
+        encoding="utf-8",
+    )
+
+    report = validate_receiver_contract_file(contract_path)
+
+    assert report.schema_valid is True
+    assert "receiver_timeout_not_retryable" in report.blockers
 
 
 def test_protocol_mismatched_response_code_is_rejected_without_echoing_values(

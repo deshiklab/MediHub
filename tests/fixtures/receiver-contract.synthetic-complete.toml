@@ -1,0 +1,43 @@
+# Synthetic-only contract fixture for tests. Never represents a real receiver.
+schema_version = "1.0"
+contract_id = "synthetic-receiver-contract"
+discovery_profile_id = "synthetic-contract-check"
+receiver_name = "In-process synthetic test receiver"
+protocol = "fhir_r4"
+interface_version = "FHIR R4 synthetic fixture v1"
+
+[contract_evidence]
+status = "approved"
+reference = "SYNTH-RECEIVER-CONTRACT-001"
+
+[acknowledgement]
+level = "application"
+meaning = "durably_stored"
+success_codes = ["http_201"]
+
+[idempotency]
+key_kind = "fhir_identifier"
+key_location = "observation_identifier"
+duplicate_outcome = "same_acknowledgement"
+retention = "indefinite"
+survives_receiver_restart = true
+
+[failure_handling]
+retryable_codes = ["http_429", "http_503", "transport_timeout"]
+permanent_codes = ["http_400", "http_422"]
+retry_hint_behavior = "not_supported"
+
+[limits]
+request_timeout_seconds = 10.0
+
+[limits.requests_per_minute]
+status = "specified"
+value = 60
+
+[limits.events_per_request]
+status = "specified"
+value = 1
+
+[limits.request_bytes]
+status = "specified"
+value = 1048576

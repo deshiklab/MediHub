@@ -768,7 +768,7 @@ This is a planning analysis, not a Bangladesh legal opinion or a DGDA classifica
 3. Complete the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md), document the receiver behavior in the [strict local contract worksheet](RECEIVER_CONTRACT.md), and obtain a named hardware test device plus a synthetic test destination. `medihub validate-contract` checks documentation completeness only; connectivity remains disabled.
 4. Start with a Python modular monolith, event schema, simulator, and the patient-association/outbox domain before implementing any real protocol.
 5. Use `medihub acceptance-demo` as the offline, synthetic code-level regression gate for pipeline deduplication, mapping, policy holds, retry/replay, restart recovery, and bounded load. Treat it only as implementation evidence—not device, facility, destination-contract, or Bangladesh Core acceptance.
-6. Select the first connector from the receiving-system contract—not from a general preference for FHIR or v2—and add a separate contract-driven acceptance suite only after the facility and authorized interfaces are named.
+6. Select the first connector from the receiving-system contract—not from a general preference for FHIR or v2. The current `medihub contract-test` exercises only a local synthetic model; add real contract-driven acceptance tests against an approved sandbox only after the facility and authorized interface are named.
 7. Hold a Bangladesh privacy/regulatory and security/clinical-engineering review before connecting anything to a live device network; use dry-run and synthetic data first.
 
 ## 21. References

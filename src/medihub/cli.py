@@ -19,6 +19,10 @@ from medihub.application.acceptance_demo import (
     SyntheticAcceptanceDemoError,
     run_synthetic_acceptance_demo,
 )
+from medihub.application.contract_acceptance import (
+    MAX_REQUIRED_IDEMPOTENCY_HORIZON_SECONDS,
+    run_contract_acceptance,
+)
 from medihub.application.demo import DemoSummary, run_synthetic_demo
 from medihub.application.discovery import validate_profile_file
 from medihub.application.load_demo import (
@@ -27,7 +31,10 @@ from medihub.application.load_demo import (
 )
 from medihub.application.mapping_discovery import validate_mapping_worksheet_file
 from medihub.application.operations import SyntheticOperationsDashboard
-from medihub.application.receiver_contract import validate_receiver_contract_file
+from medihub.application.receiver_contract import (
+    load_receiver_contract_file,
+    validate_receiver_contract_file,
+)
 from medihub.application.recovery_demo import (
     SyntheticRecoveryDemoError,
     run_synthetic_recovery_demo,
@@ -58,6 +65,18 @@ def _parse_datetime(value: str) -> datetime:
         return datetime.fromisoformat(normalized)
     except ValueError as error:
         raise argparse.ArgumentTypeError("use an ISO-8601 timestamp") from error
+
+
+def _parse_idempotency_horizon_seconds(value: str) -> int:
+    try:
+        seconds = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("use a positive number of seconds") from error
+    if not 1 <= seconds <= MAX_REQUIRED_IDEMPOTENCY_HORIZON_SECONDS:
+        raise argparse.ArgumentTypeError(
+            "idempotency horizon must be between 1 second and 10 years"
+        )
+    return seconds
 
 
 def _add_simulation_arguments(parser: argparse.ArgumentParser) -> None:
@@ -285,6 +304,24 @@ def _build_parser() -> argparse.ArgumentParser:
         help="path to a local receiver-contract TOML worksheet",
     )
 
+    contract_test = commands.add_parser(
+        "contract-test",
+        help="run offline contract scenarios against a local synthetic model; no network",
+    )
+    contract_test.add_argument(
+        "contract",
+        type=Path,
+        help="path to a local receiver-contract TOML worksheet",
+    )
+    contract_test.add_argument(
+        "--required-idempotency-horizon-seconds",
+        type=_parse_idempotency_horizon_seconds,
+        help=(
+            "maximum retry/redelivery age to require from bounded receiver idempotency "
+            "retention (required for bounded retention)"
+        ),
+    )
+
     validate_mapping = commands.add_parser(
         "validate-mapping",
         help="check a local TOML field-mapping worksheet; never activates mappings",
@@ -406,6 +443,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = validate_receiver_contract_file(args.contract)
         print(json.dumps(report.to_dict(), sort_keys=True))
         return report.exit_code
+
+    if args.command == "contract-test":
+        try:
+            file_result = load_receiver_contract_file(args.contract)
+            summary = run_contract_acceptance(
+                file_result,
+                required_idempotency_horizon_seconds=args.required_idempotency_horizon_seconds,
+            )
+        except Exception as error:
+            parser.error(f"contract test stopped ({type(error).__name__})")
+        print(json.dumps(summary.to_dict(), sort_keys=True))
+        return summary.exit_code
 
     if args.command == "validate-mapping":
         report = validate_mapping_worksheet_file(args.worksheet)

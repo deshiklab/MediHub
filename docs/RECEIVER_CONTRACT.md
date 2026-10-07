@@ -33,9 +33,9 @@ FHIR success/failure codes must use `http_` tokens and HL7 success/failure codes
 
 ## Reading readiness results
 
-A valid but incomplete example normally returns `readiness: "not_ready"` and codes such as `receiver_acknowledgement_level_unknown`, `receiver_idempotency_key_unknown`, `receiver_restart_idempotency_unverified`, `receiver_retryable_outcomes_missing`, or `receiver_request_timeout_missing`. An unresolved or duplicate-creating policy is blocked, and a generic `conflict` outcome requires explicit review before the worksheet can be considered documented. These stable codes can be used by local tooling without exposing vendor or facility values.
+A valid but incomplete example normally returns `readiness: "not_ready"` and codes such as `receiver_acknowledgement_level_unknown`, `receiver_idempotency_key_unknown`, `receiver_restart_idempotency_unverified`, `receiver_retryable_outcomes_missing`, or `receiver_request_timeout_missing`. `transport_timeout` must be explicitly classified as retryable because delivery may have succeeded before its ACK was lost. An unresolved or duplicate-creating policy is blocked, and a generic `conflict` outcome requires explicit review before the worksheet can be considered documented. These stable codes can be used by local tooling without exposing vendor or facility values.
 
-A bounded retention policy requires `retention_seconds`. `survives_receiver_restart = false` reports `receiver_idempotency_not_restart_durable`; `true` records what the approved contract says, not test evidence that it is true. The later contract-test lab should verify these claims in the receiver's authorized synthetic sandbox before any connector is considered.
+A bounded retention policy requires `retention_seconds`. `survives_receiver_restart = false` reports `receiver_idempotency_not_restart_durable`; `true` records what the approved contract says, not test evidence that it is true. The [offline contract scenario harness](RECEIVER_CONTRACT_ACCEPTANCE.md) checks the local interpretation of these claims only; verify the actual behavior separately in the receiver's authorized synthetic sandbox before any connector is considered.
 
 ## Data handling and Bangladesh gates
 

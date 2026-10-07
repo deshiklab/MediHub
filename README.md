@@ -23,7 +23,7 @@ The first synthetic-only vertical slice is underway:
 - A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only management workbench for simulator devices, mapping previews, bounded revision history/compare/restore, synthetic golden-vector QA, delivery-fault drills, and terminal-failure triage/replay; it has no physical-device controls or external destination configuration.
 - A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
-- A Phase 0 integration-discovery worksheet, strict local TOML profile preflight, and versioned receiver-contract validator for acknowledgement, idempotency, retry/error, and limit facts; reports safe blocker codes and never enables connectivity.
+- A Phase 0 integration-discovery worksheet, versioned receiver-contract validator, and offline synthetic contract scenario harness for ACK, duplicate/lost-ACK retry, receiver restart, rejection, timeout, retention, and version drift; all report safe codes and keep connectivity disabled.
 - A machine-readable source-to-canonical-to-destination mapping worksheet and strict linter; it never executes transformations or activates mappings.
 - An offline mapping workbench that applies exact-match, versioned synthetic-only mappings to bounded synthetic fixtures; it has no database or destination connection.
 - A file-backed synthetic recovery drill that simulates an expired outbox lease, a gateway engine restart, a transient receiver failure, and queue drain without external connectivity.
@@ -61,6 +61,14 @@ python -m medihub validate-contract config/receiver-contract.local.toml
 ```
 
 The validator emits schema status, safe blocker codes, and `connectivity_enabled: false`; it never echoes contract values or the path and never opens a connection. A `contract_documented` result is only a structured documentation check—not a conformance, security, or deployment approval. See [the receiver-contract guide](docs/RECEIVER_CONTRACT.md).
+
+Run the offline receiver-contract decision scenarios after the contract is documented:
+
+```bash
+python -m medihub contract-test config/receiver-contract.local.toml
+```
+
+For bounded idempotency retention, also supply the maximum site retry/redelivery horizon, for example `--required-idempotency-horizon-seconds 86400`. The command tests a temporary local model only; it reports `real_receiver_tested: false`, never opens a connection, and does not verify the facility receiver. See [the scenario matrix and limitations](docs/RECEIVER_CONTRACT_ACCEPTANCE.md).
 
 For the source-to-canonical-to-destination worksheet, copy `config/device-mapping.example.toml` to the Git-ignored `config/device-mapping.local.toml`, fill it only from authorized device/synthetic messages and the actual receiver contract, then run:
 
