@@ -27,6 +27,7 @@ The first synthetic-only vertical slice is underway:
 - A bounded synthetic Load & Capacity Lab (`medihub load-demo`) that measures aggregate local ingest/outbox throughput and acknowledgement latency; it uses in-memory SQLite and the in-process test receiver, not a production stack.
 - A combined synthetic acceptance/resilience lab (`medihub acceptance-demo`) covering pipeline deduplication, patient-free mapping, policy holds, retry/rejection and guarded replay, lost acknowledgements with idempotent redelivery across worker and receiver restarts, file-backed recovery, and bounded load; all stages remain offline and do not qualify a real site.
 - A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only device-management workbench: illustrative device-class catalog, active/inactive simulator controls, non-secret API discovery drafts, per-device flow/mapping views, curated synthetic CSV/JSON export, mapping QA, and locked EMR/FHIR plus EMS/HL7 planning cards. The interface supports English and Bengali (বাংলা) and includes an in-app `/help` page, Playwright browser coverage for localization workflows, and a bilingual [user guide](docs/user-guide.md). Native-speaker Bengali review is pending; see the [localization review checklist](docs/BENGALI_LOCALIZATION_REVIEW.md). It has no physical-device controls, real endpoint/credential fields, or external destination connection.
+- A companion TypeScript/Next.js operations overview under `frontend/`. FastAPI remains the backend and the existing Python-served workbench; Next.js proxies same-origin API/page routes to it, and does not introduce a live device or EMR/EMS connector.
 - A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
 - A Phase 0 integration-discovery worksheet, versioned receiver-contract validator, and offline synthetic contract scenario harness for ACK, duplicate/lost-ACK retry, receiver restart, rejection, timeout, retention, and version drift; all report safe codes and keep connectivity disabled.
@@ -112,6 +113,24 @@ python -m medihub dashboard --host 127.0.0.1 --port 8000
 ```
 
 Open `http://127.0.0.1:8000`. The navigation now loads separate pages: Operations at `/` (or `/operations`), Devices at `/devices`, Mappings at `/mappings`, API setup at `/api-setup`, and the bilingual help page at `/help`; the header language selector switches between English and বাংলা and remembers the choice in that browser. The previous root fragment links are redirected to their matching pages. The operations feed emits one synthetic event every two seconds, redelivers every fourth event for deduplication, and records a `synthetic_not_accepted` hold. The setup workbench can register/disable simulator-only rows, add and preview synthetic mapping drafts, inspect, compare, and restore mapping revisions as new inactive versions; run version-tagged golden mapping tests with stale-result detection; and send a test event to the in-process receiver. The receiver fault drill can inject one retryable outcome or terminal rejection on the next synthetic send, then observe the normal outbox behavior; it never opens a network connection. Inspecting a delivery shows an allowlisted synthetic timeline, and a terminal failure below the retry cap can be replayed with its original event ID; patient/raw payload fields are not exposed. Device/mapping settings and event history are ephemeral; the event store retains at most 500 events, holds, and their audit metadata in in-memory SQLite. There are no physical device connections, external endpoint/credential fields, or live activation. For an Arena browser preview, bind to `0.0.0.0`; this unauthenticated, non-persistent demo must not be exposed as a production service. See [management workbench limits](docs/SYNTHETIC_MANAGEMENT_WORKBENCH.md). It also exposes `/healthz` and a low-cardinality Prometheus `/metrics` endpoint for local operations exercises; neither represents production readiness or facility SLOs. See [synthetic observability limits](docs/SYNTHETIC_OBSERVABILITY.md).
+
+### Next.js companion preview
+
+The Next.js home page is an optional companion to the existing Python dashboard. Start FastAPI in one terminal:
+
+```bash
+python -m medihub dashboard --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, install and run the frontend:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:3000`. The home page polls the synthetic `/api/dashboard` route through a same-origin Next.js rewrite; links to Devices, Mappings, API setup, and Help continue to use the FastAPI-served workbench. Set `MEDIHUB_BACKEND_URL` if the backend listens elsewhere. For an Arena preview, bind the Python backend to `0.0.0.0:8000`; the Next.js dev script already binds to `0.0.0.0:3000` and allows the Arena preview origin. Both processes must stay running. This remains an unauthenticated, synthetic-only preview, not a production control plane.
 
 Run an end-to-end synthetic check (in-memory SQLite and an in-process test receiver; it opens no network connection):
 

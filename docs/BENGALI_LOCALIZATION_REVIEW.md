@@ -4,7 +4,7 @@
 
 ## Scope and safety
 
-This checklist applies to the English / বাংলা dashboard and in-app help. The Bengali interface describes a synthetic-only software demo. It must not suggest that the dashboard operates physical devices, provides clinical guidance, or connects to an EMR/EMS. Preserve English protocol names, identifiers, codes, and error codes where translating them would make them harder to verify against the underlying system.
+This checklist applies to the English / বাংলা FastAPI dashboard, its in-app help, and the companion Next.js operations overview. The Bengali interface describes a synthetic-only software demo. It must not suggest that the dashboard operates physical devices, provides clinical guidance, or connects to an EMR/EMS. Preserve English protocol names, identifiers, codes, and error codes where translating them would make them harder to verify against the underlying system.
 
 ## Suggested term review
 
@@ -33,7 +33,7 @@ python -m playwright install --only-shell chromium
 pytest tests/browser/test_dashboard_localization.py -q
 ```
 
-CI installs Chromium and runs these tests. The browser test stubs all dashboard APIs with deterministic synthetic responses and aborts requests to other hosts; it never contacts a device or external receiver.
+CI installs Chromium and runs these tests. The browser test stubs all FastAPI dashboard APIs with deterministic synthetic responses and aborts requests to other hosts; it never contacts a device or external receiver. The companion Next.js overview is independently type-checked and production-built in CI; its Bengali wording still needs the same native-speaker review. To run that build locally, use `cd frontend && npm ci && npm run build`.
 
 ## Human review checklist
 
