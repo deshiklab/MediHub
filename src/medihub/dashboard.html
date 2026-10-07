@@ -91,6 +91,19 @@
       .setup-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 15px 0 2px; }
       .setup-nav a { padding: 8px 11px; border: 1px solid #2b3c4f; border-radius: 999px; color: #b9cad9; background: #101722; font-size: 10px; font-weight: 700; text-decoration: none; }
       .setup-nav a:hover, .setup-nav a:focus-visible { color: var(--teal); border-color: #37726b; outline: none; }
+      .setup-nav a[aria-current="page"] { color: #052c2b; border-color: var(--teal); background: var(--teal); }
+      body:not([data-current-page="operations"]) [data-page-panel="operations"] { display: none !important; }
+      body[data-current-page="operations"] .management { display: none !important; }
+      body[data-current-page="devices"] #mapping-workbench,
+      body[data-current-page="devices"] #destination-workbench,
+      body[data-current-page="mappings"] #device-workbench,
+      body[data-current-page="mappings"] #destination-workbench,
+      body[data-current-page="api-setup"] #device-workbench,
+      body[data-current-page="api-setup"] #mapping-workbench { display: none !important; }
+      body[data-current-page="devices"] .management > .management-grid,
+      body[data-current-page="mappings"] .management > .management-grid,
+      body[data-current-page="api-setup"] .management > .management-grid { grid-template-columns: minmax(0, 1fr); }
+      body:not([data-current-page="operations"]) #overview .updated { display: none; }
       .management { margin-top: 28px; scroll-margin-top: 18px; }
       .management-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
       .management-head h2 { margin: 0; font-size: 21px; letter-spacing: -.035em; }
@@ -132,7 +145,7 @@
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
   </head>
-  <body>
+  <body data-current-page="operations">
     <main class="shell">
       <header class="topbar">
         <div class="brand"><span class="brand-mark" aria-hidden="true">+</span><span>MediHub<small>INTEGRATION GATEWAY</small></span></div>
@@ -141,18 +154,18 @@
           <span class="refresh-pill">Ephemeral controls · no live connections</span>
         </div>
       </header>
-      <nav class="setup-nav" aria-label="Dashboard sections">
-        <a href="#overview">Operations</a>
-        <a href="#device-workbench">Devices</a>
-        <a href="#mapping-workbench">Mappings</a>
-        <a href="#destination-workbench">API setup</a>
+      <nav class="setup-nav" aria-label="Dashboard pages">
+        <a href="/#overview" data-page-link="operations">Operations</a>
+        <a href="/devices#device-workbench" data-page-link="devices">Devices</a>
+        <a href="/mappings#mapping-workbench" data-page-link="mappings">Mappings</a>
+        <a href="/api-setup#destination-workbench" data-page-link="api-setup">API setup</a>
       </nav>
 
       <section class="intro" id="overview" aria-labelledby="page-title">
         <div>
-          <p class="eyebrow">Operations overview / local preview</p>
+          <p class="eyebrow" id="page-eyebrow">Operations overview / local preview</p>
           <h1 id="page-title">Integration operations</h1>
-          <p class="intro-copy">Monitor the synthetic device → ingestion → outbox flow, then try the isolated setup workbench below. Its controls edit only in-memory simulator devices and synthetic mapping drafts; no physical device, external endpoint, or EMR/EMS is connected.</p>
+          <p class="intro-copy" id="page-description">Monitor the synthetic device → ingestion → outbox flow and review recent events, deliveries, and policy holds. All values are generated locally; no external connection is made.</p>
         </div>
         <div class="updated">Last updated <strong id="updated-at">Waiting for first snapshot…</strong></div>
       </section>
@@ -162,7 +175,7 @@
         <span><strong>Development data only.</strong> Values are arbitrary synthetic scalars, not patient measurements. Setup changes are ephemeral and reset when the server restarts. No live device, external API, EMR/EMS endpoint, credential, or patient context is supported by this workbench.</span>
       </aside>
 
-      <section class="health-grid" aria-label="Adapter health">
+      <section class="health-grid" data-page-panel="operations" aria-label="Adapter health">
         <article class="health-card">
           <span class="health-icon" aria-hidden="true">◉</span>
           <div class="health-copy"><span class="health-label">Synthetic device source</span><strong id="source-name">medihub.synthetic-device</strong><small id="source-detail">Waiting for health check</small></div>
@@ -175,7 +188,7 @@
         </article>
       </section>
 
-      <section class="metrics" aria-label="Synthetic pipeline metrics">
+      <section class="metrics" data-page-panel="operations" aria-label="Synthetic pipeline metrics">
         <article class="metric-card accent"><div class="metric-label">Events retained</div><div id="events-inserted" class="metric-value">—</div><div class="metric-note">Unique event IDs</div></article>
         <article class="metric-card amber"><div class="metric-label">Duplicates</div><div id="duplicates" class="metric-value">—</div><div class="metric-note">Idempotent replays</div></article>
         <article class="metric-card blue"><div class="metric-label">Delivery attempts</div><div id="attempts" class="metric-value">—</div><div class="metric-note">Outbox dispatches</div></article>
@@ -184,7 +197,7 @@
         <article class="metric-card"><div class="metric-label">Blocked routes</div><div id="blocked" class="metric-value">—</div><div class="metric-note">Policy holds</div></article>
       </section>
 
-      <div class="columns">
+      <div class="columns" data-page-panel="operations">
         <section class="data-panel" aria-labelledby="events-heading">
           <div class="panel-head"><div><h2 id="events-heading" class="panel-title">Recent synthetic events</h2><p class="panel-subtitle">Curated fields only · payloads are not exposed</p></div><span id="events-count" class="count">0 events</span></div>
           <div class="table-wrap"><table><thead><tr><th>Received</th><th>Device</th><th>Reading</th><th>Event ID</th></tr></thead><tbody id="events-body"><tr><td colspan="4" class="empty">Waiting for synthetic events…</td></tr></tbody></table></div>
@@ -200,12 +213,12 @@
         </section>
       </div>
 
-      <section class="data-panel holds-panel" aria-labelledby="holds-heading">
+      <section class="data-panel holds-panel" data-page-panel="operations" aria-labelledby="holds-heading">
         <div class="panel-head"><div><h2 id="holds-heading" class="panel-title">Durable policy holds</h2><p class="panel-subtitle">Stable reason codes only · no auto-override or patient details</p></div><span id="holds-count" class="count">0 holds</span></div>
         <div class="table-wrap"><table><thead><tr><th>Recorded</th><th>Destination</th><th>Reason code</th><th>Event ID</th></tr></thead><tbody id="holds-body"><tr><td colspan="4" class="empty">Waiting for policy decisions…</td></tr></tbody></table></div>
       </section>
 
-      <section class="data-panel activity-panel" aria-labelledby="activity-heading">
+      <section class="data-panel activity-panel" data-page-panel="operations" aria-labelledby="activity-heading">
         <div class="panel-head"><div><h2 id="activity-heading" class="panel-title">Synthetic audit activity</h2><p class="panel-subtitle">Curated system actions · reason codes only · no payload or actor IDs</p></div><span id="activity-count" class="count">0 recent</span></div>
         <div class="table-wrap"><table><thead><tr><th>Recorded</th><th>Action</th><th>Resource type</th><th>Reason code</th></tr></thead><tbody id="activity-body"><tr><td colspan="4" class="empty">Waiting for audit events…</td></tr></tbody></table></div>
       </section>
@@ -214,8 +227,8 @@
         <div class="management-head">
           <div>
             <p class="eyebrow">Configuration workbench / synthetic only</p>
-            <h2 id="workbench-heading">Try device, mapping, and API workflows</h2>
-            <p>These are temporary demo records, not production configuration. No settings are stored on disk or used to contact real devices or services.</p>
+            <h2 id="workbench-heading">Synthetic workbench</h2>
+            <p id="workbench-description">Controls edit temporary in-memory simulator and mapping records. Live device and destination activation remains disabled.</p>
           </div>
           <span class="refresh-pill">Live activation disabled</span>
         </div>
@@ -337,6 +350,60 @@
     </main>
     <script>
       (() => {
+        const legacyPages = {
+          "#device-workbench": "/devices#device-workbench",
+          "#mapping-workbench": "/mappings#mapping-workbench",
+          "#destination-workbench": "/api-setup#destination-workbench",
+        };
+        if (window.location.pathname === "/" && legacyPages[window.location.hash]) {
+          window.location.replace(legacyPages[window.location.hash]);
+          return;
+        }
+
+        const pageContent = {
+          operations: {
+            title: "Integration operations",
+            eyebrow: "Operations overview / local preview",
+            description: "Monitor the synthetic device → ingestion → outbox flow and review recent events, deliveries, and policy holds. All values are generated locally; no external connection is made.",
+            workbenchTitle: "Synthetic workbench",
+            workbenchDescription: "Controls edit temporary in-memory simulator and mapping records. Live device and destination activation remains disabled.",
+          },
+          devices: {
+            title: "Devices",
+            eyebrow: "Device workbench / synthetic only",
+            description: "Register and enable built-in simulator identities. This page does not discover, configure, or connect to physical hardware.",
+            workbenchTitle: "Simulator inventory",
+            workbenchDescription: "Only the built-in synthetic simulator is available; device changes are temporary and remain in memory.",
+          },
+          mappings: {
+            title: "Mappings",
+            eyebrow: "Mapping workbench / synthetic only",
+            description: "Review synthetic-only mapping drafts, previews, golden test vectors, and revision history. Mapping activation is disabled.",
+            workbenchTitle: "Mapping drafts & QA",
+            workbenchDescription: "Exercise exact-match mapping examples and compare inactive revisions using patient-free simulator values only.",
+          },
+          "api-setup": {
+            title: "API setup",
+            eyebrow: "Destination workbench / synthetic only",
+            description: "Test delivery to the in-process receiver and drill local failure handling. External endpoints, credentials, and live activation are unavailable.",
+            workbenchTitle: "Local destination controls",
+            workbenchDescription: "Only the in-process synthetic receiver can be exercised; no external API or facility contract is configured.",
+          },
+        };
+        const currentPage = Object.hasOwn(pageContent, document.body.dataset.currentPage)
+          ? document.body.dataset.currentPage
+          : "operations";
+        const page = pageContent[currentPage];
+        document.title = `MediHub · ${page.title}`;
+        document.getElementById("page-title").textContent = page.title;
+        document.getElementById("page-eyebrow").textContent = page.eyebrow;
+        document.getElementById("page-description").textContent = page.description;
+        document.getElementById("workbench-heading").textContent = page.workbenchTitle;
+        document.getElementById("workbench-description").textContent = page.workbenchDescription;
+        document.querySelectorAll("[data-page-link]").forEach((link) => {
+          if (link.dataset.pageLink === currentPage) link.setAttribute("aria-current", "page");
+        });
+
         const byId = (id) => document.getElementById(id);
         const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
         const time = (value) => {
@@ -529,7 +596,6 @@
               try {
                 const result = await managementRequest(`/api/management/devices/${encodeURIComponent(device.device_id)}/emit`, "POST");
                 setText("device-status", `${device.device_id}: ${result.status}; in-process receipts ${result.unique_test_receipts}.`);
-                await refresh();
               } catch (error) { setText("device-status", error.message); }
               finally { emit.disabled = false; }
             });
@@ -659,9 +725,18 @@
         };
         const loadManagement = async () => {
           try {
-            await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions(), loadDestinations(), loadDeliveryFaultStatus()]);
+            if (currentPage === "devices") {
+              await loadDevices();
+            } else if (currentPage === "mappings") {
+              await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions()]);
+            } else if (currentPage === "api-setup") {
+              await Promise.all([loadDestinations(), loadDeliveryFaultStatus()]);
+            }
           } catch (error) {
-            setText("device-status", `Management workbench unavailable (${error.message}).`);
+            const statusId = currentPage === "mappings"
+              ? "mapping-status"
+              : (currentPage === "api-setup" ? "destination-status" : "device-status");
+            setText(statusId, `Workbench unavailable (${error.message}).`);
           }
         };
         byId("register-device").addEventListener("click", async (event) => {
@@ -776,7 +851,7 @@
           try {
             const result = await managementRequest("/api/management/destinations/test", "POST");
             setText("destination-status", `${result.status}: local in-process receiver only; ${result.unique_test_receipts} synthetic receipts; network disabled.`);
-            await refresh();
+            await Promise.all([loadDestinations(), loadDeliveryFaultStatus()]);
           } catch (error) { setText("destination-status", error.message); }
           finally { button.disabled = false; }
         });
@@ -805,15 +880,16 @@
             renderDeliveries(data.recent_deliveries);
             renderHolds(data.recent_holds);
             renderActivity(data.recent_activity);
-            await loadDeliveryFaultStatus();
             byId("api-error").classList.remove("visible");
           } catch (_) {
             byId("api-error").classList.add("visible");
           }
         };
-        refresh();
         loadManagement();
-        window.setInterval(refresh, 2000);
+        if (currentPage === "operations") {
+          refresh();
+          window.setInterval(refresh, 2000);
+        }
       })();
     </script>
   </body>

@@ -98,6 +98,48 @@ def test_dashboard_is_synthetic_curated_and_read_only() -> None:
     asyncio.run(exercise_dashboard())
 
 
+def test_dashboard_tabs_render_distinct_page_routes() -> None:
+    runtime = SyntheticOperationsDashboard(
+        refresh_interval_seconds=60,
+        duplicate_every=0,
+    )
+    app = create_dashboard_app(runtime)
+    pages = {
+        "/": "operations",
+        "/operations": "operations",
+        "/devices": "devices",
+        "/mappings": "mappings",
+        "/api-setup": "api-setup",
+    }
+
+    async def exercise_pages() -> None:
+        async with app.router.lifespan_context(app):
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                for path, page in pages.items():
+                    response = await client.get(path)
+                    assert response.status_code == 200
+                    assert f'<body data-current-page="{page}">' in response.text
+                    assert 'href="/#overview" data-page-link="operations"' in response.text
+                    assert (
+                        'href="/devices#device-workbench" data-page-link="devices"' in response.text
+                    )
+                    assert (
+                        'href="/mappings#mapping-workbench" data-page-link="mappings"'
+                        in response.text
+                    )
+                    assert (
+                        'href="/api-setup#destination-workbench" data-page-link="api-setup"'
+                        in response.text
+                    )
+
+                assert "window.location.replace(legacyPages[window.location.hash])" in response.text
+
+    asyncio.run(exercise_pages())
+
+
 def test_dashboard_background_feed_advances_without_mutation_endpoints() -> None:
     runtime = SyntheticOperationsDashboard(
         refresh_interval_seconds=0.1,

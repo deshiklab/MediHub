@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from importlib.resources import files
 from time import perf_counter
+from typing import Literal
 from uuid import UUID
 
 from fastapi import FastAPI, Request
@@ -24,6 +25,18 @@ from medihub.application.operations import SyntheticOperationsDashboard
 from medihub.observability import MediHubMetrics
 
 DASHBOARD_HTML = files("medihub").joinpath("dashboard.html").read_text(encoding="utf-8")
+DashboardPage = Literal["operations", "devices", "mappings", "api-setup"]
+
+
+def _render_dashboard_page(page: DashboardPage) -> HTMLResponse:
+    """Render the shared shell with one route-selected tab active."""
+
+    html = DASHBOARD_HTML.replace(
+        '<body data-current-page="operations">',
+        f'<body data-current-page="{page}">',
+        1,
+    )
+    return HTMLResponse(html)
 
 
 def create_dashboard_app(
@@ -100,7 +113,23 @@ def create_dashboard_app(
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def dashboard_page() -> HTMLResponse:
-        return HTMLResponse(DASHBOARD_HTML)
+        return _render_dashboard_page("operations")
+
+    @app.get("/operations", response_class=HTMLResponse, include_in_schema=False)
+    async def operations_page() -> HTMLResponse:
+        return _render_dashboard_page("operations")
+
+    @app.get("/devices", response_class=HTMLResponse, include_in_schema=False)
+    async def devices_page() -> HTMLResponse:
+        return _render_dashboard_page("devices")
+
+    @app.get("/mappings", response_class=HTMLResponse, include_in_schema=False)
+    async def mappings_page() -> HTMLResponse:
+        return _render_dashboard_page("mappings")
+
+    @app.get("/api-setup", response_class=HTMLResponse, include_in_schema=False)
+    async def api_setup_page() -> HTMLResponse:
+        return _render_dashboard_page("api-setup")
 
     @app.get("/healthz", include_in_schema=False)
     async def health_check() -> JSONResponse:

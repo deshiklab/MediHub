@@ -8,7 +8,16 @@ It is not a production management plane. It has no sign-in, user/tenant permissi
 
 ## Use the preview
 
-Open the local dashboard and scroll to **Try device, mapping, and API workflows**:
+The dashboard navigation opens four distinct page routes instead of scrolling one long page:
+
+| Page | Route | Main content |
+| --- | --- | --- |
+| Operations | `/` (or `/operations`) | Health, aggregate pipeline metrics, recent events, outbox, holds, and audit activity |
+| Devices | `/devices` | Simulator inventory and enable/disable/sample controls |
+| Mappings | `/mappings` | Synthetic mapping drafts, previews, golden vectors, and revision history |
+| API setup | `/api-setup` | In-process test receiver and delivery fault drill |
+
+Each route selects one page view and loads only the data used by that page. Existing root fragment links to `#device-workbench`, `#mapping-workbench`, and `#destination-workbench` redirect to their matching page routes for compatibility.
 
 - **Devices:** register a generated `sim-device-NNN` record, enable/disable it, and emit an arbitrary simulator sample through the local synthetic pipeline. The device model, firmware, manufacturer, and adapter are fixed to MediHub's built-in simulator.
 - **Data mapping:** view the versioned demo rule, add an in-memory synthetic rule, and preview an exact metric/unit match with a bounded value. Inspect immutable mapping revisions, compare two snapshots, or restore an older snapshot as a new inactive revision; an old version is never overwritten. Add synthetic golden test vectors with expected normalized codes, units, and values, then run pass/fail checks against the current mapping version. Results are tagged with that version and display as stale after a mapping edit/reset/restore until tests are rerun. The source/normalized systems are fixed to `example.invalid`; unit system is fixed to UCUM. Preview and QA runs never activate a mapping or change ingestion.
