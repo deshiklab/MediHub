@@ -140,6 +140,7 @@ This list is a planning aid—not legal advice, a statement of local compliance,
 - [Device mapping worksheet](DEVICE_MAPPING_WORKSHEET.md)
 - [Receiver contract and its limitations](RECEIVER_CONTRACT.md)
 - [Audit trail scope and limitations](AUDIT_TRAIL.md)
+- [Bengali localization review checklist](BENGALI_LOCALIZATION_REVIEW.md) — native-speaker review is pending.
 
 ---
 
@@ -285,3 +286,4 @@ MediHub পরিকল্পনার জন্য বাংলাদেশ আ
 - [ডিভাইস ম্যাপিং ওয়ার্কশিট](DEVICE_MAPPING_WORKSHEET.md)
 - [রিসিভার চুক্তি ও তার সীমাবদ্ধতা](RECEIVER_CONTRACT.md)
 - [অডিট ট্রেইলের সীমা](AUDIT_TRAIL.md)
+- [বাংলা অনুবাদ পর্যালোচনা তালিকা](BENGALI_LOCALIZATION_REVIEW.md) — স্থানীয় ভাষাভাষীর পর্যালোচনা বাকি।

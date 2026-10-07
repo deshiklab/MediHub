@@ -1,0 +1,60 @@
+# Bengali localization review checklist
+
+**Status:** Playwright browser checks now cover language switching, persistence across routes, translated live data, device actions, mapping/API pages, and a narrow mobile viewport. **Review by a native Bengali speaker from Bangladesh is still pending**; machine-assisted wording and automated tests are not a substitute for human language or clinical-domain review.
+
+## Scope and safety
+
+This checklist applies to the English / বাংলা dashboard and in-app help. The Bengali interface describes a synthetic-only software demo. It must not suggest that the dashboard operates physical devices, provides clinical guidance, or connects to an EMR/EMS. Preserve English protocol names, identifiers, codes, and error codes where translating them would make them harder to verify against the underlying system.
+
+## Suggested term review
+
+Please review these initial choices for clarity and consistent usage in Bangladesh. The current copy uses a polite, instructional tone (`করুন`); preserve a respectful, plain-language tone and avoid implying clinical approval.
+
+| English concept | Current Bengali choice | Reviewer question |
+| --- | --- | --- |
+| Synthetic / synthetic data | সিন্থেটিক / সিন্থেটিক ডেটা | Should the first mention say “কৃত্রিম (সিন্থেটিক)” for clarity, then use the shorter technical term? |
+| Simulator | সিমুলেটর | Is this familiar to the intended operator audience, or should the help explain it in simpler language? |
+| Device management | ডিভাইস ব্যবস্থাপনা | Is the menu term natural and distinct from physical-device control? |
+| Data mapping | ডেটা ম্যাপিং | Is a short explanation needed for non-technical operators? |
+| Outbox | আউটবক্স | Should this remain transliterated, or be paired with a short Bengali explanation on first use? |
+| Policy hold | নীতি-হোল্ড | Is “নীতি অনুযায়ী স্থগিত” or another phrase clearer than the current mixed technical term? |
+| Acknowledged / acknowledgement | নিশ্চিত হয়েছে / স্বীকৃতি | Does the wording distinguish a receiver acknowledgement from clinical confirmation? |
+| Retry / retryable | পুনঃচেষ্টা / পুনঃচেষ্টাযোগ্য | Is this understandable in the delivery-control context? |
+| Draft / inactive | খসড়া / নিষ্ক্রিয় | Confirm that the wording clearly communicates “not activated.” |
+| Receiver / endpoint | রিসিভার / এন্ডপয়েন্ট | Confirm that transliteration is appropriate for the intended technical audience. |
+
+## Automated browser checks
+
+From the repository root, install the headless Chromium shell and run the browser suite:
+
+```bash
+python -m pip install -e ".[dev]"
+python -m playwright install --only-shell chromium
+pytest tests/browser/test_dashboard_localization.py -q
+```
+
+CI installs Chromium and runs these tests. The browser test stubs all dashboard APIs with deterministic synthetic responses and aborts requests to other hosts; it never contacts a device or external receiver.
+
+## Human review checklist
+
+A reviewer should complete these checks using the actual dashboard, not only this Markdown file:
+
+- [ ] Read the visible copy on Operations, Device management, Data mapping, EMR / EMS APIs, and Help in both languages.
+- [ ] Confirm the Bangla is natural, consistent, and suitable for health-facility operators in Bangladesh; flag awkward calques, overly technical terms, and ambiguous instructions.
+- [ ] Confirm that warning text keeps the synthetic-only and “no patient data / no live connection” boundaries clear and prominent.
+- [ ] Exercise dynamic states: healthy/starting, active/inactive simulator, no data, retryable and terminal failure, mapping pass/stale, and error/status messages.
+- [ ] Check Bengali script rendering and wrapping at 320, 360, and 390 CSS-pixel viewport widths on at least one Android browser and one desktop browser with a Bengali-capable font.
+- [ ] Navigate the language selector and links with keyboard only. Verify the selected language is announced, the page `lang` changes, focus stays visible, and there is no text clipped behind controls.
+- [ ] With a screen reader, confirm the language selector's accessible name, page heading, navigation labels, and live status messages are understandable in Bengali.
+- [ ] Confirm English and Bengali share the same action meaning. Language must not change simulator state, mapping rules, request payloads, or network behavior.
+- [ ] Recheck revisions with the product/clinical safety owner before adopting any words that could imply diagnosis, measurement validity, or real integration support.
+
+## Feedback format
+
+Record suggested changes as small, reviewable entries:
+
+| Route / element | English source | Current Bengali | Suggested Bengali | Reason / reviewer |
+| --- | --- | --- | --- | --- |
+|  |  |  |  |  |
+
+Do not include real patient, facility-secret, or vendor-credential information in review notes, screenshots, or test fixtures. After copy changes, rerun the browser localization tests and ask the same reviewer to verify the corrections.

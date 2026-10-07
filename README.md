@@ -9,6 +9,7 @@ Bangladesh is a required deployment target; the plan includes a country-specific
 ## User guide
 
 - [Dashboard user guide (English / বাংলা)](docs/user-guide.md) — page-by-page workflows, synthetic-only boundaries, safety guidance, troubleshooting, and a Bangladesh deployment-readiness checklist.
+- [Bengali localization review checklist](docs/BENGALI_LOCALIZATION_REVIEW.md) — human native-speaker review is pending.
 - Use the dashboard's **English / বাংলা** selector to switch the UI language; visit `/help` for the in-app guide.
 
 ## Development status
@@ -25,7 +26,7 @@ The first synthetic-only vertical slice is underway:
 - A generic synthetic FHIR R4 Observation mapper and in-process test receiver used by the end-to-end `medihub demo` command; it opens no network connection.
 - A bounded synthetic Load & Capacity Lab (`medihub load-demo`) that measures aggregate local ingest/outbox throughput and acknowledgement latency; it uses in-memory SQLite and the in-process test receiver, not a production stack.
 - A combined synthetic acceptance/resilience lab (`medihub acceptance-demo`) covering pipeline deduplication, patient-free mapping, policy holds, retry/rejection and guarded replay, lost acknowledgements with idempotent redelivery across worker and receiver restarts, file-backed recovery, and bounded load; all stages remain offline and do not qualify a real site.
-- A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only device-management workbench: illustrative device-class catalog, active/inactive simulator controls, non-secret API discovery drafts, per-device flow/mapping views, curated synthetic CSV/JSON export, mapping QA, and locked EMR/FHIR plus EMS/HL7 planning cards. The interface supports English and Bengali (বাংলা) and includes an in-app `/help` page plus a bilingual [user guide](docs/user-guide.md). It has no physical-device controls, real endpoint/credential fields, or external destination connection.
+- A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only device-management workbench: illustrative device-class catalog, active/inactive simulator controls, non-secret API discovery drafts, per-device flow/mapping views, curated synthetic CSV/JSON export, mapping QA, and locked EMR/FHIR plus EMS/HL7 planning cards. The interface supports English and Bengali (বাংলা) and includes an in-app `/help` page, Playwright browser coverage for localization workflows, and a bilingual [user guide](docs/user-guide.md). Native-speaker Bengali review is pending; see the [localization review checklist](docs/BENGALI_LOCALIZATION_REVIEW.md). It has no physical-device controls, real endpoint/credential fields, or external destination connection.
 - A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
 - A Phase 0 integration-discovery worksheet, versioned receiver-contract validator, and offline synthetic contract scenario harness for ACK, duplicate/lost-ACK retry, receiver restart, rejection, timeout, retention, and version drift; all report safe codes and keep connectivity disabled.
@@ -44,6 +45,7 @@ Requires Python 3.11 or newer. Python 3.12 is the planned production baseline.
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
+python -m playwright install --only-shell chromium
 ruff check .
 ruff format --check .
 pytest
