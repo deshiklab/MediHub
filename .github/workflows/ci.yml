@@ -41,4 +41,12 @@ jobs:
       - run: ruff format --check .
       - run: alembic upgrade head
       - run: alembic check
-      - run: pytest
+      - name: Run pytest
+        run: |
+          pytest -q > /tmp/pytest-output.txt 2>&1 || test_status=$?
+          cat /tmp/pytest-output.txt
+          if [ "${test_status:-0}" -ne 0 ]; then
+            summary=$(tail -n 20 /tmp/pytest-output.txt | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')
+            echo "::error title=Pytest failure::$summary"
+            exit "$test_status"
+          fi
