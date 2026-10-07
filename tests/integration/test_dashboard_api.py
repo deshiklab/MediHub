@@ -137,6 +137,27 @@ def test_dashboard_tabs_render_distinct_page_routes() -> None:
 
                 assert "window.location.replace(legacyPages[window.location.hash])" in response.text
 
+                device_page = await client.get("/devices")
+                for feature in (
+                    "Device integration catalog",
+                    "Managed devices",
+                    "Set inactive",
+                    "Device API configuration",
+                    "Device-wise data flow",
+                    "Device-wise data mapping",
+                    "Data export",
+                    "Export selected device",
+                    "not a device-facing integration API",
+                ):
+                    assert feature in device_page.text
+                assert "No physical device is discovered or connected" in device_page.text
+                assert "createObjectURL(blob)" in device_page.text
+
+                api_page = await client.get("/api-setup")
+                assert "FHIR R4 / EMR connection API" in api_page.text
+                assert "HL7 v2 / interface engine / EMS connection API" in api_page.text
+                assert "Connection API controls are locked" in api_page.text
+
     asyncio.run(exercise_pages())
 
 

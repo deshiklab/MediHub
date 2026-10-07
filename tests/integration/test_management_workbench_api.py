@@ -305,6 +305,50 @@ async def _request_workbench():
             return await client.get("/")
 
 
+def test_default_simulator_active_toggle_pauses_and_resumes_automatic_feed() -> None:
+    runtime = SyntheticOperationsDashboard(refresh_interval_seconds=0.1, duplicate_every=0)
+    app = create_dashboard_app(runtime)
+
+    async def exercise_toggle() -> None:
+        async with app.router.lifespan_context(app):
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                disabled = await client.patch(
+                    "/api/management/devices/sim-device-001",
+                    json={"enabled": False},
+                )
+                assert disabled.status_code == 200
+                paused_count = (await client.get("/api/dashboard")).json()["totals"][
+                    "events_inserted"
+                ]
+                await asyncio.sleep(0.26)
+                still_paused_count = (await client.get("/api/dashboard")).json()["totals"][
+                    "events_inserted"
+                ]
+                assert still_paused_count == paused_count
+
+                enabled = await client.patch(
+                    "/api/management/devices/sim-device-001",
+                    json={"enabled": True},
+                )
+                assert enabled.status_code == 200
+                deadline = asyncio.get_running_loop().time() + 1
+                resumed_count = still_paused_count
+                while (
+                    resumed_count == still_paused_count
+                    and asyncio.get_running_loop().time() < deadline
+                ):
+                    await asyncio.sleep(0.02)
+                    resumed_count = (await client.get("/api/dashboard")).json()["totals"][
+                        "events_inserted"
+                    ]
+                assert resumed_count > still_paused_count
+
+    asyncio.run(exercise_toggle())
+
+
 def test_management_workbench_is_strict_synthetic_only_and_operational() -> None:
     page = asyncio.run(_request_workbench())
 
@@ -321,5 +365,5 @@ def test_management_workbench_is_strict_synthetic_only_and_operational() -> None
     assert "Lose one acknowledgement after acceptance" in page.text
     assert "Selected synthetic delivery" in page.text
     assert "Retry terminal failure" in page.text
-    assert "Endpoint and credential fields are not available" in page.text
+    assert "Connection API controls are locked" in page.text
     assert "no live connections" in page.text.lower()

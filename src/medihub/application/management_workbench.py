@@ -220,7 +220,9 @@ class SyntheticManagementWorkbench:
                 raise ManagementWorkbenchError("simulator_device_not_found", 404)
             updated = current.model_copy(update={"enabled": request.enabled})
             self._devices[device_id] = updated
-            return updated.model_dump(mode="json")
+        if device_id == "sim-device-001":
+            await self._operations.set_default_simulator_feed_enabled(request.enabled)
+        return updated.model_dump(mode="json")
 
     async def emit_simulator_sample(self, device_id: str) -> dict[str, object]:
         async with self._lock:

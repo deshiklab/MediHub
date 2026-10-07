@@ -107,6 +107,7 @@ class SyntheticOperationsDashboard:
         self._sequence = 0
         self._events_received = 0
         self._duplicate_events = 0
+        self._default_simulator_feed_enabled = True
         self._last_error_code: str | None = None
 
     async def start(self) -> None:
@@ -249,6 +250,12 @@ class SyntheticOperationsDashboard:
                 ),
                 source_health=source.status if source is not None else None,
             )
+
+    async def set_default_simulator_feed_enabled(self, enabled: bool) -> None:
+        """Pause or resume the periodic sample feed for the default synthetic device."""
+
+        async with self._state_lock:
+            self._default_simulator_feed_enabled = enabled
 
     async def emit_synthetic_sample(self, device_id: str) -> dict[str, object]:
         """Emit one sample for a registered simulator into the local test sink only."""
@@ -585,6 +592,8 @@ class SyntheticOperationsDashboard:
                     timeout=self._refresh_interval_seconds,
                 )
             except TimeoutError:
+                if not self._default_simulator_feed_enabled:
+                    continue
                 try:
                     await self._ingest_cycle()
                 except Exception:

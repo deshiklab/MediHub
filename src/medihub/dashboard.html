@@ -140,8 +140,47 @@
       .destination-card strong { display: block; font-size: 11px; }
       .destination-card small { display: block; margin-top: 5px; color: #8fa0b4; font-size: 9px; line-height: 1.5; }
       .management-footnote { margin: 12px 0 0; color: #74869b; font-size: 9px; line-height: 1.5; }
-      @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid { grid-template-columns: 1fr; } .management-panel.full { grid-column: auto; } }
+      .device-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+      .device-stat { padding: 13px 14px; border: 1px solid #273748; border-radius: 10px; background: #0e151f; }
+      .device-stat span { display: block; color: #8293a7; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      .device-stat strong { display: block; margin-top: 7px; color: var(--teal); font-size: 21px; font-variant-numeric: tabular-nums; }
+      .device-stat small { display: block; margin-top: 4px; color: #6f8095; font-size: 9px; line-height: 1.4; }
+      .device-section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 13px; }
+      .device-subpanel { min-width: 0; padding: 14px; border: 1px solid #263446; border-radius: 11px; background: #0e151f; }
+      .device-subpanel.full { grid-column: 1 / -1; }
+      .device-subpanel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+      .device-subpanel-head h4 { margin: 0; font-size: 11px; font-weight: 700; }
+      .device-subpanel-head p { margin: 4px 0 0; color: #8293a7; font-size: 9px; line-height: 1.45; }
+      .device-catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .device-catalog-card { min-width: 0; padding: 10px; border: 1px solid #29394b; border-radius: 9px; background: #111a26; }
+      .device-catalog-card strong { display: block; color: #d5e2ee; font-size: 10px; }
+      .device-catalog-card small { display: block; min-height: 27px; margin-top: 4px; color: #8293a7; font-size: 9px; line-height: 1.45; }
+      .catalog-status, .device-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; padding: 4px 7px; border: 1px solid #604b24; border-radius: 999px; background: #2b2315; color: #f5d98f; font-size: 8px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+      .device-badge.active { border-color: #245c5a; background: #0e2929; color: var(--teal); }
+      .device-badge.inactive { border-color: #5a3a34; background: #2b1d1b; color: #fca78a; }
+      .device-picker { min-width: 190px; }
+      .device-flow-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+      .device-flow-step { min-width: 0; padding: 11px; border: 1px solid #29394b; border-radius: 9px; background: #111a26; }
+      .device-flow-step span { display: block; color: #8293a7; font-size: 8px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+      .device-flow-step strong { display: block; margin-top: 7px; color: #d9e5ef; font-size: 10px; overflow-wrap: anywhere; }
+      .device-flow-step small { display: block; margin-top: 4px; color: #8293a7; font-size: 8px; line-height: 1.45; overflow-wrap: anywhere; }
+      .device-flow-step[data-state="ok"] { border-color: #245c5a; }
+      .device-flow-step[data-state="hold"] { border-color: #604b24; }
+      .device-flow-step[data-state="off"] { border-color: #5a3a34; }
+      .api-kv-list { display: grid; gap: 7px; }
+      .api-kv { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 9px; border-radius: 7px; background: #111a26; font-size: 9px; }
+      .api-kv span { color: #8293a7; }
+      .api-kv strong { color: #d1deea; font-weight: 620; text-align: right; overflow-wrap: anywhere; }
+      .api-code { margin: 8px 0; padding: 9px 10px; border: 1px solid #29394b; border-radius: 7px; background: #090f17; color: #a5d6cb; font: 9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+      .device-catalog-card .control-btn { margin-top: 7px; }
+      .device-row.selected { border-color: #37726b; box-shadow: inset 0 0 0 1px #37726b66; }
+      .device-export-tools { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
+      .device-export-tools .form-field { flex: 1 1 130px; }
+      .device-export-tools .control-btn { flex: 0 0 auto; }
+      .form-field input:disabled, .form-field select:disabled { opacity: .7; color: #93a3b5; cursor: not-allowed; }
+      @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid, .device-section-grid { grid-template-columns: 1fr; } .management-panel.full, .device-subpanel.full { grid-column: auto; } .device-flow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 650px) { .shell { width: min(100% - 24px, 1240px); padding-top: 16px; } .topbar { align-items: flex-start; } .top-actions { align-items: flex-end; flex-direction: column; gap: 6px; } .refresh-pill { display: none; } .intro { display: block; padding-top: 25px; } .updated { padding-top: 14px; } .health-grid { grid-template-columns: 1fr; gap: 9px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .metric-card { min-height: 94px; padding: 13px; } .metric-value { font-size: 24px; } .management-head { display: block; } .setup-nav { overflow-x: auto; flex-wrap: nowrap; } .setup-nav a { flex: 0 0 auto; } .form-grid { grid-template-columns: 1fr; } .workbench-row { align-items: flex-start; flex-wrap: wrap; } .workbench-row .row-actions { width: 100%; justify-content: flex-start; } .footer { display: block; } .footer span { display: block; margin-bottom: 5px; } }
+      @media (max-width: 650px) { .device-stats, .device-section-grid, .device-catalog-grid, .device-flow-steps { grid-template-columns: 1fr; } .device-picker { width: 100%; min-width: 0; } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
   </head>
@@ -156,9 +195,9 @@
       </header>
       <nav class="setup-nav" aria-label="Dashboard pages">
         <a href="/#overview" data-page-link="operations">Operations</a>
-        <a href="/devices#device-workbench" data-page-link="devices">Devices</a>
-        <a href="/mappings#mapping-workbench" data-page-link="mappings">Mappings</a>
-        <a href="/api-setup#destination-workbench" data-page-link="api-setup">API setup</a>
+        <a href="/devices#device-workbench" data-page-link="devices">Device management</a>
+        <a href="/mappings#mapping-workbench" data-page-link="mappings">Data mapping</a>
+        <a href="/api-setup#destination-workbench" data-page-link="api-setup">EMR / EMS APIs</a>
       </nav>
 
       <section class="intro" id="overview" aria-labelledby="page-title">
@@ -234,15 +273,83 @@
         </div>
 
         <div class="management-grid">
-          <section id="device-workbench" class="management-panel" aria-labelledby="device-workbench-heading">
+          <section id="device-workbench" class="management-panel full" aria-labelledby="device-workbench-heading">
             <div class="panel-head">
-              <div><h3 id="device-workbench-heading" class="panel-title">Devices</h3><p class="panel-subtitle">Simulator inventory · no hardware connectivity</p></div>
+              <div><h3 id="device-workbench-heading" class="panel-title">Device management</h3><p class="panel-subtitle">Synthetic inventory · activation controls affect demo simulators only</p></div>
               <button id="register-device" class="control-btn primary" type="button">Register simulator</button>
             </div>
             <div class="management-body">
-              <p class="management-note">Device identity, firmware, and adapter are fixed to MediHub's built-in synthetic simulator. Registering a row does not discover or connect to hardware.</p>
-              <div id="devices-list" class="workbench-list" aria-live="polite"><div class="empty">Loading simulator inventory…</div></div>
-              <div id="device-status" class="management-status" role="status"></div>
+              <p class="management-note">Manage demo simulator state and review discovery candidates. Catalog categories are illustrative—not verified device support. Exact manufacturer, model, firmware, protocol, and facility approval are required before a real integration can be planned.</p>
+              <div class="device-stats" aria-label="Device management summary">
+                <div class="device-stat"><span>Demo devices</span><strong id="device-total">—</strong><small>Temporary simulator inventory</small></div>
+                <div class="device-stat"><span>Active</span><strong id="device-active-total">—</strong><small>Enabled for local demo samples</small></div>
+                <div class="device-stat"><span>Discovery candidates</span><strong id="device-catalog-total">6</strong><small>Illustrative categories · no compatibility claim</small></div>
+              </div>
+              <div class="device-section-grid">
+                <section class="device-subpanel" aria-labelledby="managed-devices-heading">
+                  <div class="device-subpanel-head"><div><h4 id="managed-devices-heading">Managed devices</h4><p>Active / inactive is local simulator state; physical device connections are disabled.</p></div></div>
+                  <div id="devices-list" class="workbench-list" aria-live="polite"><div class="empty">Loading simulator inventory…</div></div>
+                  <div id="device-status" class="management-status" role="status"></div>
+                </section>
+                <section class="device-subpanel" aria-labelledby="device-catalog-heading">
+                  <div class="device-subpanel-head"><div><h4 id="device-catalog-heading">Device integration catalog</h4><p>Candidate device classes for discovery—not a supported/connected device list.</p></div></div>
+                  <div id="device-catalog" class="device-catalog-grid"></div>
+                </section>
+              </div>
+              <div class="device-section-grid">
+                <section class="device-subpanel" aria-labelledby="device-api-heading">
+                  <div class="device-subpanel-head">
+                    <div><h4 id="device-api-heading">Device API configuration</h4><p>Non-secret local draft only · no endpoint, credential, or live connection is stored.</p></div>
+                    <label class="form-field device-picker" for="device-focus-select">Selected simulator<select id="device-focus-select"></select></label>
+                  </div>
+                  <form id="device-api-draft-form">
+                    <div class="form-grid">
+                      <label class="form-field" for="device-profile-class">Device class<select id="device-profile-class" name="profile_class"><option value="unspecified">Not selected / discovery required</option><option value="multiparameter-monitor">Multiparameter monitor</option><option value="pulse-oximeter">Pulse oximeter</option><option value="blood-pressure-monitor">Blood-pressure monitor</option><option value="thermometer">Thermometer</option><option value="ecg-recorder">ECG recorder</option><option value="glucose-meter">Glucose meter</option></select></label>
+                      <label class="form-field" for="device-transport">Candidate transport<select id="device-transport" name="transport"><option value="to_be_confirmed">To be confirmed</option><option value="http_api">HTTP / vendor API</option><option value="hl7_v2">HL7 v2 via interface engine</option><option value="serial_usb">Serial / USB adapter</option><option value="bluetooth_le">Bluetooth LE adapter</option><option value="vendor_gateway">Vendor gateway</option></select></label>
+                      <label class="form-field" for="device-payload-profile">Payload profile<select id="device-payload-profile" name="payload_profile"><option value="to_be_confirmed">To be confirmed</option><option value="json">Vendor-defined JSON</option><option value="hl7_v2">HL7 v2 message</option><option value="fhir_r4">FHIR R4 API</option></select></label>
+                      <label class="form-field" for="device-poll-interval">Draft poll interval (seconds)<input id="device-poll-interval" name="poll_interval_seconds" type="number" min="1" max="3600" value="5" required /></label>
+                    </div>
+                    <div class="api-kv-list" style="margin-top:10px">
+                      <div class="api-kv"><span>External endpoint</span><strong>Not collected in this preview</strong></div>
+                      <div class="api-kv"><span>Authentication / secrets</span><strong>Not configured · browser secret entry disabled</strong></div>
+                      <div class="api-kv"><span>Connection status</span><strong id="device-api-connection-state">Synthetic simulator only</strong></div>
+                    </div>
+                    <div class="api-code">Local demo control route: POST /api/management/devices/{device_id}/emit · not a device-facing integration API</div>
+                    <div class="form-actions"><button class="control-btn primary" type="submit">Save local draft</button><button class="control-btn" type="button" disabled title="Live connector activation is not available in this preview">Activate connector</button></div>
+                    <div id="device-api-draft-status" class="management-status" role="status">No device API draft saved for this simulator.</div>
+                  </form>
+                </section>
+                <section class="device-subpanel" aria-labelledby="device-mapping-heading">
+                  <div class="device-subpanel-head"><div><h4 id="device-mapping-heading">Device-wise data mapping</h4><p>Selected-device context · synthetic rules remain draft/preview only.</p></div><a class="control-btn subtle" href="/mappings#mapping-workbench">Open mapping workbench</a></div>
+                  <p id="device-mapping-summary" class="management-note">Loading the local synthetic mapping profile…</p>
+                  <div class="table-wrap"><table class="mapping-table"><thead><tr><th>Source code · unit</th><th>Rule</th><th>Normalized code · unit</th></tr></thead><tbody id="device-mapping-entries"><tr><td colspan="3" class="empty">Loading mapping rules…</td></tr></tbody></table></div>
+                  <p class="management-footnote">This preview shares one inactive mapping set across its simulator devices. A real per-device assignment requires a validated source specification and stays disabled here.</p>
+                </section>
+              </div>
+              <div class="device-section-grid">
+                <section class="device-subpanel full" aria-labelledby="device-flow-heading">
+                  <div class="device-subpanel-head"><div><h4 id="device-flow-heading">Device-wise data flow</h4><p id="device-flow-description">Live synthetic source → MediHub ingestion → outbox → in-process test sink. Mapping rules below remain preview-only.</p></div><button id="refresh-device-flow" class="control-btn subtle" type="button">Refresh flow</button></div>
+                  <div id="device-flow-view" class="device-flow-steps" aria-live="polite"><div class="device-flow-step"><span>Source</span><strong>Loading…</strong><small>Synthetic device</small></div></div>
+                </section>
+              </div>
+              <div class="device-section-grid">
+                <section class="device-subpanel" aria-labelledby="device-export-heading">
+                  <div class="device-subpanel-head"><div><h4 id="device-export-heading">Data export</h4><p>Download up to 12 curated recent synthetic rows for the selected simulator only.</p></div></div>
+                  <div class="device-export-tools">
+                    <label class="form-field" for="device-export-format">File format<select id="device-export-format"><option value="csv">CSV</option><option value="json">JSON</option></select></label>
+                    <button id="export-device-data" class="control-btn primary" type="button">Export selected device</button>
+                  </div>
+                  <div id="device-export-status" class="management-status" role="status">No export requested.</div>
+                </section>
+                <section class="device-subpanel" aria-labelledby="device-activation-heading">
+                  <div class="device-subpanel-head"><div><h4 id="device-activation-heading">Integration safety</h4><p>Before connecting a real device</p></div></div>
+                  <div class="api-kv-list">
+                    <div class="api-kv"><span>Hardware discovery</span><strong>Disabled</strong></div>
+                    <div class="api-kv"><span>Real device API calls</span><strong>Disabled</strong></div>
+                    <div class="api-kv"><span>Stored device measurements</span><strong>Synthetic demo values only</strong></div>
+                  </div>
+                </section>
+              </div>
             </div>
           </section>
 
@@ -335,9 +442,27 @@
                   </div>
                 </div>
                 <div>
-                  <div class="destination-card"><strong>FHIR R4 / EMR</strong><small>Not connected. A facility-specific CapabilityStatement, profiles, write behavior, authentication scopes, and approval are required before a connector can be built.</small></div>
-                  <div class="destination-card"><strong>HL7 v2 / interface engine / EMS</strong><small>Not connected. The exact message profile, transport, acknowledgements, patient-context rules, and authorized test endpoint are required first.</small></div>
-                  <p class="locked-note" style="margin-top:10px"><strong>Endpoint and credential fields are not available.</strong> This preview has no network sender, secrets store, management authentication, or live activation.</p>
+                  <div class="destination-card">
+                    <strong>FHIR R4 / EMR connection API</strong>
+                    <small>Target profile only. A facility-approved CapabilityStatement, resource profiles, patient-association policy, idempotency behavior, and write permissions are required before implementation.</small>
+                    <div class="api-kv-list" style="margin-top:9px">
+                      <div class="api-kv"><span>Base URL</span><strong>Not collected · configure through secure deployment controls</strong></div>
+                      <div class="api-kv"><span>Authentication</span><strong>Facility authorization / scopes not configured</strong></div>
+                      <div class="api-kv"><span>Connection state</span><strong>Disconnected · network disabled</strong></div>
+                    </div>
+                    <div class="form-actions"><button class="control-btn" type="button" disabled>Configure EMR API</button></div>
+                  </div>
+                  <div class="destination-card">
+                    <strong>HL7 v2 / interface engine / EMS connection API</strong>
+                    <small>Target profile only. Confirm message type/version, MSH/ACK semantics, transport, patient-context rules, and authorized synthetic test endpoint with the facility.</small>
+                    <div class="api-kv-list" style="margin-top:9px">
+                      <div class="api-kv"><span>Host / port</span><strong>Not collected · no endpoint configured</strong></div>
+                      <div class="api-kv"><span>Transport / ACK profile</span><strong>To be confirmed · not configured</strong></div>
+                      <div class="api-kv"><span>Connection state</span><strong>Disconnected · network disabled</strong></div>
+                    </div>
+                    <div class="form-actions"><button class="control-btn" type="button" disabled>Configure EMS API</button></div>
+                  </div>
+                  <p class="locked-note" style="margin-top:10px"><strong>Connection API controls are locked.</strong> This preview has no network sender, secrets store, management authentication, real endpoint, or live activation.</p>
                 </div>
               </div>
               <p class="management-footnote">For real deployments, management endpoints require authenticated roles, site scoping, approved contracts, external secret management, and a security review. This synthetic preview is not a production control plane.</p>
@@ -370,25 +495,25 @@
             workbenchDescription: "Controls edit temporary in-memory simulator and mapping records. Live device and destination activation remains disabled.",
           },
           devices: {
-            title: "Devices",
-            eyebrow: "Device workbench / synthetic only",
-            description: "Register and enable built-in simulator identities. This page does not discover, configure, or connect to physical hardware.",
-            workbenchTitle: "Simulator inventory",
-            workbenchDescription: "Only the built-in synthetic simulator is available; device changes are temporary and remain in memory.",
+            title: "Device management",
+            eyebrow: "Device integration workbench / synthetic only",
+            description: "Review illustrative device categories, simulator activation, draft API settings, device-level flow, mapping, and synthetic data export. No physical device is discovered or connected.",
+            workbenchTitle: "Device integration lab",
+            workbenchDescription: "Browse discovery candidates and manage local simulator drafts. Catalog entries do not imply verified compatibility or live integration.",
           },
           mappings: {
-            title: "Mappings",
+            title: "Data mapping",
             eyebrow: "Mapping workbench / synthetic only",
             description: "Review synthetic-only mapping drafts, previews, golden test vectors, and revision history. Mapping activation is disabled.",
             workbenchTitle: "Mapping drafts & QA",
             workbenchDescription: "Exercise exact-match mapping examples and compare inactive revisions using patient-free simulator values only.",
           },
           "api-setup": {
-            title: "API setup",
-            eyebrow: "Destination workbench / synthetic only",
-            description: "Test delivery to the in-process receiver and drill local failure handling. External endpoints, credentials, and live activation are unavailable.",
-            workbenchTitle: "Local destination controls",
-            workbenchDescription: "Only the in-process synthetic receiver can be exercised; no external API or facility contract is configured.",
+            title: "EMR / EMS APIs",
+            eyebrow: "Destination API workbench / synthetic only",
+            description: "Review the planned EMR/FHIR and EMS/HL7 connection requirements and run local delivery drills. External endpoints, credentials, and live activation remain unavailable.",
+            workbenchTitle: "EMR / EMS connection APIs",
+            workbenchDescription: "FHIR R4 and HL7 v2 are planning targets only; configure real endpoints only after facility contract, security, and sandbox approval.",
           },
         };
         const currentPage = Object.hasOwn(pageContent, document.body.dataset.currentPage)
@@ -533,6 +658,184 @@
           button.addEventListener("click", onClick);
           return button;
         };
+        let selectedDeviceId = "sim-device-001";
+        let managedDeviceRows = [];
+        let deviceSnapshot = null;
+        let deviceMappingSet = null;
+        const deviceApiDrafts = new Map();
+        const deviceCatalogProfiles = [
+          { id: "multiparameter-monitor", label: "Multiparameter monitor", detail: "Example category · vendor interface and exact model require discovery" },
+          { id: "pulse-oximeter", label: "Pulse oximeter", detail: "Example category · transport and message format are unverified" },
+          { id: "blood-pressure-monitor", label: "Blood-pressure monitor", detail: "Example category · confirm model, firmware, and source codes" },
+          { id: "thermometer", label: "Thermometer", detail: "Example category · interface and units require source review" },
+          { id: "ecg-recorder", label: "ECG recorder", detail: "Example category · waveform and metadata scope require discovery" },
+          { id: "glucose-meter", label: "Glucose meter", detail: "Example category · device profile and units are not verified" },
+        ];
+        const renderDeviceCatalog = () => {
+          const catalog = byId("device-catalog");
+          catalog.replaceChildren();
+          for (const profile of deviceCatalogProfiles) {
+            const card = document.createElement("article");
+            card.className = "device-catalog-card";
+            const title = document.createElement("strong");
+            title.textContent = profile.label;
+            const detail = document.createElement("small");
+            detail.textContent = profile.detail;
+            const state = document.createElement("span");
+            state.className = "catalog-status";
+            state.textContent = "Discovery required";
+            const draft = makeButton("Use in draft", "control-btn subtle", () => {
+              if (!selectedDeviceId && managedDeviceRows.length) {
+                selectedDeviceId = managedDeviceRows[0].device_id;
+              }
+              byId("device-focus-select").value = selectedDeviceId;
+              byId("device-profile-class").value = profile.id;
+              setText("device-api-draft-status", `${profile.label} selected for ${selectedDeviceId || "no simulator"}; save the local draft to keep it in this page session.`);
+              byId("device-api-heading").scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+            card.append(title, detail, state, document.createElement("br"), draft);
+            catalog.appendChild(card);
+          }
+        };
+        const renderDeviceApiDraft = () => {
+          const device = managedDeviceRows.find((item) => item.device_id === selectedDeviceId);
+          const draft = deviceApiDrafts.get(selectedDeviceId);
+          if (!device) {
+            setText("device-api-connection-state", "No simulator selected");
+            setText("device-api-draft-status", "Register a synthetic simulator before preparing a local API draft.");
+            return;
+          }
+          byId("device-profile-class").value = draft?.profile_class || "unspecified";
+          byId("device-transport").value = draft?.transport || "to_be_confirmed";
+          byId("device-payload-profile").value = draft?.payload_profile || "to_be_confirmed";
+          byId("device-poll-interval").value = String(draft?.poll_interval_seconds || 5);
+          setText("device-api-connection-state", device.enabled ? "Active synthetic simulator · no external API" : "Inactive synthetic simulator · no external API");
+          setText("device-api-draft-status", draft
+            ? `Non-secret draft saved for ${selectedDeviceId} in this page session; not connected or activated.`
+            : `No device API draft saved for ${selectedDeviceId}.`);
+        };
+        const renderDeviceMapping = () => {
+          const body = byId("device-mapping-entries");
+          body.replaceChildren();
+          if (!deviceMappingSet) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "Loading synthetic mapping rules…", "empty");
+            cell.colSpan = 3;
+            body.appendChild(row);
+            return;
+          }
+          setText("device-mapping-summary", `${selectedDeviceId || "No simulator"} · ${deviceMappingSet.mapping_set_id} v${deviceMappingSet.version} · shared synthetic draft · inactive`);
+          for (const entry of deviceMappingSet.entries) {
+            const row = document.createElement("tr");
+            appendCell(row, `${entry.source_metric.code} · ${entry.source_unit.code}`, "mono");
+            appendCell(row, entry.operation === "identity" ? "identity" : `linear × ${entry.scale} + ${entry.offset}`, "reading");
+            appendCell(row, `${entry.normalized_metric.code} · ${entry.normalized_unit.code}`, "mono");
+            body.appendChild(row);
+          }
+          if (!deviceMappingSet.entries.length) {
+            const row = document.createElement("tr");
+            const cell = appendCell(row, "No draft mapping rules", "empty");
+            cell.colSpan = 3;
+            body.appendChild(row);
+          }
+        };
+        const renderDeviceFlow = () => {
+          const view = byId("device-flow-view");
+          view.replaceChildren();
+          const device = managedDeviceRows.find((item) => item.device_id === selectedDeviceId);
+          if (!deviceSnapshot || !device) {
+            setText("device-flow-description", "Waiting for a synthetic device snapshot. No physical device data is read.");
+            return;
+          }
+          const events = deviceSnapshot.recent_events.filter((event) => event.device_id === selectedDeviceId);
+          const deliveries = deviceSnapshot.recent_deliveries.filter((item) => item.device_id === selectedDeviceId);
+          const latestEvent = events[0];
+          const latestDelivery = deliveries[0];
+          const deliveryLabel = latestDelivery ? latestDelivery.status.replaceAll("_", " ") : "Waiting for delivery";
+          const receiverReady = deviceSnapshot.receiver.status === "in_process";
+          const steps = [
+            { name: "Device source", value: device.enabled ? "Active" : "Inactive", detail: `${selectedDeviceId} · simulator only`, state: device.enabled ? "ok" : "off" },
+            { name: "MediHub ingestion", value: events.length ? `${events.length} recent sample(s)` : "Waiting for sample", detail: latestEvent ? `Latest ${time(latestEvent.received_at)} · synthetic scalar ${Number(latestEvent.value).toFixed(2)}` : "No recent sample for this device", state: events.length ? "ok" : "hold" },
+            { name: "Outbox", value: deliveryLabel, detail: latestDelivery ? `${latestDelivery.attempts} attempt(s) · updated ${time(latestDelivery.updated_at)}` : "No recent delivery for this device", state: latestDelivery?.status === "acknowledged" ? "ok" : "hold" },
+            { name: "Test destination", value: receiverReady ? "In-process receiver" : "Starting", detail: "Local synthetic sink only · EMR/EMS routes disabled", state: "hold" },
+          ];
+          for (const step of steps) {
+            const item = document.createElement("div");
+            item.className = "device-flow-step";
+            item.dataset.state = step.state;
+            const label = document.createElement("span");
+            label.textContent = step.name;
+            const value = document.createElement("strong");
+            value.textContent = step.value;
+            const detail = document.createElement("small");
+            detail.textContent = step.detail;
+            item.append(label, value, detail);
+            view.appendChild(item);
+          }
+          setText("device-flow-description", `${selectedDeviceId} · ${events.length} recent sample row(s) · mapping is preview-only · external delivery disabled.`);
+        };
+        const loadDeviceFlow = async () => {
+          deviceSnapshot = await managementRequest("/api/dashboard");
+          renderDeviceFlow();
+        };
+        const exportDeviceData = async () => {
+          const button = byId("export-device-data");
+          button.disabled = true;
+          try {
+            const snapshot = await managementRequest("/api/dashboard");
+            const rows = snapshot.recent_events
+              .filter((event) => event.device_id === selectedDeviceId)
+              .map((event) => ({
+                received_at: event.received_at,
+                device_id: event.device_id,
+                label: "Synthetic scalar",
+                value: Number(event.value),
+                source_sequence: event.source_sequence,
+              }));
+            if (!rows.length) {
+              setText("device-export-status", `No recent synthetic rows are available for ${selectedDeviceId || "the selected device"}.`);
+              return;
+            }
+            const format = byId("device-export-format").value;
+            let content;
+            let mimeType;
+            if (format === "csv") {
+              const fields = ["received_at", "device_id", "label", "value", "source_sequence"];
+              const csvCell = (value) => {
+                if (typeof value === "number") return String(value);
+                const raw = String(value ?? "");
+                const safe = /^[\s]*[=+@-]/.test(raw) ? `'${raw}` : raw;
+                return `"${safe.replaceAll('"', '""')}"`;
+              };
+              content = [fields.join(","), ...rows.map((row) => fields.map((field) => csvCell(row[field])).join(","))].join("\n");
+              mimeType = "text/csv;charset=utf-8";
+            } else {
+              content = JSON.stringify({
+                scope: "synthetic_only",
+                network_enabled: false,
+                device_id: selectedDeviceId,
+                exported_at: new Date().toISOString(),
+                rows,
+              }, null, 2);
+              mimeType = "application/json;charset=utf-8";
+            }
+            const safeDeviceId = selectedDeviceId.replace(/[^A-Za-z0-9_-]/g, "") || "synthetic-device";
+            const blob = new Blob([content], { type: mimeType });
+            const objectUrl = window.URL.createObjectURL(blob);
+            const download = document.createElement("a");
+            download.href = objectUrl;
+            download.download = `medihub-${safeDeviceId}-synthetic.${format}`;
+            document.body.appendChild(download);
+            download.click();
+            download.remove();
+            window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+            setText("device-export-status", `Downloaded ${rows.length} curated synthetic row(s) for ${selectedDeviceId}; no external export service was called.`);
+          } catch (error) {
+            setText("device-export-status", `Export failed (${error.message}).`);
+          } finally {
+            button.disabled = false;
+          }
+        };
         const showDeliveryDetails = async (eventId) => {
           selectedDeliveryEventId = eventId;
           byId("retry-delivery").disabled = true;
@@ -566,30 +869,49 @@
         });
         const loadDevices = async () => {
           const data = await managementRequest("/api/management/devices");
+          managedDeviceRows = data.devices;
+          if (!managedDeviceRows.some((device) => device.device_id === selectedDeviceId)) {
+            selectedDeviceId = managedDeviceRows[0]?.device_id || "";
+          }
           const list = byId("devices-list");
+          const focusSelect = byId("device-focus-select");
           const select = byId("preview-device");
           const vectorSelect = byId("vector-device");
           list.replaceChildren();
+          focusSelect.replaceChildren();
           select.replaceChildren();
           vectorSelect.replaceChildren();
           const enabledDevices = data.devices.filter((device) => device.enabled);
           for (const device of data.devices) {
             const row = document.createElement("div");
-            row.className = "workbench-row";
+            row.className = `workbench-row device-row${device.device_id === selectedDeviceId ? " selected" : ""}`;
             const main = document.createElement("div");
             main.className = "row-main";
             const title = document.createElement("strong");
-            title.textContent = `${device.device_id} · ${device.enabled ? "registered" : "disabled"}`;
+            title.textContent = device.device_id;
+            const badge = document.createElement("span");
+            badge.className = `device-badge ${device.enabled ? "active" : "inactive"}`;
+            badge.textContent = device.enabled ? "Active" : "Inactive";
             const details = document.createElement("small");
-            details.textContent = `${device.model} · firmware ${device.firmware_version} · ${device.adapter_id} ${device.adapter_version} · simulator only`;
-            main.append(title, details);
+            details.textContent = `${device.model} · firmware ${device.firmware_version} · ${device.adapter_id} ${device.adapter_version} · synthetic only`;
+            main.append(title, badge, details);
             const actions = document.createElement("div");
             actions.className = "row-actions";
-            const toggle = makeButton(device.enabled ? "Disable" : "Enable", "control-btn subtle", async () => {
+            const selectDevice = makeButton("View details", "control-btn subtle", () => {
+              selectedDeviceId = device.device_id;
+              focusSelect.value = device.device_id;
+              renderDeviceApiDraft();
+              renderDeviceMapping();
+              renderDeviceFlow();
+              for (const rowElement of list.querySelectorAll(".device-row")) {
+                rowElement.classList.toggle("selected", rowElement === row);
+              }
+            });
+            const toggle = makeButton(device.enabled ? "Set inactive" : "Set active", "control-btn subtle", async () => {
               try {
                 await managementRequest(`/api/management/devices/${encodeURIComponent(device.device_id)}`, "PATCH", { enabled: !device.enabled });
-                setText("device-status", `${device.device_id} updated in this session only.`);
-                await loadDevices();
+                setText("device-status", `${device.device_id} is now ${device.enabled ? "inactive" : "active"} in the local simulator only.`);
+                await Promise.all([loadDevices(), loadDeviceFlow()]);
               } catch (error) { setText("device-status", error.message); }
             });
             const emit = makeButton("Emit sample", "control-btn", async () => {
@@ -597,20 +919,31 @@
               try {
                 const result = await managementRequest(`/api/management/devices/${encodeURIComponent(device.device_id)}/emit`, "POST");
                 setText("device-status", `${device.device_id}: ${result.status}; in-process receipts ${result.unique_test_receipts}.`);
+                await loadDeviceFlow();
               } catch (error) { setText("device-status", error.message); }
               finally { emit.disabled = false; }
             });
             emit.disabled = !device.enabled;
-            actions.append(toggle, emit);
+            actions.append(selectDevice, toggle, emit);
             row.append(main, actions);
             list.appendChild(row);
+
+            const focusOption = document.createElement("option");
+            focusOption.value = device.device_id;
+            focusOption.textContent = `${device.device_id} · ${device.enabled ? "active" : "inactive"}`;
+            focusSelect.appendChild(focusOption);
           }
           if (!data.devices.length) {
             const empty = document.createElement("div");
             empty.className = "empty";
             empty.textContent = "No simulator registrations.";
             list.appendChild(empty);
+            const emptyOption = document.createElement("option");
+            emptyOption.value = "";
+            emptyOption.textContent = "No simulator registered";
+            focusSelect.appendChild(emptyOption);
           }
+          focusSelect.value = selectedDeviceId;
           for (const device of enabledDevices) {
             const option = document.createElement("option");
             option.value = device.device_id;
@@ -629,11 +962,18 @@
               target.appendChild(option);
             }
           }
+          setText("device-total", data.devices.length);
+          setText("device-active-total", enabledDevices.length);
+          renderDeviceApiDraft();
+          renderDeviceMapping();
+          renderDeviceFlow();
         };
         const loadMappings = async () => {
           const data = await managementRequest("/api/management/mappings");
           const set = data.mapping_set;
+          deviceMappingSet = set;
           setText("mapping-summary", `${set.mapping_set_id} · version ${set.version} · ${data.scope} · activation disabled`);
+          renderDeviceMapping();
           const body = byId("mapping-entries");
           body.replaceChildren();
           for (const entry of set.entries) {
@@ -735,7 +1075,7 @@
         const loadManagement = async () => {
           try {
             if (currentPage === "devices") {
-              await loadDevices();
+              await Promise.all([loadDevices(), loadMappings(), loadDeviceFlow()]);
             } else if (currentPage === "mappings") {
               await Promise.all([loadDevices(), loadMappings(), loadMappingTests(), loadMappingRevisions()]);
             } else if (currentPage === "api-setup") {
@@ -748,13 +1088,46 @@
             setText(statusId, `Workbench unavailable (${error.message}).`);
           }
         };
+        byId("device-focus-select").addEventListener("change", (event) => {
+          selectedDeviceId = event.currentTarget.value;
+          renderDeviceApiDraft();
+          renderDeviceMapping();
+          renderDeviceFlow();
+          for (const row of byId("devices-list").querySelectorAll(".device-row")) {
+            row.classList.toggle("selected", row.querySelector("strong")?.textContent === selectedDeviceId);
+          }
+        });
+        byId("device-api-draft-form").addEventListener("submit", (event) => {
+          event.preventDefault();
+          if (!managedDeviceRows.some((device) => device.device_id === selectedDeviceId)) {
+            setText("device-api-draft-status", "Select or register a synthetic simulator before saving a draft.");
+            return;
+          }
+          const values = new FormData(event.currentTarget);
+          deviceApiDrafts.set(selectedDeviceId, {
+            profile_class: values.get("profile_class"),
+            transport: values.get("transport"),
+            payload_profile: values.get("payload_profile"),
+            poll_interval_seconds: Number(values.get("poll_interval_seconds")),
+          });
+          setText("device-api-draft-status", `Non-secret API discovery draft saved for ${selectedDeviceId} in this page session. It is not connected or activated.`);
+        });
+        byId("refresh-device-flow").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try { await loadDeviceFlow(); }
+          catch (_) { setText("device-flow-description", "Flow snapshot unavailable; external devices remain disconnected."); }
+          finally { button.disabled = false; }
+        });
+        byId("export-device-data").addEventListener("click", exportDeviceData);
         byId("register-device").addEventListener("click", async (event) => {
           const button = event.currentTarget;
           button.disabled = true;
           try {
             const device = await managementRequest("/api/management/devices", "POST");
+            selectedDeviceId = device.device_id;
             setText("device-status", `${device.device_id} registered as an in-memory simulator.`);
-            await loadDevices();
+            await Promise.all([loadDevices(), loadDeviceFlow()]);
           } catch (error) { setText("device-status", error.message); }
           finally { button.disabled = false; }
         });
@@ -896,10 +1269,15 @@
             byId("api-error").classList.add("visible");
           }
         };
+        renderDeviceCatalog();
         loadManagement();
         if (currentPage === "operations") {
           refresh();
           window.setInterval(refresh, 2000);
+        } else if (currentPage === "devices") {
+          window.setInterval(() => loadDeviceFlow().catch(() => {
+            setText("device-flow-description", "Flow snapshot unavailable; external devices remain disconnected.");
+          }), 3000);
         }
       })();
     </script>
