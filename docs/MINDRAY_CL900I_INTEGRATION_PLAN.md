@@ -94,7 +94,7 @@ These are alternatives to evaluate against the real receiver contract, not assum
 5. Existing LIS/worklist path, exact downstream system and its receiver contract, authoritative accession/patient association, result-release workflow, and named laboratory/clinical, biomedical, IT/interface, privacy/security, and operations owners.
 6. Bangladesh facility approval, approved network flow and hosting/data-residency decision, privacy/security/legal/regulatory review, and an authorized engineering test environment.
 
-Track these items in the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md), [receiver-contract worksheet](RECEIVER_CONTRACT.md), and [source-to-destination mapping worksheet](DEVICE_MAPPING_WORKSHEET.md). Validators for these worksheets are documentation checks only; they never enable connectivity.
+Track these items in the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md), [receiver-contract worksheet](RECEIVER_CONTRACT.md), and [source-to-destination mapping worksheet](DEVICE_MAPPING_WORKSHEET.md). Use the [CL-900i vendor discovery request](CL900I_VENDOR_DISCOVERY_REQUEST.md) to ask Mindray and the facility for the exact results-only profile and approvals. Validators for these worksheets are documentation checks only; they never enable connectivity.
 
 ## Implementation gates
 
