@@ -23,6 +23,24 @@ Please review these initial choices for clarity and consistent usage in Banglade
 | Draft / inactive | খসড়া / নিষ্ক্রিয় | Confirm that the wording clearly communicates “not activated.” |
 | Receiver / endpoint | রিসিভার / এন্ডপয়েন্ট | Confirm that transliteration is appropriate for the intended technical audience. |
 
+## First-pass audit of the Next.js overview — 2026-10-11
+
+The following clarity edits are provisional, machine-assisted wording—not native-speaker approval. They are now present in `frontend/app/page.tsx`. Please review the wording in the live interface and change it where a Bangladesh-based operator would use a more natural or precise term.
+
+| English concept | Previous Bengali | Current provisional Bengali | Why it needs human review |
+| --- | --- | --- | --- |
+| Events ingested | ইনজেস্ট করা ইভেন্ট | গ্রহণ করা ইভেন্ট | Replaces an English-derived verb; confirm that “গ্রহণ” conveys ingestion rather than clinical acceptance. |
+| Receiver acknowledgement (count) | নিশ্চিত হয়েছে | রিসিভারের স্বীকৃতি | Names the receiver so it cannot be mistaken for clinical confirmation. Confirm the best local technical term for an acknowledgement. |
+| Acknowledged delivery (status) | নিশ্চিত হয়েছে | রিসিভার গ্রহণ করেছে | Explicitly attributes acceptance to the test receiver; verify that it does not imply patient/clinical confirmation. |
+| Pending delivery | অপেক্ষমাণ ডেলিভারি | পাঠানোর অপেক্ষায় | Uses a plain-language description; verify it fits the queue/pending state. |
+| Policy holds | নীতি-হোল্ড | নীতির কারণে আটকে রাখা | Replaces a mixed-language compound; confirm the wording accurately describes a policy block. |
+| In-process receiver | প্রসেসের ভেতরে | একই প্রসেসে চলছে | Clarifies that the test receiver runs in the same software process; check whether “প্রসেস” or “প্রক্রিয়া” is more familiar to the target operators. |
+| Retryable failure | পুনঃচেষ্টাযোগ্য ব্যর্থতা | ব্যর্থ—আবার চেষ্টা করা যাবে | Makes the available next action explicit; check readability and fit in the status row. |
+| Synthetic demo values | তৈরি করা সিন্থেটিক মান | ডেমোর জন্য তৈরি কৃত্রিম (সিন্থেটিক) মান | Introduces a plain Bengali gloss alongside the technical term; confirm the preferred term and repetition level. |
+| Bangladesh deployment target | বাংলাদেশ প্রয়োজনীয় ডিপ্লয়মেন্ট লক্ষ্য | বাংলাদেশে স্থাপন করাই MediHub-এর লক্ষ্য | Rewrites a stiff mixed-language phrase; confirm this preserves the intended target-country meaning without implying deployment readiness. |
+
+The Next.js Playwright suite now checks the receiver-attributed Bengali delivery states and the Bangladesh safety statement. Those assertions protect against accidental copy regressions; they do not establish that the wording is natural or clinically approved.
+
 ## Automated browser checks
 
 From the repository root, install the headless Chromium shell and run the browser suite:

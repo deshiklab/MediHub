@@ -34,6 +34,12 @@ const snapshot = {
       attempts: 1,
       updated_at: "2026-10-07T04:00:01+00:00",
     },
+    {
+      event_id: "test-event-0003",
+      status: "retryable_failure",
+      attempts: 2,
+      updated_at: "2026-10-07T04:00:02+00:00",
+    },
   ],
   recent_holds: [{ event_id: "test-event-0002", reason_code: "synthetic_not_accepted" }],
 };
@@ -66,7 +72,8 @@ test("renders the live synthetic overview and accessible status", async ({ page 
   await expect(page.getByRole("heading", { level: 1, name: "Integration operations" })).toBeVisible();
   await expect(page.locator(".metric-card").first().locator("strong")).toHaveText("12");
   await expect(page.locator("tbody .reading")).toHaveText("72.50");
-  await expect(page.locator(".delivery-copy strong")).toHaveText("Acknowledged");
+  await expect(page.locator(".delivery-copy strong").first()).toHaveText("Acknowledged");
+  await expect(page.locator(".delivery-copy strong").nth(1)).toHaveText("Retryable failure");
   await expect(page.getByRole("combobox", { name: "Interface language" })).toBeVisible();
   await expect(page.getByText("This preview uses generated synthetic values only;", { exact: false })).toBeVisible();
 });
@@ -78,6 +85,9 @@ test("switches language and remembers Bengali after reload", async ({ page }) =>
   await expect(page.getByRole("heading", { level: 1, name: "ইন্টিগ্রেশন কার্যক্রম" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "ইন্টারফেসের ভাষা" })).toBeVisible();
   await expect(page.getByText("সিন্থেটিক কার্যক্রম", { exact: true })).toBeVisible();
+  await expect(page.locator(".delivery-copy strong").first()).toHaveText("রিসিভার গ্রহণ করেছে");
+  await expect(page.locator(".delivery-copy strong").nth(1)).toHaveText("ব্যর্থ—আবার চেষ্টা করা যাবে");
+  await expect(page.getByText("বাংলাদেশে স্থাপন করাই MediHub-এর লক্ষ্য;", { exact: false })).toBeVisible();
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "bn");
