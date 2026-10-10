@@ -714,6 +714,50 @@ These topics must be treated as design inputs, not a final checklist at the end.
 6. **Terminology.** BD-Core calls for national terminology resolution through the DGHS OpenConceptLab endpoint and describes LOINC, UCUM, SNOMED CT, and ICD-11 use. Obtain site/DGHS-approved mappings and terminology versions; never map device labels based only on text similarity. [20]
 7. **DHIS2 is not a default bedside chart.** Bangladesh has a substantial DHIS2 routine-health-information footprint, but MediHub must not assume DHIS2 is the receiving clinical chart or a real-time bedside-observation API. Use the hospital HMS/EMR interface or an authorized SHR/HIE route; integrate to a named DHIS2 Tracker/reporting workflow only if the receiving program explicitly requires it. [27]
 
+### Bangladesh laboratory-device expansion (discovery, not a support claim)
+
+**Do not infer “most used” from a product listing.** I did not find a reliable public, model-level installed-base ranking for Bangladeshi laboratories in the sources reviewed. The linked commercial listings were checked on 2026-10-11; reconfirm availability directly. Local seller/distributor pages are useful for building an interview shortlist, but they show products marketed or listed—not how many are installed, which firmware is active, whether LIS output is licensed, or whether a results-only interface is supported.
+
+| Discovery lane | Public Bangladesh listing examples | MediHub action |
+|---|---|---|
+| CBC/hematology | Bangladeshi seller pages list Mindray BC-20s and BC-10 models ([BC-20s](https://www.medistorebd.com/product/hematology-analyzer-bc-20s/), [BC-10](https://www.medistorebd.com/product/mindray-bc-10-auto-hematology-analyzer/)). | Make 3-part hematology the first *additional family to survey*, not an assumed next driver. Choose the exact model only after target facilities confirm their installed units and supply authorized interface documents. |
+| Routine clinical chemistry | Local listings include the Mindray BA-88A and Erba Chem 5x ([BA-88A](https://technohealth.com.bd/mindray-biochemistry-analyzer-ba-88a/), [Chem 5x](https://technohealth.com.bd/erba-chem-5x-biochemistry-analyzer/)). | Confirm whether each exact unit exports structured results, has a supported host interface, and can send results without orders. Product availability alone does not establish digital connectivity. |
+| Immunoassay / hormone | The CL-900i remains the current user-selected anchor; Bangladesh supplier catalogs also list immunoassay/hormone products and multiple laboratory categories ([local distributor catalog](http://tradesworthgroup.com/diagnostic/), [immunoassay category](https://www.bio-techbd.com/product/category/immunoassay-analyzer)). | Finish CL-900i discovery first. Add another immunoassay model only when a named pilot facility supplies its exact model/software and controlled interface profile. |
+| Urinalysis, electrolytes, coagulation, HbA1c, blood gas, and POCT | These appear as categories in Bangladesh supplier catalogs, but the reviewed sources do not establish a model-level installed-base order. | Add them to the inventory survey; rank from actual site counts, test volume, service coverage, and interface readiness—not catalog placement. |
+
+Use a short, privacy-safe inventory survey with a representative set of public and private labs across Dhaka and outside Dhaka. Ask each site and local service partner for exact manufacturer/model, software/firmware version, lab section, whether an LIS is already connected, approved interface option/document revision, direction/mode, results-only capability, receiver product/version, and availability of a non-production test path. Keep patient data, raw messages, serial numbers, IPs, credentials, and restricted manuals out of Git. The survey—not web product pages—should determine the Bangladesh priority matrix.
+
+Prioritize a device family using: (1) confirmed installed units among target facilities, (2) result volume/workflow value, (3) written results-only support and a controlled profile, (4) local service/support availability, (5) reuse of a proven transport/parser, and (6) implementation and receiver-review effort. A family with high marketing visibility but no authorized interface may rank below a less common model with a documented, safe host connection.
+
+### How MediHub should manage each device
+
+Keep the current architecture: **shared platform services, reusable protocol/transport components where proven, and a versioned device profile per exact model/software interface.** Do not create one generic “Mindray driver” or equate “ASTM support” with support for every ASTM analyzer.
+
+```text
+registered instrument + approved profile
+  → site-edge transport (TCP / serial / approved file feed; exact mode from vendor)
+  → protocol framing/session parser (e.g. MLLP or ASTM E1381, only if specified)
+  → exact model/firmware message profile
+  → normalized result event retaining source code/value/unit/status/time
+  → accession/patient-context validation and quarantine on ambiguity
+  → durable outbox with deduplication and delivery audit
+  → named LIS / EMS / EMR contract in an agreed pending-review state
+  → lab technician verifies in the receiving system
+```
+
+For every onboarded unit, maintain a profile/compatibility record containing manufacturer, model, software/firmware range, adapter version, controlled document ID/revision, protocol and transport, connection role, message framing and acknowledgements, allowed result message types, test-code/unit/flag dictionaries, synthetic fixture version, receiver contract reference, and approvals. Keep endpoint secrets in a facility-controlled secret store—not in Git or a general device catalogue. The operator UI should distinguish **catalogued**, **documentation pending**, **synthetic-tested**, **vendor/bench-tested**, **site-approved**, and **supported**. A catalog entry is not an enabled connector.
+
+MediHub already has a read-only `DeviceAdapter` contract in `src/medihub/ports.py`, device identity/registration and health types in `src/medihub/domain/device.py`, a synthetic device simulator, and a bounded offline ASTM E1394 record parser. The current implementation still has no CL-900i-specific profile, ASTM E1381 transport/session layer, HL7 v2/MLLP adapter, live TCP/serial collector, or production device-management control plane. Keep this boundary explicit in the UI and supported-device matrix.
+
+### Recommended Bangladesh rollout sequence
+
+1. **Inventory and choose one site/device pair.** Keep CL-900i as the first target because it is the model already under discovery; ask that facility for its actual interface owner, installed version, current LIS connection, and written Mindray/facility authorization. Select the next family—likely CBC/hematology only if the inventory confirms it is common at the target sites.
+2. **Close profile and receiver gates.** Obtain the controlled vendor profile plus a named receiving-system contract. Confirm results-only direction and that the receiver can hold the result for technician review. No order/worklist exchange, analyzer commands, automatic verification, or release.
+3. **Implement one profile at a time.** Reuse tested transport/protocol primitives only where the exact profile matches; keep model-specific fields, code/unit dictionaries, statuses, and firmware compatibility versioned. Preserve raw values/status and quarantine unknowns.
+4. **Prove behavior synthetically first.** Use fabricated synthetic fixtures only, including duplicate/lost ACK, restart/replay, malformed segments/frames, unknown flags, value/unit boundaries, corrections, and patient/accession mismatch. Require profile-specific contract tests in CI.
+5. **Run an authorized bench/non-production validation, then make a separate pilot decision.** Record vendor, facility, lab, security/privacy, Bangladesh legal/regulatory, rollback, and operational sign-offs. Only then can the exact profile be labeled site-approved; production support is a separate release gate.
+6. **Expand by measured overlap.** After the first adapter is stable, add the most repeated compatible CBC model, then routine chemistry and the next locally confirmed family. Every new model/firmware combination needs its own compatibility status and tests even if it reuses ASTM or HL7 transport.
+
 ### Bangladesh-specific product and deployment profile
 
 | Concern | MediHub requirement for a Bangladesh pilot |
