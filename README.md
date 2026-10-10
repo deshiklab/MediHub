@@ -32,6 +32,7 @@ The first synthetic-only vertical slice is underway:
 - A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
 - A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
 - A Phase 0 integration-discovery worksheet, versioned receiver-contract validator, and offline synthetic contract scenario harness for ACK, duplicate/lost-ACK retry, receiver restart, rejection, timeout, retention, and version drift; all report safe codes and keep connectivity disabled.
+- A bounded, offline ASTM E1394 record-stream parser scaffold with synthetic tests. It has no ASTM E1381 transport/session handling, CL-900i profile, result mapping, or device connection; see the [CL-900i integration plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md).
 - A machine-readable source-to-canonical-to-destination mapping worksheet and strict linter; it never executes transformations or activates mappings.
 - An offline mapping workbench that applies exact-match, versioned synthetic-only mappings to bounded synthetic fixtures; it has no database or destination connection.
 - A file-backed synthetic recovery drill that simulates an expired outbox lease, a gateway engine restart, a transient receiver failure, and queue drain without external connectivity.

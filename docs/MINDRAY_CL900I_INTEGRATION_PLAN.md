@@ -6,9 +6,19 @@
 
 Mindray describes the CL-900i as a fully automated chemiluminescence immunoassay (CLIA) analyzer using an enhanced ALP-AMPPD method, with throughput up to 180 tests/hour, 50 sample positions, and 15 reagent positions. See the [official CL-900i product page](https://www.mindray.com/en/products/laboratory-diagnostics/chemiluminescence-immunoassay/small-test-volume/cl-900i) and [official product brochure](https://www.mindray.com/content/dam/xpace/en/resources/brochure/cl-900i-product-brochure.pdf).
 
-Those public product materials do **not** specify the exact host/LIS protocol and message profile, result-transfer direction, acknowledgement behavior, or the interface available on a particular unit/software release. Do not infer ASTM, HL7, TCP/IP, RS-232, query/poll support, or bidirectional behavior from another Mindray product, an unofficial manual mirror, or another site's installation. Obtain the Mindray-authorized LIS/host-interface guide for the exact CL-900i configuration and written authorization before implementing or connecting anything.
+Those public product materials do **not** specify the exact host/LIS protocol and message profile, result-transfer direction, acknowledgement behavior, or the interface available on a particular unit/software release. A separate [Mindray India CLIA article](https://www.mindray.com/in/media-center/blog/understanding-clia-principles-applications/) says bidirectional LIS is available across CLIA analyzers and discusses the CL-900i, but does not identify this unit's protocol or host setup. Do not infer ASTM, HL7, TCP/IP, RS-232, or query/poll support from that general statement.
 
-## Proposed safe data path
+### Protocol and GitHub reconnaissance
+
+An [unofficial mirror of a CLIA 900 service manual](https://pdfcoffee.com/manual-de-servicio-clia-900-pdf-free.html) claims that the CL-900i can use HL7 or ASTM E1394 over network or serial links. Treat this only as a lead: the copy is not a vendor-controlled contract, and its exact revision/region match to the installed unit is unknown. We still need the Mindray-authorized LIS/host-interface guide and written authorization.
+
+A public GitHub search found generic ASTM libraries but no verified CL-900i driver: [`astmio`](https://github.com/PrasoonPratham/astmio) is an MIT-licensed, pre-release Python E1381/E1394 project; [`python-astm`](https://github.com/kxepal/python-astm) is another generic implementation with no clear SPDX license in repository metadata; [`Mindray-Listener`](https://github.com/coudjo/Mindray-Listener) describes a different Mindray binary protocol and explicitly says it is not ASTM or HL7. None is evidence of CL-900i compatibility, so no third-party implementation has been adopted.
+
+**Provisional development choice:** MediHub now has an offline, bounded ASTM E1394 record-stream parser scaffold using synthetic tests only. It does not implement E1381 framing/session control, HL7 v2, analyzer transport, CL-900i field mapping, or delivery. ASTM is a candidate—not a claim about the installed analyzer. If the authorized guide specifies HL7 instead, implement that exact profile rather than forcing ASTM.
+
+## User-confirmed workflow and proposed safe data path
+
+The requested topology is for MediHub to read results directly from the CL-900i and make them available to lab technicians in the facility's EMS/EMR/HMS for verification. The initial scope is results-only: MediHub must not send worklists, orders, assay controls, or analyzer configuration changes. This records the desired workflow; it does not confirm that the unit's installed LIS mode supports it.
 
 ```text
 CL-900i
@@ -23,9 +33,9 @@ CL-900i
                                           (only via its approved receiver contract)
 ```
 
-If the facility already uses a validated LIS, prefer an approved read-only/export/API connection from that LIS rather than inserting MediHub inline between the analyzer and the LIS or creating a second analyzer host connection. The lab and Mindray must approve any direct analyzer connection and confirm that it will not disrupt the existing workflow.
+The requested source is the analyzer itself. Before opening a direct connection, the facility and Mindray must confirm the approved host mode, whether the CL-900i is already connected to an LIS, and whether it permits another host. Do not interrupt an existing LIS or create a competing connection. If direct access is not permitted, the fallback is an approved read-only export/API from the existing LIS.
 
-“Pull” needs a device-specific decision: completed results might be pushed by the analyzer, requested by an authorized host, or exposed through the LIS. Start with the least-permissive vendor-supported **results-only** mode. Do not download worklists, send orders, change analyzer configuration, start/stop assays, or issue other control commands in the first integration.
+“Pull” needs a device-specific decision: completed results might be pushed by the analyzer, requested by an authorized host, or exposed through the LIS. Even when the analyzer initiates a result upload, MediHub can receive it without sending orders. Use the least-permissive vendor-supported **results-only** mode. Do not download worklists, send orders, change analyzer configuration, start/stop assays, or issue other control commands in the first integration.
 
 ## Data and workflow requirements
 
@@ -38,11 +48,11 @@ The current `ObservationEvent` accepts only a numeric scalar, and the current FH
 
 Preserve the source result, code, unit, status, and timing. Do not guess an assay mapping, convert units, round values, infer a reference range, or turn an analyzer flag into a clinical interpretation. Unknown or inconsistent codes/units/statuses, duplicate/correction ambiguity, and missing association data must be quarantined for authorized review—not silently forwarded. Define separately how QC, calibration, maintenance, and non-patient records are recognized so they cannot be mistaken for patient results.
 
-Associate a result using the facility-authoritative accession/order and patient-context workflow. Do not match by patient name, bed/location, timing, or analyzer/sample position alone. Define which result states may leave MediHub and who verifies/releases them; an analyzer transmission acknowledgement is not the same as clinical verification or EMR acceptance.
+Associate a result using the facility-authoritative accession/order and patient-context workflow. Do not match by patient name, bed/location, timing, or analyzer/sample position alone. The requested technician review must remain explicit: deliver only as draft/preliminary/unverified if the receiver supports that workflow; otherwise stage the imported result for an authorized lab technician before any EMR submission. MediHub must never mark a result verified/final or auto-release it. An analyzer transmission acknowledgement is not clinical verification or EMR acceptance.
 
 ## Destination contract
 
-First identify what “EMS” means in this deployment and whether the actual receiver is an LIS, interface engine, EMR, emergency-services system, or another product. Obtain that exact receiver's approved interface contract before choosing a sender:
+The user uses EMS/EMR/HMS to mean the facility's Electronic Medical Record / Medical Record Management / Hospital Management Software. The exact vendor, product/version, and API are still unknown. Confirm whether the actual receiving endpoint is that system, an LIS, or an interface engine, and whether it accepts a pending/unverified result for lab-technician review. Obtain the approved interface contract before choosing a sender:
 
 - **HL7 v2:** exact version/profile, required ORU message structure (or other agreed message), transport/framing, ACK/NAK meaning, correction/replacement rules, duplicate key, retry policy, and sandbox procedure.
 - **FHIR:** exact server/version, CapabilityStatement, accepted profiles/resources (often a coordinated DiagnosticReport/Observation/Specimen/ServiceRequest workflow), identifiers, authorization/scopes, response/ACK meaning, idempotency, and correction behavior.
@@ -63,20 +73,20 @@ Track these items in the [Phase 0 discovery worksheet](INTEGRATION_DISCOVERY.md)
 ## Implementation gates
 
 1. **Discovery:** close the exact-device/interface and destination-contract questions above. Connectivity stays disabled.
-2. **Offline parser/model:** add a typed lab-result domain model and protocol-specific parser only from the authorized guide. Use vendor-approved synthetic fixtures; add malformed-frame, duplicate, correction, status, unit, timestamp, and property-based tests. No socket or live patient data.
-3. **Synthetic end-to-end:** run parser → reviewed mapping → policy/quarantine → durable outbox → local receiver with synthetic results only. Verify stable idempotency, lost-ACK handling, correction handling, audit, and recovery.
+2. **Offline parser/model:** a generic ASTM E1394 record-stream parser scaffold now exists at `src/medihub/adapters/devices/astm.py`. It uses synthetic tests, preserves opaque field values, applies byte/record/field bounds, hides record contents from `repr`, and does not interpret results. It does not implement E1381 framing/session control, sockets, serial I/O, a CL-900i profile, or HL7. After the authorized guide arrives, add the exact supported transport/profile and a typed lab-result model; use only vendor-approved synthetic fixtures.
+3. **Synthetic end-to-end:** run parser → reviewed mapping → pending-review policy/quarantine → durable outbox → local receiver with synthetic results only. Verify stable idempotency, lost-ACK handling, correction handling, audit, and recovery. The technician-review step must not be bypassed or converted into automatic finalization.
 4. **Authorized engineering bench:** use the named CL-900i and synthetic/non-patient samples under Mindray and facility approval. Initially observe results only; verify no analyzer control/order traffic and no interference with the existing LIS.
 5. **Receiver sandbox:** send only approved synthetic results to the named destination sandbox and verify application-level ACK, duplicate, correction, timeout, outage/recovery, and audit behavior.
 6. **Controlled pilot decision:** proceed only after laboratory/clinical sign-off of assay mappings and result-release states, identity workflow, security/privacy and Bangladesh legal/regulatory reviews, operational support, rollback, and written site acceptance. A successful bench demo alone is not clinical validation or deployment authorization.
 
 ## Information needed to proceed
 
-Please provide or confirm, using an approved channel and without patient data or credentials:
+The initial business scope is now **direct analyzer result intake, results-only, followed by lab-technician verification in the facility system**. To implement it, provide or confirm through an approved channel, without patient data or credentials:
 
-- whether an existing LIS is in the path, and whether MediHub should read from that LIS or connect directly to the analyzer;
 - the CL-900i's installed software/interface version and the vendor-authorized LIS guide or its non-confidential protocol summary;
-- whether the first scope is results-only (recommended) or also includes host queries/worklists;
-- the actual EMS/EMR/LIS product and supported interface/contract; and what you mean by “EMS”;
-- who owns the accession-to-patient association and who releases/validates results for chart delivery.
+- whether the CL-900i already has an LIS host connection and whether Mindray/facility permit MediHub as the direct host; if not, name the approved read-only LIS feed;
+- the exact EMS/EMR/HMS product/version and supported interface contract, including whether it can accept a draft/pending/unverified lab result for technician review;
+- the facility-authoritative specimen accession/order and patient association workflow, plus who can resolve mismatches;
+- an approved synthetic message set and engineering test environment, with controlled references rather than real captures in Git.
 
 Until these inputs and approvals exist, keep using synthetic data. Do not connect this preview or its current simulator to the analyzer or a live clinical receiver.
