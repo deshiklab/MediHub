@@ -66,6 +66,9 @@ async function installSyntheticApiStub(page: Page) {
 test.beforeEach(async ({ page }) => {
   await installSyntheticApiStub(page);
   await page.goto("/");
+  // The server-rendered select is actionable before Next.js hydrates its onChange handler.
+  // Wait for the client-side synthetic fetch before tests interact with hydrated controls.
+  await expect(page.locator(".metric-card").first().locator("strong")).toHaveText("12");
 });
 
 test("renders the live synthetic overview and accessible status", async ({ page }) => {
