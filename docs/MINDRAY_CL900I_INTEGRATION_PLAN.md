@@ -16,6 +16,8 @@ A public GitHub search found generic ASTM libraries but no verified CL-900i driv
 
 **Provisional development choice:** MediHub now has an offline, bounded ASTM E1394 record-stream parser scaffold using synthetic tests only. It does not implement E1381 framing/session control, HL7 v2, analyzer transport, CL-900i field mapping, or delivery. ASTM is a candidate—not a claim about the installed analyzer. If the authorized guide specifies HL7 instead, implement that exact profile rather than forcing ASTM.
 
+**Review-screen prototype:** the Next.js `/lab-review` page shows fabricated pending/unverified rows in English and Bengali. It has no patient context, ingestion, persistence, order/patient association, verification/finalization/release controls, or destination delivery; its “viewed” acknowledgement is only in browser memory. It demonstrates a safety boundary, not a usable clinical review workflow. Bengali copy still needs native-speaker review.
+
 ## User-confirmed workflow and proposed safe data path
 
 The requested topology is for MediHub to read results directly from the CL-900i and make them available to lab technicians in the facility's EMS/EMR/HMS for verification. The initial scope is results-only: MediHub must not send worklists, orders, assay controls, or analyzer configuration changes. This records the desired workflow; it does not confirm that the unit's installed LIS mode supports it.

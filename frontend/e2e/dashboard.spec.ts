@@ -102,3 +102,32 @@ test("keeps the Bengali page within common mobile widths", async ({ page }) => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
 });
+
+test("shows synthetic lab results as pending and never verifies or releases them", async ({ page }) => {
+  await page.getByRole("link", { name: "Lab review (demo)" }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Synthetic lab-result review" })).toBeVisible();
+  await expect(page.getByText("SYNTH-ACC-1001").first()).toBeVisible();
+  await expect(page.getByText("Pending technician review").first()).toBeVisible();
+  await expect(page.getByText("No patient data is present.", { exact: false })).toBeVisible();
+
+  await page.getByRole("button", { name: "Open demo details" }).first().click();
+  await expect(page.getByText("No reference interval or clinical interpretation is supplied.")).toBeVisible();
+  await page.getByRole("button", { name: "Acknowledge demo view" }).click();
+  await expect(page.getByRole("status")).toContainText("The result remains pending and unverified.");
+  await expect(page.getByRole("button", { name: /verify|finalize|release|send/i })).toHaveCount(0);
+});
+
+test("supports Bengali lab-review copy and keeps the table within mobile viewport", async ({ page }) => {
+  await page.getByRole("link", { name: "Lab review (demo)" }).click();
+  await page.getByRole("combobox", { name: "Interface language" }).selectOption("bn");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "bn");
+  await expect(page.getByRole("heading", { level: 1, name: "সিন্থেটিক ল্যাব ফলাফল পর্যালোচনা" })).toBeVisible();
+  await expect(page.getByText("ল্যাব টেকনিশিয়ানের পর্যালোচনার অপেক্ষায়").first()).toBeVisible();
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.getByRole("navigation", { name: "ড্যাশবোর্ডের পৃষ্ঠা" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+});

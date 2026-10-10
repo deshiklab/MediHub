@@ -47,6 +47,7 @@ const copy = {
     devices: "Device management",
     mappings: "Data mapping",
     api: "EMR / EMS APIs",
+    labReview: "Lab review (demo)",
     help: "Help / user guide",
     eyebrow: "SYNTHETIC OPERATIONS",
     title: "Integration operations",
@@ -95,6 +96,7 @@ const copy = {
     devices: "ডিভাইস ব্যবস্থাপনা",
     mappings: "ডেটা ম্যাপিং",
     api: "EMR / EMS API",
+    labReview: "ল্যাব পর্যালোচনা (ডেমো)",
     help: "সহায়তা / ব্যবহারকারী নির্দেশিকা",
     eyebrow: "সিন্থেটিক কার্যক্রম",
     title: "ইন্টিগ্রেশন কার্যক্রম",
@@ -246,6 +248,7 @@ export default function HomePage() {
         <Link className="nav-link" href="/devices">{text.devices}</Link>
         <Link className="nav-link" href="/mappings">{text.mappings}</Link>
         <Link className="nav-link" href="/api-setup">{text.api}</Link>
+        <Link className="nav-link" href="/lab-review">{text.labReview}</Link>
         <Link className="nav-link" href="/help">{text.help}</Link>
       </nav>
 
