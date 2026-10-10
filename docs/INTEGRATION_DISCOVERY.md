@@ -2,7 +2,7 @@
 
 ## Purpose and boundary
 
-MediHub is continuing Phase 0 discovery because the first authorized device, receiving system, facility, and clinical association workflow have not yet been specified. This preflight provides a structured worksheet and a local validator; the companion [receiver-contract preflight](RECEIVER_CONTRACT.md) records ACK, idempotency, retry/error, and limit semantics. Neither implements, configures, or enables a device/EHR connection.
+MediHub is continuing Phase 0 discovery. A Mindray CL-900i is a proposed first analyzer, but it is not yet an authorized or verified integration target: its exact software/LIS interface, destination system, facility, and accession/patient association workflow remain unspecified. See the [CL-900i-specific integration plan](MINDRAY_CL900I_INTEGRATION_PLAN.md). This preflight provides a structured worksheet and a local validator; the companion [receiver-contract preflight](RECEIVER_CONTRACT.md) records ACK, idempotency, retry/error, and limit semantics. Neither implements, configures, or enables a device/EHR connection.
 
 A profile reported as `discovery_complete` means only that the profile is structurally complete and every listed discovery gate has an approved or documented not-applicable decision with an evidence reference. It is **not** production authorization, regulatory approval, a safety case, a conformance claim, or permission to connect. `connectivity_enabled` is always `false` in the validator output. Connector code remains synthetic/in-process until the exact authorized interface contract and clinical workflow are supplied and separately reviewed.
 

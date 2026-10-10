@@ -3,6 +3,7 @@
 ## Project plan
 
 - [Medical device integration platform — research, architecture, stack, and development plan](docs/DEVICE_INTEGRATION_PLATFORM_PLAN.md)
+- [Mindray CL-900i integration plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) — target-specific discovery and safety gates; no live adapter is implemented.
 
 Bangladesh is a required deployment target; the plan includes a country-specific feasibility assessment and pilot gates.
 
@@ -54,7 +55,7 @@ pytest
 
 ### Phase 0: integration discovery
 
-The first device, receiving system, facility, and patient/device association workflow are not yet specified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md), copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
+A Mindray CL-900i is a proposed first analyzer, but its exact software/LIS interface, receiving system, facility, and accession/patient association workflow are not yet verified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the CL-900i-specific discovery plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) and [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md), copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
 
 ```bash
 python -m medihub validate-profile config/integration-profile.local.toml
