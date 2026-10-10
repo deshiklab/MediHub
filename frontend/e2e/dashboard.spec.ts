@@ -96,6 +96,7 @@ test("switches language and remembers Bengali after reload", async ({ page }) =>
 
 test("keeps the Bengali page within common mobile widths", async ({ page }) => {
   await page.getByRole("combobox", { name: "Interface language" }).selectOption("bn");
+  await expect(page.locator("html")).toHaveAttribute("lang", "bn");
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(page.getByRole("navigation", { name: "ড্যাশবোর্ডের পৃষ্ঠা" })).toBeVisible();
