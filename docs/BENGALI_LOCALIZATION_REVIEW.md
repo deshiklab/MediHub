@@ -33,7 +33,7 @@ python -m playwright install --only-shell chromium
 pytest tests/browser/test_dashboard_localization.py -q
 ```
 
-CI installs Chromium and runs these tests. The browser test stubs all FastAPI dashboard APIs with deterministic synthetic responses and aborts requests to other hosts; it never contacts a device or external receiver. The companion Next.js overview is independently type-checked and production-built in CI; its Bengali wording still needs the same native-speaker review. To run that build locally, use `cd frontend && npm ci && npm run build`.
+CI installs Chromium and runs these tests. The browser test stubs all FastAPI dashboard APIs with deterministic synthetic responses and aborts requests to other hosts; it never contacts a device or external receiver. The companion Next.js overview has its own Playwright language-persistence and mobile-width checks and is production-built in CI; its Bengali wording still needs the same native-speaker review. From `frontend/`, run `npm ci`, `npx playwright install --only-shell chromium`, `npm run build`, and `npm run test:e2e`.
 
 ## Human review checklist
 
