@@ -1,0 +1,47 @@
+# Copy to config/receiver-contract.local.toml and complete from the approved receiver contract.
+# This is a documentation/validation worksheet only; it never configures a transport.
+# Do not put endpoints, hostnames, credentials, tokens, patient data, or raw messages here.
+
+schema_version = "1.0"
+contract_id = "bd-first-receiver"
+discovery_profile_id = "bd-first-site"
+receiver_name = "TBD: exact receiving product/system"
+protocol = "fhir_r4" # fhir_r4 or hl7_v2
+interface_version = "TBD: exact receiver interface/profile version"
+
+[contract_evidence]
+status = "open"
+
+[acknowledgement]
+level = "unknown" # application, transport_only, or unknown
+meaning = "unknown" # accepted, durably_stored, queued, processed, or unknown
+success_codes = [] # normalized tokens, e.g. ["http_201"] or ["msa_aa"]
+
+[idempotency]
+key_kind = "unknown" # stable_event_id, fhir_identifier, hl7_msh10, facility_defined, none, unknown
+key_location = "unknown" # safe normalized token, e.g. observation_identifier or msh_10
+# No raw payloads, patient values, or arbitrary message fragments.
+duplicate_outcome = "unknown" # same_acknowledgement, acknowledged_as_duplicate, conflict, creates_duplicate, unknown
+retention = "unknown" # bounded, indefinite, unknown
+# Set retention_seconds only when retention = "bounded".
+# survives_receiver_restart = true or false only when the contract/evidence establishes it.
+
+[failure_handling]
+retryable_codes = [] # normalized codes, e.g. ["http_429", "http_503", "transport_timeout"]
+permanent_codes = [] # normalized codes, e.g. ["http_400", "msa_ar"]
+retry_hint_behavior = "unknown" # honored, ignored, not_supported, unknown
+
+[limits]
+# request_timeout_seconds = 10.0
+
+[limits.requests_per_minute]
+status = "unknown" # specified, unlimited, unknown
+# value = 60 # required when status = "specified"
+
+[limits.events_per_request]
+status = "unknown" # specified, unlimited, unknown
+# value = 1 # required when status = "specified"
+
+[limits.request_bytes]
+status = "unknown" # specified, unlimited, unknown
+# value = 1048576 # required when status = "specified"

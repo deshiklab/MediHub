@@ -1,1 +1,189 @@
 # MediHub
+
+## Project plan
+
+- [Medical device integration platform — research, architecture, stack, and development plan](docs/DEVICE_INTEGRATION_PLATFORM_PLAN.md)
+- [Mindray CL-900i integration plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) — target-specific discovery and safety gates; no live adapter is implemented.
+
+Bangladesh is a required deployment target; the plan includes a country-specific feasibility assessment and pilot gates.
+
+## User guide
+
+- [Dashboard user guide (English / বাংলা)](docs/user-guide.md) — page-by-page workflows, synthetic-only boundaries, safety guidance, troubleshooting, and a Bangladesh deployment-readiness checklist.
+- [Bengali localization review checklist](docs/BENGALI_LOCALIZATION_REVIEW.md) — human native-speaker review is pending.
+- Use the dashboard's **English / বাংলা** selector to switch the UI language; visit `/help` for the in-app guide.
+
+## Development status
+
+The first synthetic-only vertical slice is underway:
+
+- Pydantic domain contracts, adapter/destination ports, a deterministic simulator, and an NDJSON CLI.
+- A conservative route policy: synthetic data needs explicit test-destination acceptance; live data needs a matching, active, confirmed patient/device association and synchronized observation time.
+- Async SQLAlchemy event persistence, eligible outbox intents, and policy holds committed atomically, with event-ID deduplication and collision detection.
+- A durable routing-hold ledger that stores only destination IDs and stable reason codes; it has no free-text payloads or automatic override workflow.
+- A privacy-minimized lifecycle audit ledger that commits event, route, and outbox transitions atomically; see [audit scope and limitations](docs/AUDIT_TRAIL.md).
+- A single-item outbox dispatcher with database leases, attempt history, ACK/rejection handling, bounded exponential retries, and expired-lease recovery. Delivery is at-least-once; receivers should deduplicate on the stable event ID.
+- A bounded, synthetic-only NDJSON replay CLI that validates events and demonstrates event-store deduplication without sending to a receiver.
+- A generic synthetic FHIR R4 Observation mapper and in-process test receiver used by the end-to-end `medihub demo` command; it opens no network connection.
+- A bounded synthetic Load & Capacity Lab (`medihub load-demo`) that measures aggregate local ingest/outbox throughput and acknowledgement latency; it uses in-memory SQLite and the in-process test receiver, not a production stack.
+- A combined synthetic acceptance/resilience lab (`medihub acceptance-demo`) covering pipeline deduplication, patient-free mapping, policy holds, retry/rejection and guarded replay, lost acknowledgements with idempotent redelivery across worker and receiver restarts, file-backed recovery, and bounded load; all stages remain offline and do not qualify a real site.
+- A synthetic operations dashboard with a live in-memory event/outbox feed and a demo-only device-management workbench: Bangladesh device-library discovery leads (not an installed-base ranking or supported-driver list), ephemeral exact-model/firmware interface profiles with authorization/readiness blockers, active/inactive simulator controls, non-secret simulator API drafts, per-device flow/mapping views, curated synthetic CSV/JSON export, mapping QA, disconnected EMR/FHIR and EMS/HL7 readiness plans, and durable non-secret contract worksheets. Profiles cannot store hosts, ports, credentials, or activate connections; the only executable source remains the simulator, and ASTM E1394 remains an offline parser scaffold. The interface supports English and Bengali (বাংলা) and includes an in-app `/help` page, Playwright browser coverage for localization workflows, and a bilingual [user guide](docs/user-guide.md). Native-speaker Bengali review is pending; see the [localization review checklist](docs/BENGALI_LOCALIZATION_REVIEW.md). It has no physical-device controls, real endpoint/credential fields, or external destination connection.
+- A companion TypeScript/Next.js operations overview under `frontend/`. FastAPI remains the backend and the existing Python-served workbench; Next.js proxies same-origin API/page routes to it, and does not introduce a live device or EMR/EMS connector.
+- A bilingual synthetic lab-result review prototype at `/lab-review` with fabricated pending/unverified records, no patient context, no verification/finalization/release action, and only a browser-local view acknowledgement; it does not receive, persist, or send results.
+- A privacy-minimized Prometheus metrics endpoint for synthetic pipeline and HTTP health; labels use fixed status values and registered route templates, not event/device/patient identifiers.
+- A small generic FHIR R4 Observation shape check; it omits patient context and does not claim Bangladesh Core profile or facility-contract conformance.
+- A Phase 0 integration-discovery worksheet, versioned receiver-contract validator, and offline synthetic contract scenario harness for ACK, duplicate/lost-ACK retry, receiver restart, rejection, timeout, retention, and version drift; all report safe codes and keep connectivity disabled.
+- A bounded, offline ASTM E1394 record-stream parser scaffold with synthetic tests. It has no ASTM E1381 transport/session handling, CL-900i profile, result mapping, or device connection; see the [CL-900i integration plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md).
+- A machine-readable source-to-canonical-to-destination mapping worksheet and strict linter; it never executes transformations or activates mappings.
+- An offline mapping workbench that applies exact-match, versioned synthetic-only mappings to bounded synthetic fixtures; it has no database or destination connection.
+- A file-backed synthetic recovery drill that simulates an expired outbox lease, a gateway engine restart, a transient receiver failure, and queue drain without external connectivity.
+- Alembic migrations for SQLite development and PostgreSQL; CI is configured to exercise PostgreSQL 16 and concurrent row claims.
+
+This is not production-ready storage. Persisted event JSON can contain patient identifiers if supplied. Use synthetic data only until facility-approved access controls, encryption, retention, backups/recovery, and operational/security controls are implemented. There is not yet a verified real-device protocol, destination connector, operator review workflow, production-grade authenticated management API, or EHR/SHR integration. The dashboard includes in-memory synthetic setup controls and a durable store limited to allowlisted non-secret EMR/EMS worksheet metadata, but it is not a production operator control plane: it has no authentication, persistent device/mapping registry, real device control, or external API connection. The audit ledger is metadata-only, unauthenticated, and not tamper-evident or a compliance claim. The replay command is local/test-only and does not deliver events. The simulator uses `example.invalid` terminology identifiers.
+
+## Local development
+
+Requires Python 3.11 or newer. Python 3.12 is the planned production baseline.
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m playwright install --only-shell chromium
+ruff check .
+ruff format --check .
+pytest
+```
+
+### Phase 0: integration discovery
+
+A Mindray CL-900i is a proposed first analyzer, but its exact software/LIS interface, receiving system, facility, and accession/patient association workflow are not yet verified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the CL-900i-specific discovery plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) and [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md), copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
+
+```bash
+python -m medihub validate-profile config/integration-profile.local.toml
+```
+
+The command reports schema validity, readiness, and stable safe codes only; it never echoes profile values, and `connectivity_enabled` is always `false`. Completed profiles may contain sensitive facility/vendor details: keep them local, and never store secrets or PHI. Even `discovery_complete` is not production authorization or a conformance claim.
+
+Capture the receiver's documented acknowledgement, idempotency, retry/error, and operational-limit behavior in the strict companion worksheet. Copy `config/receiver-contract.example.toml` to the Git-ignored `config/receiver-contract.local.toml`, complete it only from the approved receiver contract, then run:
+
+```bash
+python -m medihub validate-contract config/receiver-contract.local.toml
+```
+
+The validator emits schema status, safe blocker codes, and `connectivity_enabled: false`; it never echoes contract values or the path and never opens a connection. A `contract_documented` result is only a structured documentation check—not a conformance, security, or deployment approval. See [the receiver-contract guide](docs/RECEIVER_CONTRACT.md).
+
+Run the offline receiver-contract decision scenarios after the contract is documented:
+
+```bash
+python -m medihub contract-test config/receiver-contract.local.toml
+```
+
+For bounded idempotency retention, also supply the maximum site retry/redelivery horizon, for example `--required-idempotency-horizon-seconds 86400`. The command tests a temporary local model only; it reports `real_receiver_tested: false`, never opens a connection, and does not verify the facility receiver. See [the scenario matrix and limitations](docs/RECEIVER_CONTRACT_ACCEPTANCE.md).
+
+For the source-to-canonical-to-destination worksheet, copy `config/device-mapping.example.toml` to the Git-ignored `config/device-mapping.local.toml`, fill it only from authorized device/synthetic messages and the actual receiver contract, then run:
+
+```bash
+python -m medihub validate-mapping config/device-mapping.local.toml
+```
+
+This linter checks worksheet completeness and safe review gates only. `mapping_activation_enabled` is always `false`; no device metric is normalized and no receiver contract is inferred. See [the worksheet guide](docs/DEVICE_MAPPING_WORKSHEET.md).
+
+For an isolated synthetic-only mapping dry run (no database or receiver), generate a fixture and map it with the committed simulator example:
+
+```bash
+python -m medihub simulate --count 3 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z > /tmp/medihub-synthetic.ndjson
+python -m medihub map-synthetic /tmp/medihub-synthetic.ndjson \
+  --mapping config/synthetic-mapping.example.toml
+```
+
+The mapper rejects patient context and non-synthetic inputs and emits no partial output on failure. It does not run as part of ingestion. See [the synthetic workbench limits](docs/SYNTHETIC_MAPPING_WORKBENCH.md).
+
+Exercise file-backed queue recovery using a disposable SQLite file and the in-process synthetic receiver:
+
+```bash
+python -m medihub recovery-demo --count 3 --seed 7 \
+  --duplicate-every 2 --start-at 2026-10-07T08:00:00Z
+```
+
+The command simulates an engine restart after an unfinished lease, injects one retryable receiver failure, and reports aggregate recovery counts. Its temporary DB is removed at exit; it does not use `MEDIHUB_DATABASE_URL` or contact a device/external receiver. This is not a power-loss, backup/restore, production, or facility acceptance test. See [the drill limitations](docs/SYNTHETIC_RECOVERY_DRILL.md).
+
+Launch the synthetic operations dashboard and demo-only setup workbench locally:
+
+```bash
+python -m medihub dashboard --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000`. The navigation now loads separate pages: Operations at `/` (or `/operations`), Devices at `/devices`, Mappings at `/mappings`, API setup at `/api-setup`, and the bilingual help page at `/help`; the header language selector switches between English and বাংলা and remembers the choice in that browser. The previous root fragment links are redirected to their matching pages. The operations feed emits one synthetic event every two seconds, redelivers every fourth event for deduplication, and records a `synthetic_not_accepted` hold. The setup workbench can register/disable simulator-only rows, add and preview synthetic mapping drafts, inspect, compare, and restore mapping revisions as new inactive versions; run version-tagged golden mapping tests with stale-result detection; and send a test event to the in-process receiver. The receiver fault drill can inject one retryable outcome or terminal rejection on the next synthetic send, then observe the normal outbox behavior; it never opens a network connection. Inspecting a delivery shows an allowlisted synthetic timeline, and a terminal failure below the retry cap can be replayed with its original event ID; patient/raw payload fields are not exposed. Device/mapping settings and event history are ephemeral; the event store retains at most 500 events, holds, and their audit metadata in in-memory SQLite. The API setup worksheet is the exception: its fixed allowlisted non-secret EMR/EMS metadata persists in `./medihub-local.db`, or in the database URL selected by `MEDIHUB_DATABASE_URL`. There are no physical device connections, external endpoint/credential fields, or live activation. For an Arena browser preview, bind to `0.0.0.0`; this unauthenticated preview must not be exposed as a production service. See [management workbench limits](docs/SYNTHETIC_MANAGEMENT_WORKBENCH.md). It also exposes `/healthz` and a low-cardinality Prometheus `/metrics` endpoint for local operations exercises; neither represents production readiness or facility SLOs. See [synthetic observability limits](docs/SYNTHETIC_OBSERVABILITY.md).
+
+### Next.js companion preview
+
+The Next.js home page is an optional companion to the existing Python dashboard. Start FastAPI in one terminal:
+
+```bash
+python -m medihub dashboard --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, install and run the frontend:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:3000`. The home page polls the synthetic `/api/dashboard` route through a same-origin Next.js rewrite; links to Devices, Mappings, API setup, and Help continue to use the FastAPI-served workbench. Set `MEDIHUB_BACKEND_URL` if the backend listens elsewhere. For an Arena preview, bind the Python backend to `0.0.0.0:8000`; the Next.js dev script already binds to `0.0.0.0:3000` and allows the Arena preview origin. Both processes must stay running. This remains an unauthenticated, synthetic-only preview, not a production control plane.
+
+Run an end-to-end synthetic check (in-memory SQLite and an in-process test receiver; it opens no network connection):
+
+```bash
+python -m medihub demo --count 5 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z
+```
+
+The JSON summary reports ingested events, duplicates, acknowledgements, test receipts, and simulator health. The demo validates a small generic R4 Observation shape only; it is not a network integration test or a validator for Bangladesh Core FHIR profiles or a facility contract.
+
+Run the combined synthetic acceptance and resilience workflow (2–100 unique events):
+
+```bash
+python -m medihub acceptance-demo --count 10 --seed 7 \
+  --duplicate-every 2 --start-at 2026-10-07T08:00:00Z
+```
+
+It runs the synthetic pipeline/deduplication, built-in patient-free mapping, retry → terminal rejection → guarded replay, and a lost-acknowledgement scenario where the receiver accepts once but the worker retries after restart using the same event ID. The synthetic receiver should see two sends but retain one unique receipt. The file-backed recovery drill and bounded in-memory load profile also run. JSON contains aggregate checks and metrics only. The command uses disposable/local SQLite stores and in-process receivers, ignores `MEDIHUB_DATABASE_URL`, and never opens a network connection. A pass means only that these code-level synthetic checks passed; facility acceptance, real receiver idempotency, a real device, destination contract, and Bangladesh Core conformance are not tested. See [the acceptance lab limits](docs/SYNTHETIC_ACCEPTANCE_LAB.md) and [the ACK-loss drill limits](docs/SYNTHETIC_ACK_LOSS_DRILL.md).
+
+Run the bounded synthetic load lab (up to 1,000 unique events):
+
+```bash
+python -m medihub load-demo --count 100 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z --duplicate-every 10
+```
+
+It reports aggregate event, duplicate, delivery, throughput, and p50/p95 acknowledgement-latency metrics. It always uses in-memory SQLite and the in-process synthetic receiver, ignores `MEDIHUB_DATABASE_URL`, prints no event payloads, and never opens a network connection. Treat the numbers only as local functional profiling—not production sizing, site SLOs, network performance, clinical readiness, or a validated load test. See [the lab metric definitions and limits](docs/SYNTHETIC_LOAD_LAB.md).
+
+Create the local SQLite schema for persistent replay (the default database file is ignored by Git):
+
+```bash
+alembic upgrade head
+```
+
+Emit five deterministic synthetic scalar readings as newline-delimited JSON:
+
+```bash
+python -m medihub simulate --count 5 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z
+```
+
+Deterministic fault controls include `--duplicate-every`, `--reverse-adjacent-pairs`, `--clock-drift-ms-per-sample`, `--disconnect-after` / `--disconnect-for`, and `--firmware-version`. Unsupported firmware degrades adapter health and emits no observations.
+
+Store a generated fixture locally, then replay it twice to see idempotent deduplication (`MEDIHUB_DATABASE_URL` can point to another migrated development database):
+
+```bash
+python -m medihub simulate --count 5 --seed 7 \
+  --start-at 2026-10-07T08:00:00Z > /tmp/medihub-events.ndjson
+python -m medihub replay /tmp/medihub-events.ndjson
+python -m medihub replay /tmp/medihub-events.ndjson
+```
+
+Replay accepts only synthetic events without patient context, stores them without creating delivery intents, and prints counts only. CI runs Python 3.11 and 3.12 against PostgreSQL 16, applies migrations, and runs the test suite. Do not put real patient/device data in fixtures, command output, or source control.

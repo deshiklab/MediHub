@@ -1,0 +1,70 @@
+# Copy this file to config/integration-profile.local.toml and complete it locally.
+# This is an unresolved discovery worksheet, not a connector configuration.
+# Never put credentials, tokens, patient identifiers, health data, URLs, or raw endpoints here.
+
+schema_version = "1.0"
+profile_id = "bd-first-site"
+
+[use_case]
+statement = "TBD: intended use and data scope; use synthetic data in tests."
+
+[use_case.approval]
+status = "open"
+
+[device]
+manufacturer = "TBD"
+model = "TBD"
+firmware_versions = ["TBD"]
+transport = "TBD: vendor-authorized transport"
+protocol_version = "TBD: exact interface/version"
+
+[device.vendor_authorization]
+status = "open"
+
+[device.technical_specification]
+status = "open"
+
+[device.test_assets]
+status = "open"
+
+[destination]
+product = "TBD: receiver product/system"
+protocol = "TBD: exact interface"
+interface_version = "TBD"
+
+[destination.contract]
+status = "open"
+
+[destination.protocol_mapping_worksheet]
+status = "open"
+
+[destination.synthetic_test_receiver]
+status = "open"
+
+[patient_association]
+authority = "TBD: facility-approved source of patient/device association"
+
+[patient_association.workflow]
+status = "open"
+
+[patient_association.clinical_owner]
+status = "open"
+
+[deployment]
+facility = "TBD: first pilot facility"
+country_code = "BD"
+site_owners = { status = "open" }
+hosting_location = "TBD: approved hosting/data-residency location"
+cross_border_decision = "undecided"
+
+[deployment.approved_network_flow]
+status = "open"
+
+[deployment.privacy_legal_review]
+status = "open"
+
+[deployment.regulatory_review]
+status = "open"
+
+[deployment.synthetic_test_plan]
+status = "open"

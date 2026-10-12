@@ -1,0 +1,384 @@
+"""Bangladesh-oriented device discovery catalogue and non-connectable profiles.
+
+This module contains no transport, endpoint, credential, patient, or measurement
+configuration. Catalogue entries are research leads, not supported-device claims.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Annotated, Literal
+from uuid import UUID, uuid4
+
+from pydantic import Field, StringConstraints, model_validator
+
+from medihub.domain.base import AwareDateTime, DomainModel
+
+DeviceFamily = Literal[
+    "immunoassay",
+    "hematology",
+    "clinical_chemistry",
+    "urinalysis",
+    "electrolyte",
+    "coagulation",
+    "hba1c",
+    "blood_gas",
+    "point_of_care",
+    "other",
+]
+DeviceTransport = Literal["unconfirmed", "tcp", "serial", "file_feed", "vendor_gateway"]
+DeviceProtocol = Literal[
+    "unconfirmed",
+    "astm_e1394",
+    "hl7_v2",
+    "vendor_defined",
+    "other",
+]
+ApprovalStatus = Literal["pending", "approved"]
+
+SafeProfileLabel = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=80,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9 .()_-]{0,79}$",
+    ),
+]
+SafeEvidenceReference = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+    ),
+]
+
+
+class DeviceLibraryCandidate(DomainModel):
+    """A local-market discovery lead; never implies an installed base or driver."""
+
+    candidate_id: str = Field(pattern=r"^[a-z][a-z0-9-]{2,63}$")
+    manufacturer: str = Field(min_length=1, max_length=80)
+    model: str = Field(min_length=1, max_length=80)
+    device_family: DeviceFamily
+    discovery_basis: Literal[
+        "user_selected_target",
+        "bangladesh_seller_listing",
+        "bangladesh_supplier_category",
+    ]
+    evidence_note: str = Field(min_length=1, max_length=180)
+    source_url: str | None = Field(default=None, pattern=r"^https://")
+    status: Literal["discovery_only"] = "discovery_only"
+    compatibility_verified: Literal[False] = False
+    live_adapter_available: Literal[False] = False
+
+
+DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
+    DeviceLibraryCandidate(
+        candidate_id="mindray-cl900i",
+        manufacturer="Mindray",
+        model="CL-900i",
+        device_family="immunoassay",
+        discovery_basis="user_selected_target",
+        evidence_note=(
+            "User-selected integration target; installed base, firmware, and host interface "
+            "are unverified."
+        ),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="mindray-bc-20s",
+        manufacturer="Mindray",
+        model="BC-20s",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Bangladesh seller listing only; not evidence of installed-base prevalence or "
+            "connectivity."
+        ),
+        source_url="https://www.medistorebd.com/product/hematology-analyzer-bc-20s/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="mindray-bc-10",
+        manufacturer="Mindray",
+        model="BC-10",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Bangladesh seller listing only; not evidence of installed-base prevalence or "
+            "connectivity."
+        ),
+        source_url="https://www.medistorebd.com/product/mindray-bc-10-auto-hematology-analyzer/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="mindray-ba-88a",
+        manufacturer="Mindray",
+        model="BA-88A",
+        device_family="clinical_chemistry",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Bangladesh seller listing only; confirm exact unit and any structured host output "
+            "with the site."
+        ),
+        source_url="https://technohealth.com.bd/mindray-biochemistry-analyzer-ba-88a/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="erba-chem-5x",
+        manufacturer="Erba",
+        model="Chem 5x",
+        device_family="clinical_chemistry",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Bangladesh seller listing only; confirm exact unit and any structured host output "
+            "with the site."
+        ),
+        source_url="https://technohealth.com.bd/erba-chem-5x-biochemistry-analyzer/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-urinalysis",
+        manufacturer="To be confirmed",
+        model="Urinalysis analyzer to survey",
+        device_family="urinalysis",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-electrolyte",
+        manufacturer="To be confirmed",
+        model="Electrolyte analyzer to survey",
+        device_family="electrolyte",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-coagulation",
+        manufacturer="To be confirmed",
+        model="Coagulation analyzer to survey",
+        device_family="coagulation",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-hba1c",
+        manufacturer="To be confirmed",
+        model="HbA1c analyzer to survey",
+        device_family="hba1c",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-blood-gas",
+        manufacturer="To be confirmed",
+        model="Blood-gas analyzer to survey",
+        device_family="blood_gas",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="survey-point-of-care",
+        manufacturer="To be confirmed",
+        model="Point-of-care analyzer to survey",
+        device_family="point_of_care",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note="Family-level survey lead; choose an exact model from facility inventory.",
+    ),
+)
+
+
+class DeviceProfileDraft(DomainModel):
+    """Non-secret discovery metadata; deliberately cannot describe a connection."""
+
+    candidate_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9-]{2,63}$",
+    )
+    manufacturer: SafeProfileLabel
+    model: SafeProfileLabel
+    device_family: DeviceFamily
+    firmware_software_scope: SafeProfileLabel = "unknown"
+    transport: DeviceTransport = "unconfirmed"
+    protocol: DeviceProtocol = "unconfirmed"
+    protocol_version: SafeProfileLabel | None = None
+    interface_document_reference: SafeEvidenceReference | None = None
+    vendor_authorization_status: ApprovalStatus = "pending"
+    vendor_authorization_reference: SafeEvidenceReference | None = None
+    facility_authorization_status: ApprovalStatus = "pending"
+    facility_authorization_reference: SafeEvidenceReference | None = None
+    results_only_confirmed: bool = False
+    receiver_contract_reference: SafeEvidenceReference | None = None
+
+    @model_validator(mode="after")
+    def approved_gates_need_evidence_references(self) -> DeviceProfileDraft:
+        if (
+            self.vendor_authorization_status == "approved"
+            and self.vendor_authorization_reference is None
+        ):
+            raise ValueError("vendor_approval_reference_required")
+        if (
+            self.facility_authorization_status == "approved"
+            and self.facility_authorization_reference is None
+        ):
+            raise ValueError("facility_approval_reference_required")
+        if self.results_only_confirmed and self.interface_document_reference is None:
+            raise ValueError("interface_document_reference_required")
+        return self
+
+
+class DeviceProfileRecord(DeviceProfileDraft):
+    """Ephemeral saved profile; its readiness never activates hardware."""
+
+    profile_id: UUID
+    created_at: AwareDateTime
+    updated_at: AwareDateTime
+
+
+def new_device_profile(draft: DeviceProfileDraft) -> DeviceProfileRecord:
+    """Create an in-memory-compatible record with server-owned identity/timestamps."""
+
+    now = datetime.now(UTC)
+    return DeviceProfileRecord(
+        **draft.model_dump(),
+        profile_id=uuid4(),
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def device_profile_readiness(record: DeviceProfileRecord) -> dict[str, object]:
+    """Return explicit, non-sensitive gates without implying support or activation."""
+
+    firmware_confirmed = record.firmware_software_scope.casefold() not in {
+        "unknown",
+        "unconfirmed",
+        "to be confirmed",
+    }
+    protocol_confirmed = record.protocol != "unconfirmed" and record.protocol_version is not None
+    transport_confirmed = record.transport != "unconfirmed"
+    document_recorded = record.interface_document_reference is not None
+    vendor_approved = (
+        record.vendor_authorization_status == "approved"
+        and record.vendor_authorization_reference is not None
+    )
+    facility_approved = (
+        record.facility_authorization_status == "approved"
+        and record.facility_authorization_reference is not None
+    )
+    receiver_contract_recorded = record.receiver_contract_reference is not None
+
+    checks = [
+        {"id": "exact_device_identity", "status": "recorded"},
+        {
+            "id": "firmware_scope",
+            "status": "recorded" if firmware_confirmed else "pending",
+        },
+        {"id": "documented_transport", "status": "recorded" if transport_confirmed else "pending"},
+        {"id": "protocol_and_version", "status": "recorded" if protocol_confirmed else "pending"},
+        {
+            "id": "controlled_interface_document",
+            "status": "recorded" if document_recorded else "pending",
+        },
+        {
+            "id": "vendor_authorization",
+            "status": "recorded" if vendor_approved else "pending",
+        },
+        {
+            "id": "facility_authorization",
+            "status": "recorded" if facility_approved else "pending",
+        },
+        {
+            "id": "results_only_scope",
+            "status": "recorded" if record.results_only_confirmed else "pending",
+        },
+        {
+            "id": "receiver_contract",
+            "status": "recorded" if receiver_contract_recorded else "pending",
+        },
+        {"id": "synthetic_validation", "status": "not_run"},
+        {"id": "site_approval", "status": "not_approved"},
+    ]
+
+    blockers: set[str] = set()
+    if not firmware_confirmed:
+        blockers.add("firmware_scope_unconfirmed")
+    if record.protocol == "unconfirmed":
+        blockers.add("protocol_unconfirmed")
+    elif record.protocol_version is None:
+        blockers.add("protocol_version_missing")
+    if not transport_confirmed:
+        blockers.add("transport_unconfirmed")
+    if not document_recorded:
+        blockers.add("interface_document_reference_missing")
+    if not vendor_approved:
+        blockers.add("vendor_authorization_pending")
+    if not facility_approved:
+        blockers.add("facility_authorization_pending")
+    if not record.results_only_confirmed:
+        blockers.add("results_only_scope_unconfirmed")
+    if not receiver_contract_recorded:
+        blockers.add("receiver_contract_missing")
+
+    ordered_blockers = sorted(blockers)
+    status = (
+        "discovery_only" if ordered_blockers else "discovery_complete_pending_synthetic_validation"
+    )
+    return {
+        "status": status,
+        "blockers": ordered_blockers,
+        "checks": checks,
+        "synthetic_validation_status": "not_run",
+        "site_approval_status": "not_approved",
+        "hardware_connection_enabled": False,
+    }
+
+
+def device_profile_payload(record: DeviceProfileRecord) -> dict[str, object]:
+    """Serialize profile metadata and fail-closed readiness flags."""
+
+    return {
+        **record.model_dump(mode="json"),
+        "readiness": device_profile_readiness(record),
+    }
+
+
+def device_library_payload() -> dict[str, object]:
+    """Expose implemented adapter capabilities separately from market leads."""
+
+    return {
+        "mode": "synthetic_only",
+        "country_focus": "BD",
+        "candidate_count": len(DEVICE_LIBRARY_CANDIDATES),
+        "installed_base_ranked": False,
+        "physical_device_connections_enabled": False,
+        "endpoint_fields_supported": False,
+        "credential_fields_supported": False,
+        "device_adapters": [
+            {
+                "adapter_id": "medihub.synthetic-device",
+                "label": "Deterministic synthetic simulator",
+                "status": "available_for_local_demo",
+                "connects_to_physical_device": False,
+            },
+            {
+                "adapter_id": "offline-astm-e1394-parser-scaffold",
+                "label": "Offline ASTM E1394 record parser scaffold",
+                "status": "parser_only_no_transport_or_model_profile",
+                "connects_to_physical_device": False,
+            },
+        ],
+        "candidates": [
+            candidate.model_dump(mode="json") for candidate in DEVICE_LIBRARY_CANDIDATES
+        ],
+    }
+
+
+__all__ = [
+    "DEVICE_LIBRARY_CANDIDATES",
+    "DeviceLibraryCandidate",
+    "DeviceProfileDraft",
+    "DeviceProfileRecord",
+    "device_library_payload",
+    "device_profile_payload",
+    "device_profile_readiness",
+    "new_device_profile",
+]
