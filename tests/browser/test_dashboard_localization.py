@@ -122,9 +122,19 @@ def page(browser: Browser) -> Page:
             "status": "contract_required",
             "checks": [
                 *[{"id": gate, "status": "pending"} for gate in api_evidence_gate_ids],
-                {"id": "synthetic_validation", "status": "not_run"},
+                {
+                    "id": "synthetic_validation",
+                    "status": "not_run",
+                    "scope": "local_fixture_only"
+                    if target_id == "emr_fhir_r4"
+                    else "blocked_pending_exact_receiver_contract",
+                },
                 {"id": "site_approval", "status": "not_approved"},
             ],
+            "synthetic_validation_scope": "local_fixture_only"
+            if target_id == "emr_fhir_r4"
+            else "blocked_pending_exact_receiver_contract",
+            "synthetic_validation_report": None,
             "external_connection_enabled": False,
             "endpoint_fields_supported": False,
             "credential_fields_supported": False,
@@ -353,7 +363,69 @@ def page(browser: Browser) -> Page:
                         }
                     ],
                     "api_targets": api_targets,
+                    "external_connections_enabled": False,
+                    "target_conformance_claimed": False,
+                    "destination_profiles_persistent": False,
                 },
+            )
+            return
+
+        if (
+            parsed.path == "/api/management/destinations/fhir-synthetic-validation"
+            and request.method == "POST"
+        ):
+            report = {
+                "target_id": "emr_fhir_r4",
+                "validation_id": "00000000-0000-0000-0000-000000000001",
+                "fixture_version": "medihub-fhir-r4-synthetic-observation-v1",
+                "status": "local_fixture_passed",
+                "profile_fingerprint": None,
+                "ran_at": "2026-10-12T07:00:00Z",
+                "checks": [
+                    {
+                        "check_id": "synthetic_event_origin",
+                        "status": "passed",
+                        "code": "synthetic_event_confirmed",
+                    },
+                    {
+                        "check_id": "patient_context_omitted",
+                        "status": "passed",
+                        "code": "patient_context_absent",
+                    },
+                    {
+                        "check_id": "fixture_output_matches",
+                        "status": "passed",
+                        "code": "fixture_output_matches",
+                    },
+                    {
+                        "check_id": "fhir_r4_model_validation",
+                        "status": "passed",
+                        "code": "fhir_r4_model_validation_passed",
+                    },
+                    {
+                        "check_id": "preliminary_status",
+                        "status": "passed",
+                        "code": "preliminary_status_confirmed",
+                    },
+                ],
+                "scope": "local_fixture_only",
+                "network_enabled": False,
+                "sent": False,
+                "external_connection_enabled": False,
+                "target_contract_validated": False,
+                "target_conformance_claimed": False,
+                "site_approval_changed": False,
+            }
+            fhir_target = next(
+                target for target in api_targets if target["target_id"] == "emr_fhir_r4"
+            )
+            fhir_target["synthetic_validation_report"] = report
+            for check in fhir_target["checks"]:
+                if check["id"] == "synthetic_validation":
+                    check["status"] = "local_fixture_passed"
+            _json_response(
+                route,
+                {"mode": "synthetic_only", **report, "persistent": False},
             )
             return
 
@@ -535,6 +607,19 @@ def test_mapping_api_and_help_pages_remain_readable_on_mobile(page: Page) -> Non
     )
     expect(page.locator("#fhir-preview-details")).to_be_visible()
     expect(page.locator("#fhir-preview-resource")).to_contain_text('"resourceType": "Observation"')
+
+    page.locator("#run-fhir-synthetic-validation").click()
+    expect(page.locator("#fhir-validation-status")).to_contain_text("স্থানীয় fixture পাস করেছে")
+    expect(page.locator("#fhir-validation-status")).to_contain_text("সাইট অনুমোদনের দাবি নয়")
+    expect(page.locator("#fhir-validation-details")).to_be_visible()
+    expect(page.locator("#fhir-validation-report")).to_contain_text("fixture_output_matches")
+    expect(
+        page.locator("#fhir-api-readiness li[data-status='local_fixture_passed']")
+    ).to_contain_text("স্থানীয় fixture পাস করেছে")
+    expect(page.locator("#hl7-api-readiness li[data-status='not_run']")).to_contain_text(
+        "চালানো হয়নি"
+    )
+
     expect(page.locator("#delivery-fault-status")).to_have_text(
         "কোনো ডেলিভারি ত্রুটি নির্ধারিত নেই। মোট তৈরি: 0। নেটওয়ার্ক বন্ধ।"
     )

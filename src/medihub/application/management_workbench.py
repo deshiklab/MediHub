@@ -10,6 +10,12 @@ from pydantic import Field, StringConstraints, ValidationError, model_validator
 
 from medihub.adapters.destinations.fhir_r4 import build_synthetic_observation
 from medihub.adapters.destinations.synthetic_fault_injector import SyntheticFaultInjectorError
+from medihub.application.destination_synthetic_validation import (
+    DestinationSyntheticValidationRecord,
+    destination_profile_fingerprint,
+    destination_validation_readiness_status,
+    run_offline_fhir_synthetic_validation,
+)
 from medihub.application.device_registry import (
     DEVICE_LIBRARY_CANDIDATES,
     DeviceProfileDraft,
@@ -78,6 +84,9 @@ def _destination_api_readiness_target(
     protocol_scope: str,
     current_surface: dict[str, object],
     profile: dict[str, object] | None,
+    synthetic_validation_status: str = "not_run",
+    synthetic_validation_scope: str = "target_contract_not_validated",
+    synthetic_validation_report: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Describe a disconnected target and operator-recorded, non-secret evidence."""
 
@@ -147,23 +156,31 @@ def _destination_api_readiness_target(
     ]
     checks.extend(
         [
-            {"id": "synthetic_validation", "status": "not_run"},
+            {
+                "id": "synthetic_validation",
+                "status": synthetic_validation_status,
+                "scope": synthetic_validation_scope,
+            },
             {"id": "site_approval", "status": "not_approved"},
         ]
     )
     all_evidence_recorded = all(status == "recorded" for status in evidence_status.values())
+    readiness_status = "contract_required"
+    if target_id != "facility_hl7_v2" and all_evidence_recorded:
+        readiness_status = {
+            "local_fixture_passed": "local_fixture_passed_target_contract_required",
+            "local_fixture_failed": "local_fixture_failed_target_contract_required",
+        }.get(synthetic_validation_status, "discovery_complete_pending_synthetic_validation")
     return {
         "target_id": target_id,
         "label": label,
         "protocol": protocol,
         "protocol_scope": protocol_scope,
-        "status": (
-            "discovery_complete_pending_synthetic_validation"
-            if all_evidence_recorded
-            else "contract_required"
-        ),
+        "status": readiness_status,
         "checks": checks,
         "profile": profile,
+        "synthetic_validation_scope": synthetic_validation_scope,
+        "synthetic_validation_report": synthetic_validation_report,
         "current_surface": current_surface,
         "external_connection_enabled": False,
         "endpoint_fields_supported": False,
@@ -367,6 +384,9 @@ class SyntheticManagementWorkbench:
         }
         self._device_profiles: dict[str, DeviceProfileRecord] = {}
         self._destination_api_profiles: dict[str, DestinationApiProfileRecord] = {}
+        self._destination_api_validation_reports: dict[
+            str, DestinationSyntheticValidationRecord
+        ] = {}
         self._mapping_set = _example_mapping_set()
         self._mapping_revisions: list[SyntheticMappingRevision] = [
             SyntheticMappingRevision(
@@ -398,11 +418,21 @@ class SyntheticManagementWorkbench:
             return
         await store.start()
         try:
-            payloads = await store.list_profiles()
-            profiles = [DestinationApiProfileRecord.model_validate(payload) for payload in payloads]
+            profile_payloads = await store.list_profiles()
+            validation_payloads = await store.list_validations()
+            profiles = [
+                DestinationApiProfileRecord.model_validate(payload) for payload in profile_payloads
+            ]
+            validations = [
+                DestinationSyntheticValidationRecord.model_validate(payload)
+                for payload in validation_payloads
+            ]
         except ValidationError:
             raise DestinationApiProfileStoreError() from None
         self._destination_api_profiles = {profile.target_id: profile for profile in profiles}
+        self._destination_api_validation_reports = {
+            report.target_id: report for report in validations
+        }
 
     async def stop(self) -> None:
         """Dispose the optional worksheet store's database engine."""
@@ -958,9 +988,21 @@ class SyntheticManagementWorkbench:
                 target_id: profile.model_dump(mode="json")
                 for target_id, profile in self._destination_api_profiles.items()
             }
+            validations = dict(self._destination_api_validation_reports)
+        fhir_validation_record = validations.get("emr_fhir_r4")
+        fhir_validation_status = destination_validation_readiness_status(
+            fhir_validation_record,
+            profiles.get("emr_fhir_r4"),
+        )
+        fhir_validation_report = (
+            fhir_validation_record.model_dump(mode="json")
+            if fhir_validation_record is not None
+            else None
+        )
         return {
             "mode": "synthetic_only",
             "external_connections_enabled": False,
+            "target_conformance_claimed": False,
             "destination_profiles_persistent": self._destination_api_profile_store is not None,
             "destinations": [
                 {
@@ -997,6 +1039,9 @@ class SyntheticManagementWorkbench:
                         "target_conformance_validated": False,
                     },
                     profile=profiles.get("emr_fhir_r4"),
+                    synthetic_validation_status=fhir_validation_status,
+                    synthetic_validation_scope="local_fixture_only",
+                    synthetic_validation_report=fhir_validation_report,
                 ),
                 _destination_api_readiness_target(
                     target_id="facility_hl7_v2",
@@ -1014,6 +1059,7 @@ class SyntheticManagementWorkbench:
                         "transport": "not_available",
                     },
                     profile=profiles.get("facility_hl7_v2"),
+                    synthetic_validation_scope="blocked_pending_exact_receiver_contract",
                 ),
             ],
         }
@@ -1050,6 +1096,33 @@ class SyntheticManagementWorkbench:
             return await self._operations.clear_synthetic_delivery_fault()
         except SyntheticFaultInjectorError as error:
             raise ManagementWorkbenchError(error.code, 409) from None
+
+    async def run_fhir_synthetic_validation(self) -> dict[str, object]:
+        """Run and retain the fixed local FHIR fixture result; never validate a receiver."""
+
+        async with self._lock:
+            profile = self._destination_api_profiles.get("emr_fhir_r4")
+            profile_values = profile.model_dump(mode="json") if profile is not None else None
+            report = run_offline_fhir_synthetic_validation(
+                profile_fingerprint=destination_profile_fingerprint(profile_values)
+            )
+            if self._destination_api_profile_store is not None:
+                try:
+                    await self._destination_api_profile_store.save_validation(
+                        report.model_dump(mode="python")
+                    )
+                except DestinationApiProfileStoreError:
+                    raise ManagementWorkbenchError(
+                        "destination_api_profile_store_unavailable",
+                        503,
+                    ) from None
+            self._destination_api_validation_reports[report.target_id] = report
+
+        return {
+            "mode": "synthetic_only",
+            **report.model_dump(mode="json"),
+            "persistent": self._destination_api_profile_store is not None,
+        }
 
     async def test_destination(self) -> dict[str, object]:
         async with self._lock:

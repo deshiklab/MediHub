@@ -59,6 +59,25 @@ def test_destination_api_worksheets_survive_dashboard_restart(tmp_path) -> None:
                 assert "endpoint" not in str(original_profile).lower()
                 assert "credential" not in str(original_profile).lower()
 
+                validation = await client.post(
+                    "/api/management/destinations/fhir-synthetic-validation"
+                )
+                assert validation.status_code == 200
+                validation_result = validation.json()
+                assert validation_result["status"] == "local_fixture_passed"
+                assert validation_result["scope"] == "local_fixture_only"
+                assert validation_result["persistent"] is True
+                assert validation_result["network_enabled"] is False
+                assert validation_result["sent"] is False
+                assert validation_result["external_connection_enabled"] is False
+                assert validation_result["target_contract_validated"] is False
+                assert validation_result["target_conformance_claimed"] is False
+                assert validation_result["site_approval_changed"] is False
+                assert all(check["status"] == "passed" for check in validation_result["checks"])
+                assert "42.5" not in validation.text
+                assert "subject" not in validation.text
+                assert "encounter" not in validation.text
+
         second_app = create_dashboard_app(
             SyntheticOperationsDashboard(refresh_interval_seconds=60, duplicate_every=0),
             destination_api_profile_database_url=database_url,
@@ -84,14 +103,31 @@ def test_destination_api_worksheets_survive_dashboard_restart(tmp_path) -> None:
                     for target in readiness["api_targets"]
                     if target["target_id"] == "emr_fhir_r4"
                 )
-                assert fhir_target["status"] == "discovery_complete_pending_synthetic_validation"
+                assert fhir_target["status"] == "local_fixture_passed_target_contract_required"
                 assert fhir_target["external_connection_enabled"] is False
                 assert fhir_target["endpoint_fields_supported"] is False
                 assert fhir_target["credential_fields_supported"] is False
                 assert fhir_target["activation_enabled"] is False
                 checks = {check["id"]: check["status"] for check in fhir_target["checks"]}
-                assert checks["synthetic_validation"] == "not_run"
+                assert checks["synthetic_validation"] == "local_fixture_passed"
                 assert checks["site_approval"] == "not_approved"
+                assert fhir_target["synthetic_validation_report"]["status"] == (
+                    "local_fixture_passed"
+                )
+                hl7_target = next(
+                    target
+                    for target in readiness["api_targets"]
+                    if target["target_id"] == "facility_hl7_v2"
+                )
+                assert hl7_target["status"] == "contract_required"
+                assert (
+                    next(
+                        check["scope"]
+                        for check in hl7_target["checks"]
+                        if check["id"] == "synthetic_validation"
+                    )
+                    == "blocked_pending_exact_receiver_contract"
+                )
 
                 updated = await client.patch(
                     "/api/management/destination-profiles/emr_fhir_r4",
@@ -101,6 +137,20 @@ def test_destination_api_worksheets_survive_dashboard_restart(tmp_path) -> None:
                 assert updated.json()["persistent"] is True
                 assert updated.json()["profile"]["profile_id"] == original_profile["profile_id"]
                 assert updated.json()["profile"]["receiver_version"] == "4.0.2"
+                stale_readiness = (await client.get("/api/management/destinations")).json()
+                stale_fhir = next(
+                    target
+                    for target in stale_readiness["api_targets"]
+                    if target["target_id"] == "emr_fhir_r4"
+                )
+                stale_checks = {check["id"]: check["status"] for check in stale_fhir["checks"]}
+                assert stale_checks["synthetic_validation"] == "stale"
+
+                refreshed_validation = await client.post(
+                    "/api/management/destinations/fhir-synthetic-validation"
+                )
+                assert refreshed_validation.status_code == 200
+                assert refreshed_validation.json()["status"] == "local_fixture_passed"
 
         third_app = create_dashboard_app(
             SyntheticOperationsDashboard(refresh_interval_seconds=60, duplicate_every=0),
@@ -114,5 +164,14 @@ def test_destination_api_worksheets_survive_dashboard_restart(tmp_path) -> None:
                 profiles = (await client.get("/api/management/destination-profiles")).json()
                 assert profiles["persistent"] is True
                 assert profiles["profiles"][0]["receiver_version"] == "4.0.2"
+                readiness = (await client.get("/api/management/destinations")).json()
+                fhir_target = next(
+                    target
+                    for target in readiness["api_targets"]
+                    if target["target_id"] == "emr_fhir_r4"
+                )
+                checks = {check["id"]: check["status"] for check in fhir_target["checks"]}
+                assert checks["synthetic_validation"] == "local_fixture_passed"
+                assert checks["site_approval"] == "not_approved"
 
     asyncio.run(exercise())

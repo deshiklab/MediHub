@@ -223,9 +223,31 @@ class DestinationApiProfileRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class DestinationApiSyntheticValidationRow(Base):
+    """Latest safe, offline FHIR fixture result; it cannot establish target conformance."""
+
+    __tablename__ = "destination_api_synthetic_validation"
+    __table_args__ = (
+        CheckConstraint("target_id = 'emr_fhir_r4'", name="target_id_allowed"),
+        CheckConstraint(
+            "status IN ('local_fixture_passed', 'local_fixture_failed')",
+            name="status_allowed",
+        ),
+    )
+
+    target_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    validation_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False, unique=True)
+    fixture_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    profile_fingerprint: Mapped[str | None] = mapped_column(String(64))
+    ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    checks: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+
+
 __all__ = [
     "AuditEventRecord",
     "DestinationApiProfileRow",
+    "DestinationApiSyntheticValidationRow",
     "DeliveryAttemptRecord",
     "DeliveryOutboxRecord",
     "EventRecord",

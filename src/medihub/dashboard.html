@@ -204,6 +204,8 @@
       .device-profile-checklist li, .api-readiness-checklist li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 7px; align-items: start; color: #aebdcb; font-size: 9px; line-height: 1.4; }
       .device-profile-checklist li[data-status="recorded"] .check-mark, .api-readiness-checklist li[data-status="recorded"] .check-mark { color: var(--green); }
       .device-profile-checklist li[data-status="pending"] .check-mark, .api-readiness-checklist li[data-status="pending"] .check-mark { color: var(--amber); }
+      .api-readiness-checklist li[data-status="local_fixture_passed"] .check-mark { color: var(--green); }
+      .api-readiness-checklist li[data-status="local_fixture_failed"] .check-mark, .api-readiness-checklist li[data-status="stale"] .check-mark { color: var(--amber); }
       .device-profile-checklist li[data-status="not_run"], .device-profile-checklist li[data-status="not_approved"], .api-readiness-checklist li[data-status="not_run"], .api-readiness-checklist li[data-status="not_approved"] { color: #8293a7; }
       .check-state { color: #8293a7; font-size: 8px; text-align: right; }
       .api-route-list { display: grid; gap: 8px; margin: 9px 0 0; padding: 0; list-style: none; }
@@ -346,8 +348,8 @@
           </article>
           <article class="help-card">
             <h2>5. EMR / EMS API workbench</h2>
-            <p>The cards show disconnected FHIR R4 and HL7 v2 readiness plans, not available external integrations. The local FHIR mapper produces only a generic preliminary synthetic Observation without subject or encounter references; no HL7 v2 receiver or transport is active.</p>
-            <p><code>GET /api/management/destinations</code> returns eleven evidence gates for each target plus synthetic-validation and site-approval states. The local test and fault routes never contact an EMR/EMS or open a network connection. Endpoint forms, credential storage, and live activation remain disabled.</p>
+            <p>The cards show disconnected FHIR R4 and HL7 v2 readiness plans, not available external integrations. The local FHIR mapper produces a generic preliminary synthetic Observation without subject or encounter references. Its offline runner compares one deterministic, patient-free output to a versioned local fixture only; a pass is not receiver/facility-contract conformance or site approval. HL7 remains contract_required until the exact receiver contract is confirmed; no HL7 runner is exposed.</p>
+            <p><code>GET /api/management/destinations</code> returns eleven evidence gates for each target plus synthetic-validation and site-approval states. <code>POST /api/management/destinations/fhir-synthetic-validation</code> returns safe check IDs/status codes and run metadata, not the generated resource values. The local test and fault routes never contact an EMR/EMS or open a network connection. Endpoint forms, credential storage, and live activation remain disabled.</p>
             <p>Before a separate real deployment is designed, the responsible facility and authorized technical teams must agree on the receiver product/version, interface contract, patient-context rules, acknowledgement/idempotency behavior, security controls, approved synthetic test environment, and operational ownership. Do not paste production URLs, tokens, keys, or connection details here.</p>
           </article>
           <article class="help-card">
@@ -610,6 +612,7 @@
                       <li><code>GET · POST /api/management/destination-profiles · PATCH /api/management/destination-profiles/{target_id}</code><span>Stores allowlisted non-secret contract references and operator-reported approval metadata in the configured database; no connection is enabled.</span></li>
                       <li><code>POST /api/management/destinations/test</code><span>Runs one generated, patient-free local delivery test.</span></li>
                       <li><code>POST /api/management/destinations/fhir-preview</code><span>Builds a generic synthetic Observation for local inspection only; it is not sent.</span></li>
+                      <li><code>POST /api/management/destinations/fhir-synthetic-validation</code><span>Runs a versioned offline FHIR fixture and persists fixed safe check IDs/status codes plus run metadata; it does not validate the receiver contract.</span></li>
                       <li><code>GET · POST · DELETE /api/management/destinations/test-receiver/faults</code><span>Reads or changes the next-send fault drill; never opens a network connection.</span></li>
                     </ul>
                   </div>
@@ -643,7 +646,7 @@
                 <div>
                   <div class="destination-card">
                     <strong>FHIR R4 / EMR connection API</strong>
-                    <small>The local preview validates only a generic synthetic R4 Observation shape (preliminary, without subject or encounter). It is not a facility profile or external EMR connection.</small>
+                    <small>The preview and offline runner check MediHub’s generic FHIR R4 Observation shape against a versioned local fixture. They do not test a receiver, establish target conformance, or open a network connection.</small>
                     <div class="api-kv-list" style="margin-top:9px">
                       <div class="api-kv"><span>Base URL</span><strong>Not collected · configure through secure deployment controls</strong></div>
                       <div class="api-kv"><span>Authentication</span><strong>Facility authorization / scopes not configured</strong></div>
@@ -655,12 +658,18 @@
                     </details>
                     <div class="form-actions">
                       <button id="preview-fhir-observation" class="control-btn subtle" type="button">Preview synthetic FHIR Observation</button>
+                      <button id="run-fhir-synthetic-validation" class="control-btn subtle" type="button">Run offline synthetic validation</button>
                       <button class="control-btn" type="button" disabled>Configure EMR API</button>
                     </div>
                     <div id="fhir-preview-status" class="management-status" role="status">No synthetic FHIR preview run.</div>
                     <details id="fhir-preview-details" class="api-readiness-checklist" hidden>
                       <summary>Generated local FHIR resource · not sent</summary>
                       <pre id="fhir-preview-resource" class="management-status" aria-live="polite"></pre>
+                    </details>
+                    <div id="fhir-validation-status" class="management-status" role="status">Offline fixture validation not run; target validation remains pending.</div>
+                    <details id="fhir-validation-details" class="api-readiness-checklist" hidden>
+                      <summary>Safe offline validation report · local fixture only</summary>
+                      <pre id="fhir-validation-report" class="management-status" aria-live="polite"></pre>
                     </details>
                   </div>
                   <div class="destination-card">
@@ -1095,8 +1104,17 @@
           "Runs one generated, patient-free local delivery test.": "রোগী-তথ্যবিহীন একটি তৈরি করা স্থানীয় ডেলিভারি পরীক্ষা চালায়।",
           "Reads or changes the next-send fault drill; never opens a network connection.": "পরবর্তী-পাঠানোর ত্রুটি-পরীক্ষা পড়ে বা বদলায়; কখনো নেটওয়ার্ক সংযোগ খোলে না।",
           "Builds a generic synthetic Observation for local inspection only; it is not sent.": "শুধু স্থানীয় পর্যালোচনার জন্য সাধারণ সিন্থেটিক Observation তৈরি করে; এটি পাঠানো হয় না।",
+          "Runs a versioned offline FHIR fixture and persists fixed safe check IDs/status codes plus run metadata; it does not validate the receiver contract.": "সংস্করণযুক্ত FHIR fixture অফলাইনে চালায় এবং নির্দিষ্ট নিরাপদ check ID/status code ও পরীক্ষার মেটাডেটা রাখে; রিসিভারের চুক্তি যাচাই করে না।",
+          "The preview and offline runner check MediHub’s generic FHIR R4 Observation shape against a versioned local fixture. They do not test a receiver, establish target conformance, or open a network connection.": "প্রিভিউ ও অফলাইন runner MediHub-এর সাধারণ FHIR R4 Observation কাঠামো সংস্করণযুক্ত স্থানীয় fixture-এর সঙ্গে যাচাই করে। এগুলো রিসিভার পরীক্ষা, লক্ষ্যের conformance প্রতিষ্ঠা বা নেটওয়ার্ক সংযোগ খোলে না।",
+          "Offline synthetic fixture (not receiver conformance)": "অফলাইন সিন্থেটিক fixture (রিসিভারের conformance নয়)",
           "Preview synthetic FHIR Observation": "সিন্থেটিক FHIR Observation প্রিভিউ করুন",
+          "Run offline synthetic validation": "অফলাইন সিন্থেটিক যাচাই চালান",
           "No synthetic FHIR preview run.": "এখনো কোনো সিন্থেটিক FHIR প্রিভিউ চালানো হয়নি।",
+          "Offline fixture validation not run; target validation remains pending.": "অফলাইন fixture যাচাই চালানো হয়নি; লক্ষ্যের যাচাই অপেক্ষমাণ।",
+          "Safe offline validation report · local fixture only": "নিরাপদ অফলাইন যাচাই প্রতিবেদন · শুধু স্থানীয় fixture",
+          "Local fixture passed only": "শুধু স্থানীয় fixture পাস করেছে",
+          "Local fixture failed": "স্থানীয় fixture ব্যর্থ হয়েছে",
+          "Stale · rerun required": "অচল · আবার চালানো দরকার",
           "Generated local FHIR resource · not sent": "স্থানীয় FHIR রিসোর্স তৈরি · পাঠানো হয়নি",
           "Synthetic preview generated locally; not sent and not validated against a facility contract.": "সিন্থেটিক প্রিভিউ স্থানীয়ভাবে তৈরি হয়েছে; পাঠানো হয়নি এবং প্রতিষ্ঠানের চুক্তির বিপরীতে যাচাই হয়নি।",
           "Loading local test receiver…": "স্থানীয় পরীক্ষামূলক রিসিভার লোড হচ্ছে…",
@@ -1165,8 +1183,10 @@
           "Golden test vectors capture synthetic inputs and expected normalized outputs. Run the tests after changing a draft; passing tests are not clinical validation or approval.": "গোল্ডেন টেস্ট ভেক্টরে সিন্থেটিক ইনপুট ও প্রত্যাশিত স্বাভাবিকীকৃত আউটপুট থাকে। খসড়া বদলানোর পর পরীক্ষা চালান; পাস করলেই ক্লিনিক্যাল যাচাই বা অনুমোদন হয় না।",
           "Revision history is temporary and lets you compare or restore a prior version as a new inactive draft. Mapping activation remains disabled.": "সংস্করণ ইতিহাস অস্থায়ী; এটি আগের সংস্করণ তুলনা করতে বা নতুন নিষ্ক্রিয় খসড়া হিসেবে ফিরিয়ে আনতে দেয়। ম্যাপিং সক্রিয় করা বন্ধ।",
           "5. EMR / EMS API workbench": "৫. EMR / EMS API ওয়ার্কবেঞ্চ",
-          "The cards show disconnected FHIR R4 and HL7 v2 readiness plans, not available external integrations. The local FHIR mapper produces only a generic preliminary synthetic Observation without subject or encounter references; no HL7 v2 receiver or transport is active.": "কার্ডগুলো বিচ্ছিন্ন FHIR R4 ও HL7 v2 প্রস্তুতি পরিকল্পনা দেখায়, বাহ্যিক ইন্টিগ্রেশন নয়। স্থানীয় FHIR mapper শুধু সাধারণ preliminary সিন্থেটিক Observation তৈরি করে—subject বা encounter reference ছাড়া; কোনো HL7 v2 রিসিভার বা ট্রান্সপোর্ট সক্রিয় নেই।",
-          "GET /api/management/destinations returns eleven evidence gates for each target plus synthetic-validation and site-approval states. The local test and fault routes never contact an EMR/EMS or open a network connection. Endpoint forms, credential storage, and live activation remain disabled.": "GET /api/management/destinations প্রতিটি লক্ষ্যের এগারোটি প্রমাণ-ধাপ, সিন্থেটিক যাচাই ও সাইট অনুমোদনের অবস্থা দেয়। স্থানীয় পরীক্ষা ও ত্রুটি-রুট কোনো EMR/EMS-এ যোগাযোগ করে না বা নেটওয়ার্ক খোলে না। এন্ডপয়েন্ট ফর্ম, পরিচয়-প্রমাণ সংরক্ষণ ও লাইভ সক্রিয়করণ বন্ধ.",
+          "The cards show disconnected FHIR R4 and HL7 v2 readiness plans, not available external integrations. The local FHIR mapper produces a generic preliminary synthetic Observation without subject or encounter references. Its offline runner compares one deterministic, patient-free output to a versioned local fixture only; a pass is not receiver/facility-contract conformance or site approval. HL7 remains contract_required until the exact receiver contract is confirmed; no HL7 runner is exposed.": "কার্ডগুলো বিচ্ছিন্ন FHIR R4 ও HL7 v2 প্রস্তুতি পরিকল্পনা দেখায়, বাহ্যিক ইন্টিগ্রেশন নয়। স্থানীয় FHIR mapper subject বা encounter reference ছাড়া সাধারণ preliminary সিন্থেটিক Observation তৈরি করে। অফলাইন runner একটি নির্দিষ্ট রোগী-তথ্যবিহীন আউটপুটকে শুধু সংস্করণযুক্ত স্থানীয় fixture-এর সঙ্গে মেলায়; পাস মানে রিসিভার/প্রতিষ্ঠানের চুক্তির conformance বা সাইট অনুমোদন নয়। সঠিক রিসিভার চুক্তি নিশ্চিত না হওয়া পর্যন্ত HL7 `contract_required` থাকে; HL7 runner নেই।",
+          "GET /api/management/destinations returns eleven evidence gates for each target plus synthetic-validation and site-approval states. POST /api/management/destinations/fhir-synthetic-validation returns safe check IDs/status codes and run metadata, not the generated resource values. The local test and fault routes never contact an EMR/EMS or open a network connection. Endpoint forms, credential storage, and live activation remain disabled.": "GET /api/management/destinations প্রতিটি লক্ষ্যের এগারোটি প্রমাণ-ধাপ, সিন্থেটিক যাচাই ও সাইট অনুমোদনের অবস্থা দেয়। POST /api/management/destinations/fhir-synthetic-validation নিরাপদ check ID/status code ও পরীক্ষার মেটাডেটা দেয়, তৈরি করা রিসোর্সের মান নয়। স্থানীয় পরীক্ষা ও ত্রুটি-রুট কোনো EMR/EMS-এ যোগাযোগ করে না বা নেটওয়ার্ক খোলে না। এন্ডপয়েন্ট ফর্ম, পরিচয়-প্রমাণ সংরক্ষণ ও লাইভ সক্রিয়করণ বন্ধ।",
+          "returns eleven evidence gates for each target plus synthetic-validation and site-approval states.": "প্রতিটি লক্ষ্যের এগারোটি প্রমাণ-ধাপ, সিন্থেটিক যাচাই ও সাইট অনুমোদনের অবস্থা দেয়।",
+          "returns safe check IDs/status codes and run metadata, not the generated resource values. The local test and fault routes never contact an EMR/EMS or open a network connection. Endpoint forms, credential storage, and live activation remain disabled.": "নিরাপদ check ID/status code ও পরীক্ষার মেটাডেটা দেয়, তৈরি করা রিসোর্সের মান নয়। স্থানীয় পরীক্ষা ও ত্রুটি-রুট কোনো EMR/EMS-এ যোগাযোগ করে না বা নেটওয়ার্ক খোলে না। এন্ডপয়েন্ট ফর্ম, পরিচয়-প্রমাণ সংরক্ষণ ও লাইভ সক্রিয়করণ বন্ধ।",
           "Before any separate real deployment is designed, the responsible facility and authorized technical teams must agree on the interface contract, message and resource profiles, patient-context rules, acknowledgement and idempotency behavior, security controls, test environment, and operational ownership. Do not paste production URLs, tokens, keys, or connection details here.": "আলাদা বাস্তব ডিপ্লয়মেন্ট পরিকল্পনার আগে দায়িত্বপ্রাপ্ত প্রতিষ্ঠান ও অনুমোদিত প্রযুক্তি দলকে ইন্টারফেস চুক্তি, বার্তা ও রিসোর্স প্রোফাইল, রোগী-প্রসঙ্গের নিয়ম, স্বীকৃতি ও আইডেমপোটেন্সি আচরণ, নিরাপত্তা নিয়ন্ত্রণ, পরীক্ষার পরিবেশ এবং পরিচালনার দায়িত্বে একমত হতে হবে। এখানে উৎপাদন URL, টোকেন, কী বা সংযোগের বিবরণ দেবেন না।",
           "6. Bangladesh deployment considerations": "৬. বাংলাদেশে ডিপ্লয়মেন্টের বিবেচনা",
           "Bangladesh is a required deployment context for MediHub planning, but this demo is not ready for deployment in a Bangladeshi facility. A future implementation needs local clinical and technical discovery, facility approval, an assessment of applicable Bangladesh laws and regulator guidance, data-residency and hosting decisions, language/accessibility review, and a documented security and privacy assessment.": "MediHub পরিকল্পনার জন্য বাংলাদেশ আবশ্যিক ডিপ্লয়মেন্ট প্রেক্ষাপট, তবে এই ডেমো বাংলাদেশের কোনো প্রতিষ্ঠানে ব্যবহারের জন্য প্রস্তুত নয়। ভবিষ্যৎ বাস্তবায়নে স্থানীয় ক্লিনিক্যাল ও প্রযুক্তিগত অনুসন্ধান, প্রতিষ্ঠানের অনুমোদন, প্রযোজ্য বাংলাদেশি আইন ও নিয়ন্ত্রক নির্দেশনার মূল্যায়ন, ডেটা কোথায় থাকবে ও হোস্টিং সিদ্ধান্ত, ভাষা/অ্যাক্সেসিবিলিটি পর্যালোচনা এবং নথিভুক্ত নিরাপত্তা ও গোপনীয়তা মূল্যায়ন দরকার।",
@@ -1292,6 +1312,8 @@
           connected: "সংযুক্ত",
           "passed": "পাস করেছে",
           "failed": "ব্যর্থ",
+          "local_fixture_passed": "স্থানীয় fixture পাস করেছে",
+          "local_fixture_failed": "স্থানীয় fixture ব্যর্থ হয়েছে",
           "not_run": "চালানো হয়নি",
           "stale": "অচল",
           "synthetic_only": "শুধু সিন্থেটিক",
@@ -1358,6 +1380,8 @@
           [/^No destination API worksheet saved; storage is (database-backed|temporary in this server process)\.$/, (_, storage) => `কোনো গন্তব্য API worksheet সংরক্ষিত নেই; সংরক্ষণব্যবস্থা ${storage === "database-backed" ? "ডেটাবেস-ভিত্তিক" : "এই সার্ভার প্রসেসে সাময়িক"}।`],
           [/^Worksheet not saved \((.+)\)\.$/, (_, error) => `Worksheet সংরক্ষিত হয়নি (${error})।`],
           [/^FHIR preview unavailable \((.+)\)\.$/, (_, error) => `FHIR প্রিভিউ অনুপলব্ধ (${error})।`],
+          [/^Offline fixture validation unavailable \((.+)\)\.$/, (_, error) => `অফলাইন fixture যাচাই অনুপলব্ধ (${error})।`],
+          [/^(local_fixture_passed|local_fixture_failed|stale) · ([A-Za-z0-9._-]+)\. (The latest result is persisted\.|The latest result is process-local\.)( This result is stale after worksheet changes\.)? Local fixture only; target conformance and site approval remain unclaimed\.$/, (_, status, version, storage, stale) => `${bengali[status] || status} · fixture ${version}. ${storage === "The latest result is persisted." ? "সর্বশেষ ফল ডেটাবেসে সংরক্ষিত।" : "সর্বশেষ ফল শুধু এই সার্ভার প্রসেসে আছে।"}${stale ? " Worksheet বদলানোর পর এই ফল অচল।" : ""} শুধু স্থানীয় fixture; target conformance বা সাইট অনুমোদনের দাবি নয়।`],
           [/^Readiness: (.+); hardware connection disabled\.$/, (_, status) => `প্রস্তুতি: ${bengali[status] || status}; হার্ডওয়্যার সংযোগ বন্ধ।`],
           [/^Blockers: (.+)$/, (_, items) => `বাধা: ${items.split(" · ").map((item) => bengali[item] || item).join(" · ")}`],
           [/^No recent synthetic rows are available for (.+)\.$/, (_, id) => `${id}-এর জন্য কোনো সাম্প্রতিক সিন্থেটিক সারি নেই।`],
@@ -1629,7 +1653,7 @@
           vendor_authorization: "Vendor authorization evidence",
           facility_authorization: "Facility authorization evidence",
           authorized_synthetic_sandbox: "Authorized synthetic test environment",
-          synthetic_validation: "Synthetic validation",
+          synthetic_validation: "Offline synthetic fixture (not receiver conformance)",
           site_approval: "Site approval",
         };
         const destinationApiProfileFieldNames = [
@@ -2219,13 +2243,16 @@
               pending: "Pending",
               not_run: "Not run",
               not_approved: "Not approved",
+              local_fixture_passed: "Local fixture passed only",
+              local_fixture_failed: "Local fixture failed",
+              stale: "Stale · rerun required",
             };
             for (const check of checks) {
               const item = document.createElement("li");
               item.dataset.status = check.status;
               const mark = document.createElement("span");
               mark.className = "check-mark";
-              mark.textContent = check.status === "recorded" ? "✓" : "○";
+              mark.textContent = ["recorded", "local_fixture_passed"].includes(check.status) ? "✓" : "○";
               const label = document.createElement("span");
               label.textContent = destinationApiCheckLabels[check.id] || check.id;
               const state = document.createElement("span");
@@ -2242,6 +2269,38 @@
           destinationApiProfilesPersistent = data.destination_profiles_persistent === true;
           renderDestinationApiReadiness(destinationApiTargetRows);
           renderDestinationApiProfileForm(destinationApiTargetRows, destinationApiProfilesPersistent);
+          const fhirTarget = destinationApiTargetRows.find(
+            (target) => target.target_id === "emr_fhir_r4",
+          );
+          const validationReport = fhirTarget?.synthetic_validation_report;
+          if (validationReport) {
+            const validationStatus = (fhirTarget.checks || []).find(
+              (check) => check.id === "synthetic_validation",
+            )?.status;
+            byId("fhir-validation-report").textContent = JSON.stringify(
+              validationReport.checks,
+              null,
+              2,
+            );
+            byId("fhir-validation-details").hidden = false;
+            const staleNotice = validationStatus === "stale" ? " This result is stale after worksheet changes." : "";
+            const storage = destinationApiProfilesPersistent
+              ? "The latest result is persisted."
+              : "The latest result is process-local.";
+            const displayStatus = validationStatus === "stale"
+              ? "stale"
+              : validationReport.status;
+            setText(
+              "fhir-validation-status",
+              `${displayStatus} · ${validationReport.fixture_version}. ${storage}${staleNotice} Local fixture only; target conformance and site approval remain unclaimed.`,
+            );
+          } else {
+            byId("fhir-validation-details").hidden = true;
+            setText(
+              "fhir-validation-status",
+              "Offline fixture validation not run; target validation remains pending.",
+            );
+          }
           const list = byId("destinations-list");
           list.replaceChildren();
           for (const destination of data.destinations) {
@@ -2529,6 +2588,21 @@
             setText("fhir-preview-status", "Synthetic preview generated locally; not sent and not validated against a facility contract.");
           } catch (error) {
             setText("fhir-preview-status", `FHIR preview unavailable (${error.message}).`);
+          } finally { button.disabled = false; }
+        });
+        byId("run-fhir-synthetic-validation").addEventListener("click", async (event) => {
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await managementRequest(
+              "/api/management/destinations/fhir-synthetic-validation",
+              "POST",
+            );
+            byId("fhir-validation-report").textContent = JSON.stringify(result.checks, null, 2);
+            byId("fhir-validation-details").hidden = false;
+            await loadDestinations();
+          } catch (error) {
+            setText("fhir-validation-status", `Offline fixture validation unavailable (${error.message}).`);
           } finally { button.disabled = false; }
         });
         byId("test-destination").addEventListener("click", async (event) => {

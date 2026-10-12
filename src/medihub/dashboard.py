@@ -314,6 +314,10 @@ def create_dashboard_app(
     async def preview_synthetic_fhir_observation() -> dict[str, object]:
         return await workbench.preview_synthetic_fhir_observation()
 
+    @app.post("/api/management/destinations/fhir-synthetic-validation", include_in_schema=False)
+    async def run_offline_fhir_synthetic_validation() -> dict[str, object]:
+        return await workbench.run_fhir_synthetic_validation()
+
     metrics.set_route_templates(
         route.path for route in app.routes if isinstance(getattr(route, "path", None), str)
     )

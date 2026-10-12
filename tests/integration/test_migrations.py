@@ -37,6 +37,10 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
         destination_profile_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(destination_api_profile)")
         }
+        destination_validation_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(destination_api_synthetic_validation)")
+        }
         foreign_keys = list(connection.execute("PRAGMA foreign_key_list(delivery_outbox)"))
         hold_foreign_keys = list(connection.execute("PRAGMA foreign_key_list(routing_hold)"))
         audit_foreign_keys = list(connection.execute("PRAGMA foreign_key_list(audit_event)"))
@@ -49,6 +53,7 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
         "routing_hold",
         "audit_event",
         "destination_api_profile",
+        "destination_api_synthetic_validation",
     } <= tables
     assert {
         "event_id",
@@ -100,6 +105,28 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
         for column in destination_profile_columns
         for field in ("endpoint", "credential", "password", "secret", "token", "base_url")
     )
+    assert {
+        "target_id",
+        "validation_id",
+        "fixture_version",
+        "status",
+        "profile_fingerprint",
+        "ran_at",
+        "checks",
+    } <= destination_validation_columns
+    assert not any(
+        field in column.lower()
+        for column in destination_validation_columns
+        for field in (
+            "endpoint",
+            "credential",
+            "password",
+            "secret",
+            "token",
+            "base_url",
+            "payload",
+        )
+    )
 
 
 def test_migrations_adopt_dashboard_initialized_destination_profile_table(
@@ -128,5 +155,6 @@ def test_migrations_adopt_dashboard_initialized_destination_profile_table(
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
 
-    assert version == "0005_destination_api_profile"
+    assert version == "0006_destination_api_validation"
     assert "destination_api_profile" in tables
+    assert "destination_api_synthetic_validation" in tables
