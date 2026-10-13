@@ -42,6 +42,19 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                 assert cl900i["status"] == "discovery_only"
                 assert cl900i["compatibility_verified"] is False
                 assert cl900i["live_adapter_available"] is False
+                candidate_ids = {item["candidate_id"] for item in payload["candidates"]}
+                assert {
+                    "mindray-bc-30",
+                    "mindray-bc-5000",
+                    "dymind-df50",
+                    "sysmex-xn-3000",
+                } <= candidate_ids
+                assert all(item["status"] == "discovery_only" for item in payload["candidates"])
+                assert all(
+                    item["compatibility_verified"] is False
+                    and item["live_adapter_available"] is False
+                    for item in payload["candidates"]
+                )
                 assert payload["candidate_count"] == len(payload["candidates"])
 
     asyncio.run(exercise())

@@ -67,6 +67,7 @@ class DeviceLibraryCandidate(DomainModel):
         "user_selected_target",
         "bangladesh_seller_listing",
         "bangladesh_supplier_category",
+        "bangladesh_facility_self_report",
     ]
     evidence_note: str = Field(min_length=1, max_length=180)
     source_url: str | None = Field(default=None, pattern=r"^https://")
@@ -110,6 +111,54 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "connectivity."
         ),
         source_url="https://www.medistorebd.com/product/mindray-bc-10-auto-hematology-analyzer/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="mindray-bc-30",
+        manufacturer="Mindray",
+        model="BC-30",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Techno Health Bangladesh product listing only; no evidence of installed prevalence, "
+            "firmware, or host connectivity."
+        ),
+        source_url="https://technohealth.com.bd/vector-hematology-analyzer/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="mindray-bc-5000",
+        manufacturer="Mindray",
+        model="BC-5000",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh product listing only; no evidence of installed prevalence, "
+            "exact unit, or host connectivity."
+        ),
+        source_url="https://www.medistorebd.com/product/auto-hematology-analyzer-bc-5000/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="dymind-df50",
+        manufacturer="Dymind",
+        model="DF50",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh product listing only; no evidence of installed prevalence, "
+            "exact unit, or host connectivity."
+        ),
+        source_url="https://www.medistorebd.com/product/dymind-df50-auto-hematology-analyzer/",
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="sysmex-xn-3000",
+        manufacturer="Sysmex",
+        model="XN-3000",
+        device_family="hematology",
+        discovery_basis="bangladesh_facility_self_report",
+        evidence_note=(
+            "Padma Diagnostic Centre's page reports a local installation; self-reported and "
+            "not evidence for another site's installed base."
+        ),
+        source_url="https://padma-bd.com/instruments/laboratoryinstruments/",
     ),
     DeviceLibraryCandidate(
         candidate_id="mindray-ba-88a",
