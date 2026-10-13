@@ -4,6 +4,8 @@
 
 MediHub is continuing Phase 0 discovery. A Mindray CL-900i is the proposed first analyzer, and the requested initial workflow is direct, results-only intake followed by lab-technician verification in the facility EMS/EMR/HMS. This is a business-flow preference, not an authorized or verified device connection: the exact software/LIS interface, destination contract, facility, and accession/patient association workflow remain open. See the [CL-900i-specific integration plan](MINDRAY_CL900I_INTEGRATION_PLAN.md). This preflight provides a structured worksheet and a local validator; the companion [receiver-contract preflight](RECEIVER_CONTRACT.md) records ACK, idempotency, retry/error, and limit semantics. Neither implements, configures, or enables a device/EHR connection.
 
+Current public Bangladesh receiver/HIE leads and their evidence limits are recorded in [Phase 0 public receiver discovery](PUBLIC_RECEIVER_DISCOVERY_BD.md). These are unverified leads only; no candidate is confirmed as the first facility's installed receiver or selected as MediHub's target contract.
+
 A profile reported as `discovery_complete` means only that the profile is structurally complete and every listed discovery gate has an approved or documented not-applicable decision with an evidence reference. It is **not** production authorization, regulatory approval, a safety case, a conformance claim, or permission to connect. `connectivity_enabled` is always `false` in the validator output. Connector code remains synthetic/in-process until the exact authorized interface contract and clinical workflow are supplied and separately reviewed.
 
 ## Start locally
