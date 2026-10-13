@@ -57,7 +57,7 @@ pytest
 
 ### Phase 0: integration discovery
 
-A Mindray CL-900i is a proposed first analyzer, but its exact software/LIS interface, receiving system, facility, and accession/patient association workflow are not yet verified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the CL-900i-specific discovery plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) and [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md), copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
+A Mindray CL-900i is a proposed first analyzer, but its exact software/LIS interface, receiving system, facility, and accession/patient association workflow are not yet verified. MediHub therefore remains synthetic-only and does not implement a live connector. Review [the CL-900i-specific discovery plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) and [the Phase 0 worksheet and gates](docs/INTEGRATION_DISCOVERY.md). Use the blank [Bangladesh device inventory survey](docs/BANGLADESH_DEVICE_INVENTORY_SURVEY.md) to collect authorized model-level evidence; keep completed facility copies in approved local records. Copy `config/integration-profile.example.toml` to the Git-ignored `config/integration-profile.local.toml`, complete it locally, then run:
 
 ```bash
 python -m medihub validate-profile config/integration-profile.local.toml

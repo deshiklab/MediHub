@@ -33,6 +33,7 @@ Use the example TOML as the machine-readable checklist. Resolve the following wi
 
 ### Device and authorization
 
+- For Bangladesh model-priority evidence, use the blank [device inventory survey worksheet](BANGLADESH_DEVICE_INVENTORY_SURVEY.md). Keep completed facility/vendor responses in approved local records; this repository contains only the template.
 - Record the exact manufacturer, model, hardware/firmware versions in scope, transport, and protocol/interface version.
 - Obtain vendor authorization and the exact official technical/interface specification, including framing, units/codes, timestamps, identifiers, alarms/status, retries, and error behavior as applicable.
 - Identify any existing manufacturer gateway, data dictionary, vendor license/authorization, approved simulator, and test hardware. Obtain authorized sample or synthetic messages that can be used to verify the map; record references to controlled assets rather than copying restricted captures into this repository.
