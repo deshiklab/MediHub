@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { parseDeviceLibrary, type DeviceLibrary } from "@/lib/device-library";
 
 type Language = "en" | "bn";
 
@@ -45,6 +46,7 @@ const copy = {
     navLabel: "Dashboard pages",
     operations: "Operations",
     devices: "Device management",
+    deviceDiscoveryNav: "Bangladesh device discovery",
     mappings: "Data mapping",
     api: "EMR / EMS APIs",
     labReview: "Lab review (demo)",
@@ -75,6 +77,18 @@ const copy = {
     synthetic: "Synthetic",
     safety: "Safety boundary",
     safeCopy: "This preview uses generated synthetic values only; it does not operate hardware or connect to an EMR / EMS. Bangladesh is the required deployment target; facility integration remains unconfigured.",
+    discoveryTitle: "Bangladesh device discovery",
+    discoveryHint: "A summary of local-market discovery records.",
+    discoveryLeadCount: "Market-discovery leads",
+    selectedTargets: "User-selected targets",
+    sellerListings: "Bangladesh seller listings",
+    supplierCategories: "Bangladesh supplier-category leads",
+    facilityReports: "Bangladesh facility self-reports",
+    discoveryBoundary: "These entries are discovery leads only—not installed-base counts, verified compatibility, or supported drivers.",
+    noPhysicalDeviceConnections: "Physical-device connections remain disabled in this preview.",
+    openDeviceLibrary: "Browse Bangladesh leads",
+    loadingDeviceLibrary: "Loading Bangladesh discovery summary…",
+    unavailableDeviceLibrary: "The Bangladesh discovery summary is unavailable. Open the Bangladesh device-discovery page to browse leads.",
     footer: "MediHub · Local synthetic demonstration · No external network delivery",
     error: "The local API is unavailable. Start the FastAPI dashboard on port 8000, then reload.",
     healthy: "Healthy",
@@ -94,6 +108,7 @@ const copy = {
     navLabel: "ড্যাশবোর্ডের পৃষ্ঠা",
     operations: "কার্যক্রম",
     devices: "ডিভাইস ব্যবস্থাপনা",
+    deviceDiscoveryNav: "বাংলাদেশে ডিভাইস অনুসন্ধান",
     mappings: "ডেটা ম্যাপিং",
     api: "EMR / EMS API",
     labReview: "ল্যাব পর্যালোচনা (ডেমো)",
@@ -124,6 +139,18 @@ const copy = {
     synthetic: "সিন্থেটিক",
     safety: "নিরাপত্তার সীমা",
     safeCopy: "এই প্রিভিউতে শুধু ডেমোর জন্য তৈরি কৃত্রিম (সিন্থেটিক) মান ব্যবহার করা হয়। এটি কোনো হার্ডওয়্যার চালায় না এবং EMR / EMS-এর সঙ্গে সংযুক্ত নয়। বাংলাদেশে স্থাপন করাই MediHub-এর লক্ষ্য; তবে কোনো স্বাস্থ্যপ্রতিষ্ঠানের সঙ্গে সংযোগ এখনো কনফিগার করা হয়নি।",
+    discoveryTitle: "বাংলাদেশি ডিভাইস অনুসন্ধান",
+    discoveryHint: "স্থানীয় বাজার-অনুসন্ধানের নথির সারাংশ।",
+    discoveryLeadCount: "বাজার-অনুসন্ধানের সূত্র",
+    selectedTargets: "ব্যবহারকারীর নির্বাচিত লক্ষ্য",
+    sellerListings: "বাংলাদেশি বিক্রেতার তালিকা",
+    supplierCategories: "বাংলাদেশি সরবরাহকারী বিভাগের সূত্র",
+    facilityReports: "বাংলাদেশি প্রতিষ্ঠানের স্ব-প্রতিবেদন",
+    discoveryBoundary: "এগুলো শুধু অনুসন্ধানের সূত্র—স্থাপিত ডিভাইসের সংখ্যা, যাচাইকৃত সামঞ্জস্য বা সমর্থিত ড্রাইভারের তালিকা নয়।",
+    noPhysicalDeviceConnections: "এই প্রিভিউতে বাস্তব ডিভাইসের সংযোগ চালু নেই।",
+    openDeviceLibrary: "বাংলাদেশি অনুসন্ধান-সূত্র দেখুন",
+    loadingDeviceLibrary: "বাংলাদেশি ডিভাইস অনুসন্ধানের সারাংশ লোড হচ্ছে…",
+    unavailableDeviceLibrary: "বাংলাদেশি ডিভাইস অনুসন্ধানের সারাংশ পাওয়া যাচ্ছে না। সূত্র দেখতে বাংলাদেশি ডিভাইস অনুসন্ধান পৃষ্ঠা খুলুন।",
     footer: "MediHub · স্থানীয় সিন্থেটিক প্রদর্শনী · বাহ্যিক নেটওয়ার্কে ডেলিভারি নেই",
     error: "স্থানীয় API পাওয়া যাচ্ছে না। FastAPI ড্যাশবোর্ড 8000 পোর্টে চালু করে পৃষ্ঠা রিলোড করুন।",
     healthy: "স্বাভাবিক",
@@ -171,6 +198,8 @@ export default function HomePage() {
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [deviceLibrary, setDeviceLibrary] = useState<DeviceLibrary | null>(null);
+  const [deviceLibraryUnavailable, setDeviceLibraryUnavailable] = useState(false);
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
 
@@ -216,6 +245,46 @@ export default function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const loadDeviceLibrary = async () => {
+      try {
+        const response = await fetch("/api/management/device-library", { cache: "no-store" });
+        if (!response.ok) throw new Error("device library unavailable");
+        const data = parseDeviceLibrary(await response.json());
+        if (!data) throw new Error("unexpected discovery library scope");
+        if (active) {
+          setDeviceLibrary(data);
+          setDeviceLibraryUnavailable(false);
+        }
+      } catch {
+        if (active) {
+          setDeviceLibrary(null);
+          setDeviceLibraryUnavailable(true);
+        }
+      }
+    };
+    void loadDeviceLibrary();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const discoveryBasisCounts = {
+    userSelected: deviceLibrary?.candidates.filter(
+      (candidate) => candidate.discovery_basis === "user_selected_target",
+    ).length ?? 0,
+    sellerListings: deviceLibrary?.candidates.filter(
+      (candidate) => candidate.discovery_basis === "bangladesh_seller_listing",
+    ).length ?? 0,
+    supplierCategories: deviceLibrary?.candidates.filter(
+      (candidate) => candidate.discovery_basis === "bangladesh_supplier_category",
+    ).length ?? 0,
+    facilityReports: deviceLibrary?.candidates.filter(
+      (candidate) => candidate.discovery_basis === "bangladesh_facility_self_report",
+    ).length ?? 0,
+  };
+
   const metrics = [
     { label: text.events, value: snapshot?.totals.events_inserted },
     { label: text.duplicates, value: snapshot?.totals.duplicate_events },
@@ -246,6 +315,7 @@ export default function HomePage() {
       <nav className="nav" aria-label={text.navLabel}>
         <Link className="nav-link active" href="/">{text.operations}</Link>
         <Link className="nav-link" href="/devices">{text.devices}</Link>
+        <Link className="nav-link" href="/bangladesh-devices">{text.deviceDiscoveryNav}</Link>
         <Link className="nav-link" href="/mappings">{text.mappings}</Link>
         <Link className="nav-link" href="/api-setup">{text.api}</Link>
         <Link className="nav-link" href="/lab-review">{text.labReview}</Link>
@@ -289,6 +359,63 @@ export default function HomePage() {
             <strong>{metric.value === undefined ? "—" : number.format(metric.value)}</strong>
           </article>
         ))}
+      </section>
+
+      <section className="panel discovery-panel" aria-labelledby="device-discovery-heading">
+        <div className="panel-heading">
+          <div>
+            <h2 id="device-discovery-heading">{text.discoveryTitle}</h2>
+            <p>{text.discoveryHint}</p>
+          </div>
+          <Link className="discovery-link" href="/bangladesh-devices">{text.openDeviceLibrary}</Link>
+        </div>
+        {deviceLibraryUnavailable ? (
+          <p className="empty-copy" role="status">{text.unavailableDeviceLibrary}</p>
+        ) : deviceLibrary ? (
+          <>
+            <div className="discovery-summary-grid">
+              <article className="discovery-total-card">
+                <strong data-testid="bd-discovery-total">
+                  {number.format(deviceLibrary.candidates.length)}
+                </strong>
+                <span>{text.discoveryLeadCount}</span>
+              </article>
+              <div className="discovery-basis-grid">
+                {[
+                  {
+                    label: text.selectedTargets,
+                    value: discoveryBasisCounts.userSelected,
+                    testId: "bd-discovery-user-selected",
+                  },
+                  {
+                    label: text.sellerListings,
+                    value: discoveryBasisCounts.sellerListings,
+                    testId: "bd-discovery-seller-listings",
+                  },
+                  {
+                    label: text.supplierCategories,
+                    value: discoveryBasisCounts.supplierCategories,
+                    testId: "bd-discovery-supplier-categories",
+                  },
+                  {
+                    label: text.facilityReports,
+                    value: discoveryBasisCounts.facilityReports,
+                    testId: "bd-discovery-facility-reports",
+                  },
+                ].map((item) => (
+                  <article className="discovery-basis-card" key={item.testId}>
+                    <span>{item.label}</span>
+                    <strong data-testid={item.testId}>{number.format(item.value)}</strong>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <p className="discovery-boundary">{text.discoveryBoundary}</p>
+            <p className="discovery-connection">{text.noPhysicalDeviceConnections}</p>
+          </>
+        ) : (
+          <p className="empty-copy" role="status">{text.loadingDeviceLibrary}</p>
+        )}
       </section>
 
       <section className="content-grid">

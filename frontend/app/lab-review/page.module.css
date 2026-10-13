@@ -40,6 +40,81 @@
   min-width: 850px;
 }
 
+.queueTools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 14px 0 5px;
+}
+
+.filterField {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: #a5b3c1;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.filterInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #34475b;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #111a25;
+  color: #e1eaf2;
+  font: inherit;
+  font-size: 11px;
+}
+
+.filterInput::placeholder {
+  color: #7f91a4;
+}
+
+.filterInput:focus-visible,
+.clearFilters:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.clearFilters {
+  min-height: 38px;
+  max-width: 100%;
+  border: 1px solid #405268;
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: #172330;
+  color: #d0dce7;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.clearFilters:hover {
+  border-color: #70849a;
+  background: #1d2b39;
+}
+
+.queueCount {
+  margin: 0 0 10px;
+  color: #93a3b4;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.emptyRow {
+  padding: 26px 12px !important;
+  color: #aebbc8 !important;
+  text-align: center;
+  white-space: normal;
+}
+
 .pendingBadge {
   display: inline-flex;
   max-width: 205px;
@@ -159,6 +234,14 @@
 }
 
 @media (max-width: 700px) {
+  .queueTools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clearFilters {
+    justify-self: start;
+  }
+
   .detailGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -169,6 +252,10 @@
 }
 
 @media (max-width: 430px) {
+  .queueTools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .detailGrid {
     grid-template-columns: 1fr;
   }

@@ -6,7 +6,7 @@ configuration. Catalogue entries are research leads, not supported-device claims
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
@@ -71,6 +71,7 @@ class DeviceLibraryCandidate(DomainModel):
     ]
     evidence_note: str = Field(min_length=1, max_length=180)
     source_url: str | None = Field(default=None, pattern=r"^https://")
+    evidence_reviewed_on: date | None = None
     status: Literal["discovery_only"] = "discovery_only"
     compatibility_verified: Literal[False] = False
     live_adapter_available: Literal[False] = False
@@ -89,6 +90,32 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
         ),
     ),
     DeviceLibraryCandidate(
+        candidate_id="zecen-cia-600",
+        manufacturer="Zecen",
+        model="CIA 600",
+        device_family="immunoassay",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh page lists this model; its LIS/networking claims are unverified "
+            "and do not identify the installed base or interface profile."
+        ),
+        source_url="https://www.medistorebd.com/product/cia-600-automic-chemiluminescence-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="zecen-cia-1200",
+        manufacturer="Zecen",
+        model="CIA 1200",
+        device_family="immunoassay",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh page lists this model; its LIS/networking claims are unverified "
+            "and do not identify the installed base or interface profile."
+        ),
+        source_url="https://www.medistorebd.com/product/cia1200-full-auto-chemiluminescence-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
         candidate_id="mindray-bc-20s",
         manufacturer="Mindray",
         model="BC-20s",
@@ -99,6 +126,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "connectivity."
         ),
         source_url="https://www.medistorebd.com/product/hematology-analyzer-bc-20s/",
+        evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
         candidate_id="mindray-bc-10",
@@ -111,6 +139,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "connectivity."
         ),
         source_url="https://www.medistorebd.com/product/mindray-bc-10-auto-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
         candidate_id="mindray-bc-30",
@@ -123,6 +152,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "firmware, or host connectivity."
         ),
         source_url="https://technohealth.com.bd/vector-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
         candidate_id="mindray-bc-5000",
@@ -135,6 +165,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "exact unit, or host connectivity."
         ),
         source_url="https://www.medistorebd.com/product/auto-hematology-analyzer-bc-5000/",
+        evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
         candidate_id="dymind-df50",
@@ -147,6 +178,46 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "exact unit, or host connectivity."
         ),
         source_url="https://www.medistorebd.com/product/dymind-df50-auto-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 11),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="celltus-cts-3000",
+        manufacturer="Celltus",
+        model="CTS-3000",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh product page lists this model; installed prevalence, firmware, "
+            "and host connectivity are unverified."
+        ),
+        source_url="https://www.medistorebd.com/product/celltus-3-part-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 13),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="celltus-cts-5000",
+        manufacturer="Celltus",
+        model="CTS-5000",
+        device_family="hematology",
+        discovery_basis="bangladesh_supplier_category",
+        evidence_note=(
+            "Medistore Bangladesh hematology category lists this model; installed prevalence, "
+            "firmware, and host connectivity are unverified."
+        ),
+        source_url="https://www.medistorebd.com/product-category/hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 13),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="dymind-df-51",
+        manufacturer="Dymind",
+        model="DF-51",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh product page lists this model; installed prevalence, firmware, "
+            "and host connectivity are unverified."
+        ),
+        source_url="https://www.medistorebd.com/product/dymind-auto-hematology-analyzer-df-51-5-part/",
+        evidence_reviewed_on=date(2026, 10, 13),
     ),
     DeviceLibraryCandidate(
         candidate_id="sysmex-xn-3000",
@@ -159,6 +230,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "not evidence for another site's installed base."
         ),
         source_url="https://padma-bd.com/instruments/laboratoryinstruments/",
+        evidence_reviewed_on=date(2026, 10, 13),
     ),
     DeviceLibraryCandidate(
         candidate_id="mindray-ba-88a",
@@ -171,6 +243,7 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "with the site."
         ),
         source_url="https://technohealth.com.bd/mindray-biochemistry-analyzer-ba-88a/",
+        evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
         candidate_id="erba-chem-5x",
@@ -183,6 +256,20 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "with the site."
         ),
         source_url="https://technohealth.com.bd/erba-chem-5x-biochemistry-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 11),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="icubio-imagic-m7",
+        manufacturer="ICUBIO",
+        model="iMagic M7",
+        device_family="clinical_chemistry",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh page lists this model and claims RS-232/PC connectivity; "
+            "installed prevalence, firmware, and host profile are unverified."
+        ),
+        source_url="https://www.medistorebd.com/product/fully-automated-bio-chemistry-analyzer-icubio-imagic-m7/",
+        evidence_reviewed_on=date(2026, 10, 14),
     ),
     DeviceLibraryCandidate(
         candidate_id="survey-urinalysis",

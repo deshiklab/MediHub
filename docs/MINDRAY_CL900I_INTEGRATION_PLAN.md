@@ -101,7 +101,7 @@ The snippet is a local string transformer, not a production driver. It has not b
 
 **Provisional development choice:** MediHub now has an offline, bounded ASTM E1394 record-stream parser scaffold using synthetic tests only. It does not implement E1381 framing/session control, HL7 v2, analyzer transport, CL-900i field mapping, or delivery. ASTM is a candidate—not a claim about the installed analyzer. If the authorized guide specifies HL7 instead, implement that exact profile rather than forcing ASTM.
 
-**Review-screen prototype:** the Next.js `/lab-review` page shows fabricated pending/unverified rows in English and Bengali. It has no patient context, ingestion, persistence, order/patient association, verification/finalization/release controls, or destination delivery; its “viewed” acknowledgement is only in browser memory. It demonstrates a safety boundary, not a usable clinical review workflow. Bengali copy still needs native-speaker review.
+**Review-screen prototype:** the Next.js `/lab-review` page shows fabricated pending/unverified rows in English and Bengali, with search and filters limited to fixture metadata and a browser-local view acknowledgement. It has no patient context, ingestion, persistence, order/patient association, verification/finalization/release controls, or destination delivery; the acknowledgement remains only in browser memory and does not change clinical state. It demonstrates a safety boundary, not a usable clinical review workflow. Bengali copy still needs native-speaker review.
 
 ## User-confirmed workflow and proposed safe data path
 

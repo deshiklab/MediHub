@@ -40,13 +40,20 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     if candidate["candidate_id"] == "mindray-cl900i"
                 )
                 assert cl900i["status"] == "discovery_only"
+                assert cl900i["evidence_reviewed_on"] is None
                 assert cl900i["compatibility_verified"] is False
                 assert cl900i["live_adapter_available"] is False
                 candidate_ids = {item["candidate_id"] for item in payload["candidates"]}
                 assert {
+                    "zecen-cia-600",
+                    "zecen-cia-1200",
+                    "icubio-imagic-m7",
                     "mindray-bc-30",
                     "mindray-bc-5000",
                     "dymind-df50",
+                    "celltus-cts-3000",
+                    "celltus-cts-5000",
+                    "dymind-df-51",
                     "sysmex-xn-3000",
                 } <= candidate_ids
                 assert all(item["status"] == "discovery_only" for item in payload["candidates"])
@@ -55,7 +62,39 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     and item["live_adapter_available"] is False
                     for item in payload["candidates"]
                 )
-                assert payload["candidate_count"] == len(payload["candidates"])
+                discovery_bases = {
+                    item["candidate_id"]: item["discovery_basis"] for item in payload["candidates"]
+                }
+                assert discovery_bases["zecen-cia-600"] == "bangladesh_seller_listing"
+                assert discovery_bases["zecen-cia-1200"] == "bangladesh_seller_listing"
+                assert discovery_bases["icubio-imagic-m7"] == "bangladesh_seller_listing"
+                candidates_by_id = {item["candidate_id"]: item for item in payload["candidates"]}
+                for candidate_id, manufacturer, model, family in (
+                    ("zecen-cia-600", "Zecen", "CIA 600", "immunoassay"),
+                    ("zecen-cia-1200", "Zecen", "CIA 1200", "immunoassay"),
+                    ("icubio-imagic-m7", "ICUBIO", "iMagic M7", "clinical_chemistry"),
+                ):
+                    candidate = candidates_by_id[candidate_id]
+                    assert candidate["manufacturer"] == manufacturer
+                    assert candidate["model"] == model
+                    assert candidate["device_family"] == family
+                assert (
+                    "LIS/networking claims are unverified"
+                    in candidates_by_id["zecen-cia-600"]["evidence_note"]
+                )
+                assert (
+                    "RS-232/PC connectivity"
+                    in candidates_by_id["icubio-imagic-m7"]["evidence_note"]
+                )
+                assert candidates_by_id["mindray-bc-20s"]["evidence_reviewed_on"] == "2026-10-11"
+                assert candidates_by_id["celltus-cts-3000"]["evidence_reviewed_on"] == "2026-10-13"
+                assert candidates_by_id["zecen-cia-600"]["evidence_reviewed_on"] == "2026-10-14"
+                assert candidates_by_id["icubio-imagic-m7"]["evidence_reviewed_on"] == "2026-10-14"
+                assert candidates_by_id["survey-urinalysis"]["evidence_reviewed_on"] is None
+                assert discovery_bases["celltus-cts-3000"] == "bangladesh_seller_listing"
+                assert discovery_bases["celltus-cts-5000"] == "bangladesh_supplier_category"
+                assert discovery_bases["dymind-df-51"] == "bangladesh_seller_listing"
+                assert payload["candidate_count"] == len(payload["candidates"]) == 21
 
     asyncio.run(exercise())
 

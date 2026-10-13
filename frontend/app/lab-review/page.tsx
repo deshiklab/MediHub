@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
 type Language = "en" | "bn";
@@ -15,6 +15,8 @@ type DemoResult = {
   receivedAt: string;
   sourceMessageId: string;
 };
+
+type ViewFilter = "all" | "not-viewed" | "viewed";
 
 const demoResults: DemoResult[] = [
   {
@@ -66,6 +68,16 @@ const copy = {
       "No patient data is present. This page does not associate accessions with patients, verify or finalize results, release results, or send data to another system. Do not use it for clinical care.",
     queueTitle: "Results awaiting review",
     queueHint: "Every row is fabricated and remains unverified in this browser-only demonstration.",
+    controlsTitle: "Synthetic queue controls",
+    searchLabel: "Search synthetic accession, assay, or source ID",
+    searchPlaceholder: "e.g. SYNTH-ACC-1001",
+    viewFilterLabel: "Local view acknowledgement",
+    allRows: "All demo rows",
+    notViewed: "Not acknowledged in this browser",
+    viewedOnly: "Viewed in this browser",
+    clearFilters: "Clear filters",
+    showingCount: "Showing {shown} of {total} synthetic records.",
+    noMatches: "No synthetic rows match the current search and filter.",
     accession: "Synthetic accession",
     assay: "Demo assay code",
     result: "Raw demo value",
@@ -107,6 +119,16 @@ const copy = {
       "এখানে কোনো রোগীর তথ্য নেই। এই পৃষ্ঠা accession-এর সঙ্গে রোগী মেলায় না, ফলাফল যাচাই বা চূড়ান্ত করে না, প্রকাশ করে না, এবং অন্য কোনো সিস্টেমে পাঠায় না। চিকিৎসার কাজে এটি ব্যবহার করবেন না।",
     queueTitle: "পর্যালোচনার অপেক্ষায় থাকা ফলাফল",
     queueHint: "প্রতিটি সারি কৃত্রিমভাবে তৈরি; এই ব্রাউজারভিত্তিক প্রদর্শনীতে সব ফলাফল যাচাইহীন থাকে।",
+    controlsTitle: "সিন্থেটিক সারির নিয়ন্ত্রণ",
+    searchLabel: "সিন্থেটিক accession, অ্যাসে বা উৎসের ID খুঁজুন",
+    searchPlaceholder: "যেমন SYNTH-ACC-1001",
+    viewFilterLabel: "এই ব্রাউজারে দেখার স্বীকৃতি",
+    allRows: "সব ডেমো সারি",
+    notViewed: "এই ব্রাউজারে এখনো দেখা হয়নি",
+    viewedOnly: "এই ব্রাউজারে দেখা হয়েছে",
+    clearFilters: "ফিল্টার মুছুন",
+    showingCount: "মোট {total}টি সিন্থেটিক রেকর্ডের মধ্যে {shown}টি দেখানো হচ্ছে।",
+    noMatches: "বর্তমান অনুসন্ধান ও ফিল্টারে কোনো সিন্থেটিক সারি মেলেনি।",
     accession: "সিন্থেটিক accession",
     assay: "ডেমো অ্যাসে কোড",
     result: "কাঁচা ডেমো মান",
@@ -136,8 +158,27 @@ export default function LabReviewPage() {
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
   const [viewedResultIds, setViewedResultIds] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
+  const filteredResults = useMemo(() => {
+    const query = searchTerm.trim().normalize("NFKC").toLocaleLowerCase();
+    return demoResults.filter((result) => {
+      const wasViewed = viewedResultIds.includes(result.id);
+      if (viewFilter === "not-viewed" && wasViewed) return false;
+      if (viewFilter === "viewed" && !wasViewed) return false;
+      if (!query) return true;
+      const searchableText = [result.accession, result.assay, result.id, result.sourceMessageId]
+        .join(" ")
+        .normalize("NFKC")
+        .toLocaleLowerCase();
+      return searchableText.includes(query);
+    });
+  }, [searchTerm, viewFilter, viewedResultIds]);
+  const showingCount = text.showingCount
+    .replace("{shown}", number.format(filteredResults.length))
+    .replace("{total}", number.format(demoResults.length));
 
   useEffect(() => {
     try {
@@ -157,6 +198,12 @@ export default function LabReviewPage() {
       // The language control remains usable when storage is disabled.
     }
   }, [language, preferenceLoaded]);
+
+  useEffect(() => {
+    if (openResultId && !filteredResults.some((result) => result.id === openResultId)) {
+      setOpenResultId(null);
+    }
+  }, [filteredResults, openResultId]);
 
   const acknowledgeView = (resultId: string) => {
     setViewedResultIds((previous) =>
@@ -223,6 +270,45 @@ export default function LabReviewPage() {
           </span>
         </div>
 
+        <div className={styles.queueTools} role="search" aria-label={text.controlsTitle}>
+          <label className={styles.filterField}>
+            <span>{text.searchLabel}</span>
+            <input
+              className={styles.filterInput}
+              type="search"
+              maxLength={100}
+              autoComplete="off"
+              placeholder={text.searchPlaceholder}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+          <label className={styles.filterField}>
+            <span>{text.viewFilterLabel}</span>
+            <select
+              className={styles.filterInput}
+              value={viewFilter}
+              onChange={(event) => setViewFilter(event.target.value as ViewFilter)}
+            >
+              <option value="all">{text.allRows}</option>
+              <option value="not-viewed">{text.notViewed}</option>
+              <option value="viewed">{text.viewedOnly}</option>
+            </select>
+          </label>
+          <button
+            className={styles.clearFilters}
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              setViewFilter("all");
+              setOpenResultId(null);
+            }}
+          >
+            {text.clearFilters}
+          </button>
+        </div>
+        <p className={styles.queueCount} role="status" aria-live="polite">{showingCount}</p>
+
         <div className="table-wrap">
           <table>
             <thead>
@@ -236,24 +322,30 @@ export default function LabReviewPage() {
               </tr>
             </thead>
             <tbody>
-              {demoResults.map((result) => {
-                const isOpen = openResultId === result.id;
-                const wasViewed = viewedResultIds.includes(result.id);
-                const detailId = `details-${result.id}`;
-                return (
-                  <ResultRows
-                    key={result.id}
-                    result={result}
-                    text={text}
-                    language={language}
-                    isOpen={isOpen}
-                    wasViewed={wasViewed}
-                    detailId={detailId}
-                    onToggle={() => setOpenResultId(isOpen ? null : result.id)}
-                    onAcknowledge={() => acknowledgeView(result.id)}
-                  />
-                );
-              })}
+              {filteredResults.length > 0 ? (
+                filteredResults.map((result) => {
+                  const isOpen = openResultId === result.id;
+                  const wasViewed = viewedResultIds.includes(result.id);
+                  const detailId = `details-${result.id}`;
+                  return (
+                    <ResultRows
+                      key={result.id}
+                      result={result}
+                      text={text}
+                      language={language}
+                      isOpen={isOpen}
+                      wasViewed={wasViewed}
+                      detailId={detailId}
+                      onToggle={() => setOpenResultId(isOpen ? null : result.id)}
+                      onAcknowledge={() => acknowledgeView(result.id)}
+                    />
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className={styles.emptyRow} colSpan={6}>{text.noMatches}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

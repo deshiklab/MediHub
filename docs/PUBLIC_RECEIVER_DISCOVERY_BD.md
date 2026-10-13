@@ -1,6 +1,7 @@
 # Phase 0 public receiver discovery: Bangladesh
 
-**Reviewed:** 2026-10-14  
+**Reviewed:** 2026-10-14
+
 **Purpose:** collect public discovery leads for a future receiving-system discussion. This is not a facility inventory, installation survey, authorization, integration specification, or conformance assessment.
 
 ## Conclusion
