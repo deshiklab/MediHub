@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from collections.abc import Iterator
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
@@ -100,7 +102,10 @@ def _page_html(page_name: str) -> str:
 def page(browser: Browser) -> Page:
     """Serve the packaged dashboard and deterministic synthetic API responses."""
 
-    context = browser.new_context(viewport={"width": 1280, "height": 900})
+    context = browser.new_context(
+        viewport={"width": 1280, "height": 900},
+        accept_downloads=True,
+    )
     current_device = {"enabled": True}
     device_profiles: list[dict[str, object]] = []
     api_evidence_gate_ids = [
@@ -580,17 +585,54 @@ def test_device_catalog_filters_by_family_evidence_and_search(page: Page) -> Non
 
     page.locator("#device-catalog-search").fill("xn-3000")
     expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(1)
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="Export filtered leads CSV").click()
+    download = download_info.value
+    assert download.suggested_filename == "medihub-device-discovery-leads.csv"
+    with Path(download.path()).open(encoding="utf-8-sig", newline="") as exported_file:
+        exported_rows = list(csv.reader(exported_file))
+    assert exported_rows[0] == [
+        "candidate_id",
+        "manufacturer",
+        "model",
+        "device_family",
+        "discovery_basis",
+        "evidence_note",
+        "source_url",
+        "status",
+        "compatibility_verified",
+        "live_adapter_available",
+    ]
+    assert len(exported_rows) == 2
+    assert exported_rows[1][0:5] == [
+        "sysmex-xn-3000",
+        "Sysmex",
+        "XN-3000",
+        "hematology",
+        "bangladesh_facility_self_report",
+    ]
+    assert exported_rows[1][5] == (
+        "Facility page self-reports an installation; not independently verified."
+    )
+    assert exported_rows[1][6] == "https://example.invalid/facility-report"
+    assert exported_rows[1][7:] == ["discovery_only", "false", "false"]
+    assert not {"site_ref", "host", "port", "endpoint", "credentials"} & set(exported_rows[0])
+    expect(page.locator("#device-catalog-export-status")).to_have_text(
+        "Exported 1 filtered discovery leads to CSV. No survey responses were included."
+    )
     page.locator("#device-catalog-search").fill("no matching model")
     expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(0)
     expect(page.locator("#device-catalog")).to_contain_text(
         "No discovery leads match the current filters."
     )
+    expect(page.get_by_role("button", name="Export filtered leads CSV")).to_be_disabled()
 
     page.get_by_role("button", name="Clear filters").click()
     expect(page.locator("#device-catalog-search")).to_have_value("")
     expect(page.locator("#device-catalog-family-filter")).to_have_value("")
     expect(page.locator("#device-catalog-evidence-filter")).to_have_value("")
     expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(3)
+    expect(page.get_by_role("button", name="Export filtered leads CSV")).to_be_enabled()
 
     page.locator("#language-select").select_option("bn")
     expect(page.locator("#device-catalog-search")).to_have_attribute(
@@ -599,6 +641,12 @@ def test_device_catalog_filters_by_family_evidence_and_search(page: Page) -> Non
     expect(page.get_by_role("button", name="ফিল্টার মুছুন")).to_be_visible()
     expect(page.locator("#device-catalog-result-count")).to_have_text(
         "মোট ৩টির মধ্যে ৩টি অনুসন্ধান-সূত্র দেখানো হচ্ছে।"
+    )
+    with page.expect_download() as bengali_download_info:
+        page.get_by_role("button", name="ফিল্টার করা সূত্র CSV রপ্তানি করুন").click()
+    assert bengali_download_info.value.suggested_filename == "medihub-device-discovery-leads.csv"
+    expect(page.locator("#device-catalog-export-status")).to_have_text(
+        "৩টি ফিল্টার করা ডিভাইস-সূত্র CSV-তে রপ্তানি হয়েছে; কোনো প্রতিষ্ঠানের জরিপের উত্তর অন্তর্ভুক্ত হয়নি।"
     )
 
 

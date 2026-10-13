@@ -154,6 +154,7 @@
       .control-btn.primary { border-color: #2e7168; background: #12332f; color: #a3f3e3; }
       .control-btn.subtle { background: transparent; color: #a4b4c4; }
       .control-btn:disabled { opacity: .55; cursor: wait; }
+      #device-catalog-export-csv:disabled { cursor: not-allowed; }
       .management-status { min-height: 16px; margin-top: 9px; color: var(--teal); font-size: 10px; line-height: 1.45; }
       .mapping-table { width: 100%; margin: 10px 0 14px; border: 1px solid #263446; border-radius: 8px; overflow: hidden; }
       .mapping-table th, .mapping-table td { padding: 8px 9px; font-size: 9px; }
@@ -178,7 +179,10 @@
       .device-catalog-filters { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(140px, 1fr)) auto; align-items: end; gap: 8px; margin: 10px 0 5px; }
       .device-catalog-filters .form-field { font-size: 8px; letter-spacing: 0; }
       .device-catalog-filters .control-btn { min-height: 35px; }
-      .device-catalog-result-count { margin: 7px 0; color: #8293a7; font-size: 9px; }
+      .device-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin: 8px 0; }
+      .device-catalog-result-count { margin: 0; color: #8293a7; font-size: 9px; }
+      .device-catalog-export-note { margin: 3px 0 6px; color: #74869b; font-size: 8px; line-height: 1.4; }
+      .device-catalog-export-status { min-height: 14px; margin: 4px 0 8px; color: var(--teal); font-size: 9px; line-height: 1.4; }
       .device-catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .device-catalog-card { min-width: 0; padding: 10px; border: 1px solid #29394b; border-radius: 9px; background: #111a26; }
       .device-catalog-card strong { display: block; color: #d5e2ee; font-size: 10px; }
@@ -223,7 +227,7 @@
       .form-field input:disabled, .form-field select:disabled { opacity: .7; color: #93a3b5; cursor: not-allowed; }
       @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .columns, .management-grid, .device-section-grid, .help-grid { grid-template-columns: 1fr; } .management-panel.full, .device-subpanel.full, .help-card.full { grid-column: auto; } .device-flow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 650px) { .shell { width: min(100% - 24px, 1240px); padding-top: 16px; } .topbar { align-items: flex-start; } .top-actions { align-items: flex-end; flex-direction: column; gap: 6px; } .language-control { justify-content: flex-end; } .refresh-pill { display: none; } .intro { display: block; padding-top: 25px; } .updated { padding-top: 14px; } .health-grid { grid-template-columns: 1fr; gap: 9px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .metric-card { min-height: 94px; padding: 13px; } .metric-value { font-size: 24px; } .management-head { display: block; } .setup-nav { overflow-x: auto; flex-wrap: nowrap; } .setup-nav a { flex: 0 0 auto; } .form-grid { grid-template-columns: 1fr; } .workbench-row { align-items: flex-start; flex-wrap: wrap; } .workbench-row .row-actions { width: 100%; justify-content: flex-start; } .footer { display: block; } .footer span { display: block; margin-bottom: 5px; } }
-      @media (max-width: 650px) { .device-stats, .device-section-grid, .device-catalog-grid, .device-flow-steps, .device-catalog-filters { grid-template-columns: 1fr; } .device-picker { width: 100%; min-width: 0; } }
+      @media (max-width: 650px) { .device-stats, .device-section-grid, .device-catalog-grid, .device-flow-steps, .device-catalog-filters { grid-template-columns: 1fr; } .device-catalog-toolbar { align-items: flex-start; flex-direction: column; } .device-picker { width: 100%; min-width: 0; } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
     </style>
   </head>
@@ -337,6 +341,7 @@
               <li>Select a simulator and choose <strong>Emit sample</strong> to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.</li>
               <li>The Bangladesh device library contains a user-selected CL-900i target, local seller listing leads, facility-reported leads, and family-level survey leads. Listings do not establish installed-base popularity, interface availability, compatibility, or driver support.</li>
               <li>Search by manufacturer, model, or evidence note; filter by device family or evidence source. These filters organize discovery leads only and do not establish prevalence or compatibility.</li>
+              <li>Use <strong>Export filtered leads CSV</strong> to download the visible discovery leads. The file is created in the browser; no facility survey responses are included or uploaded.</li>
               <li>Choose <strong>Use in profile</strong> to prefill a discovery record. Enter only exact model/software scope, documented protocol/transport, and dummy or non-sensitive opaque approval/document references; do not paste restricted document contents, URLs, addresses, credentials, patient data, or raw device messages.</li>
               <li>When a database is configured, saved profiles persist as non-secret discovery metadata. Expand <strong>Readiness checklist</strong> to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.</li>
               <li>Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.</li>
@@ -436,7 +441,12 @@
                     <label class="form-field" for="device-catalog-evidence-filter">Evidence type<select id="device-catalog-evidence-filter"><option value="">All evidence</option><option value="user_selected_target">User-selected target</option><option value="bangladesh_seller_listing">Bangladesh seller listing</option><option value="bangladesh_supplier_category">Bangladesh supplier category</option><option value="bangladesh_facility_self_report">Bangladesh facility self-report</option></select></label>
                     <button id="device-catalog-reset-filters" class="control-btn subtle" type="button">Clear filters</button>
                   </div>
-                  <p id="device-catalog-result-count" class="device-catalog-result-count" role="status" aria-live="polite">Showing 0 of 0 discovery leads.</p>
+                  <div class="device-catalog-toolbar">
+                    <p id="device-catalog-result-count" class="device-catalog-result-count" role="status" aria-live="polite">Showing 0 of 0 discovery leads.</p>
+                    <button id="device-catalog-export-csv" class="control-btn subtle" type="button" disabled>Export filtered leads CSV</button>
+                  </div>
+                  <p class="device-catalog-export-note">CSV contains the visible discovery leads only; no facility survey responses are included or uploaded.</p>
+                  <p id="device-catalog-export-status" class="device-catalog-export-status" role="status" aria-live="polite"></p>
                   <div id="device-catalog" class="device-catalog-grid"><div class="empty">Loading discovery leads…</div></div>
                 </section>
               </div>
@@ -874,6 +884,9 @@
           "Bangladesh facility self-report": "বাংলাদেশি প্রতিষ্ঠানের স্ব-প্রতিবেদন",
           "Evidence type unconfirmed": "প্রমাণের ধরন অনিশ্চিত",
           "Clear filters": "ফিল্টার মুছুন",
+          "Export filtered leads CSV": "ফিল্টার করা সূত্র CSV রপ্তানি করুন",
+          "CSV contains the visible discovery leads only; no facility survey responses are included or uploaded.": "CSV-তে শুধু দৃশ্যমান অনুসন্ধান-সূত্র থাকে; প্রতিষ্ঠানের জরিপ-উত্তর এতে যোগ বা আপলোড হয় না।",
+          "CSV export is unavailable in this browser.": "এই ব্রাউজারে CSV রপ্তানি করা যাচ্ছে না।",
           "No discovery leads match the current filters.": "বর্তমান ফিল্টারে কোনো অনুসন্ধান-সূত্র মেলেনি।",
           "Device profile & connection setup": "ডিভাইস প্রোফাইল ও সংযোগ সেটআপ",
           "Record exact model/interface discovery requirements; this is not a live connector configuration.": "সঠিক মডেল ও ইন্টারফেস-অনুসন্ধানের তথ্য লিখুন; এটি লাইভ কানেক্টরের কনফিগারেশন নয়।",
@@ -1206,6 +1219,7 @@
           "Select a simulator and choose Emit sample to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.": "একটি সিমুলেটর বেছে ‘নমুনা পাঠান’ নির্বাচন করে স্থানীয় পাইপলাইনে সিন্থেটিক নমুনা চালান। উৎস, গ্রহণ, আউটবক্স ও পরীক্ষামূলক গন্তব্যের ধাপ দেখতে ডিভাইসভিত্তিক প্রবাহ দেখুন।",
           "The Bangladesh device library contains a user-selected CL-900i target, local seller listing leads, facility-reported leads, and family-level survey leads. Listings do not establish installed-base popularity, interface availability, compatibility, or driver support.": "বাংলাদেশি ডিভাইস লাইব্রেরিতে ব্যবহারকারীর নির্বাচিত CL-900i লক্ষ্য, স্থানীয় বিক্রেতার তালিকা, প্রতিষ্ঠান-প্রতিবেদিত সূত্র এবং পরিবার-স্তরের জরিপের সূত্র রয়েছে। তালিকা স্থাপিত ডিভাইসের জনপ্রিয়তা, ইন্টারফেসের প্রাপ্যতা, সামঞ্জস্য বা ড্রাইভার সমর্থন প্রমাণ করে না।",
           "Search by manufacturer, model, or evidence note; filter by device family or evidence source. These filters organize discovery leads only and do not establish prevalence or compatibility.": "নির্মাতা, মডেল বা প্রমাণ-নোট দিয়ে খুঁজুন; ডিভাইসের ধরন বা প্রমাণের উৎস অনুযায়ী ফিল্টার করুন। এই ফিল্টার শুধু অনুসন্ধানের সূত্র গুছিয়ে দেয়, প্রচলন বা সামঞ্জস্য প্রমাণ করে না।",
+          "Use Export filtered leads CSV to download the visible discovery leads. The file is created in the browser; no facility survey responses are included or uploaded.": "দৃশ্যমান অনুসন্ধান-সূত্র ডাউনলোড করতে ‘ফিল্টার করা সূত্র CSV রপ্তানি করুন’ ব্যবহার করুন। ফাইল ব্রাউজারেই তৈরি হয়; প্রতিষ্ঠানের জরিপ-উত্তর এতে যোগ বা আপলোড হয় না।",
           "Choose Use in profile to prefill a discovery record. Enter only exact model/software scope, documented protocol/transport, and dummy or non-sensitive opaque approval/document references; do not paste restricted document contents, URLs, addresses, credentials, patient data, or raw device messages.": "অনুসন্ধান রেকর্ড পূরণ করতে ‘প্রোফাইলে ব্যবহার করুন’ বেছে নিন। শুধু সঠিক মডেল/সফটওয়্যার পরিসর, নথিভুক্ত প্রোটোকল/ট্রান্সপোর্ট এবং কাল্পনিক বা সংবেদনশীলতাহীন অনুমোদন/নথি রেফারেন্স দিন; সীমাবদ্ধ নথির বিষয়বস্তু, URL, ঠিকানা, পরিচয়-প্রমাণ, রোগীর তথ্য বা কাঁচা ডিভাইস বার্তা দেবেন না।",
           "When a database is configured, saved profiles persist as non-secret discovery metadata. Expand Readiness checklist to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.": "ডেটাবেস কনফিগার করা থাকলে সংরক্ষিত প্রোফাইল গোপন-তথ্যবিহীন অনুসন্ধান-মেটাডেটা হিসেবে টিকে থাকে। নয়টি অনুসন্ধান-ধাপ দেখতে ‘প্রস্তুতি তালিকা’ খুলুন; সব প্রমাণ-ধাপ নথিভুক্ত হলেও সিন্থেটিক যাচাই ও সাইট অনুমোদন বাকি থাকবে। কোনো প্রোফাইল হার্ডওয়্যার সংযুক্ত করতে পারে না।",
           "Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.": "এক্সপোর্ট নিয়ন্ত্রণ দিয়ে সর্বোচ্চ ১২টি বাছাই করা সাম্প্রতিক সিন্থেটিক সারি CSV বা JSON হিসেবে ডাউনলোড করুন। ফাইলগুলোকে পরীক্ষার উপকরণ হিসেবে রাখুন এবং বাস্তব তথ্য যোগ করবেন না।",
@@ -1374,6 +1388,7 @@
         };
         const dynamicTranslations = [
           [/^Showing ([0-9০-৯,]+) of ([0-9০-৯,]+) discovery leads\.$/, (_, shown, total) => `মোট ${bengaliLocaleNumber(total)}টির মধ্যে ${bengaliLocaleNumber(shown)}টি অনুসন্ধান-সূত্র দেখানো হচ্ছে।`],
+          [/^Exported ([0-9০-৯,]+) filtered discovery leads to CSV\. No survey responses were included\.$/, (_, count) => `${bengaliLocaleNumber(count)}টি ফিল্টার করা ডিভাইস-সূত্র CSV-তে রপ্তানি হয়েছে; কোনো প্রতিষ্ঠানের জরিপের উত্তর অন্তর্ভুক্ত হয়নি।`],
           [/^(\d+) events$/, (_, count) => `${count}টি ইভেন্ট`],
           [/^(-?\d+(?:\.\d+)?) · synthetic$/, (_, value) => `${value} · সিন্থেটিক`],
           [/^(\d+) intents$/, (_, count) => `${count}টি ডেলিভারি অনুরোধ`],
@@ -1655,6 +1670,7 @@
         let deviceMappingSet = null;
         const deviceApiDrafts = new Map();
         let deviceLibraryRows = [];
+        let visibleDeviceCatalogRows = [];
         let deviceProfileRows = [];
         let deviceProfilesPersistent = false;
         let destinationApiTargetRows = [];
@@ -1759,6 +1775,9 @@
             ].join(" ");
             return normalizeDeviceCatalogText(searchableText).includes(query);
           });
+          visibleDeviceCatalogRows = filteredRows;
+          byId("device-catalog-export-csv").disabled = filteredRows.length === 0;
+          setText("device-catalog-export-status", "");
           setText(
             "device-catalog-result-count",
             `Showing ${number.format(filteredRows.length)} of ${number.format(deviceLibraryRows.length)} discovery leads.`,
@@ -1814,10 +1833,54 @@
           renderDeviceCatalog();
           byId("device-catalog-search").focus();
         };
+        const csvCell = (value) => {
+          const raw = String(value ?? "");
+          const safe = /^[\t\r\n ]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
+          return `"${safe.replaceAll('"', '""')}"`;
+        };
+        const exportFilteredDeviceCatalogCsv = () => {
+          if (!visibleDeviceCatalogRows.length) return;
+          const columns = [
+            "candidate_id",
+            "manufacturer",
+            "model",
+            "device_family",
+            "discovery_basis",
+            "evidence_note",
+            "source_url",
+            "status",
+            "compatibility_verified",
+            "live_adapter_available",
+          ];
+          const rows = [
+            columns,
+            ...visibleDeviceCatalogRows.map((candidate) => columns.map((column) => candidate[column])),
+          ];
+          const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+          try {
+            const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = objectUrl;
+            link.download = "medihub-device-discovery-leads.csv";
+            link.hidden = true;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            setText(
+              "device-catalog-export-status",
+              `Exported ${number.format(visibleDeviceCatalogRows.length)} filtered discovery leads to CSV. No survey responses were included.`,
+            );
+          } catch (_) {
+            setText("device-catalog-export-status", "CSV export is unavailable in this browser.");
+          }
+        };
         byId("device-catalog-search").addEventListener("input", renderDeviceCatalog);
         byId("device-catalog-family-filter").addEventListener("change", renderDeviceCatalog);
         byId("device-catalog-evidence-filter").addEventListener("change", renderDeviceCatalog);
         byId("device-catalog-reset-filters").addEventListener("click", clearDeviceCatalogFilters);
+        byId("device-catalog-export-csv").addEventListener("click", exportFilteredDeviceCatalogCsv);
         const resetDeviceProfileForm = () => {
           byId("device-profile-form").reset();
           editingDeviceProfileId = "";
