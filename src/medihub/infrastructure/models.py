@@ -244,10 +244,65 @@ class DestinationApiSyntheticValidationRow(Base):
     checks: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
 
 
+class DeviceProfileRow(Base):
+    """Allowlisted device discovery metadata; no physical connection fields."""
+
+    __tablename__ = "device_profile"
+    __table_args__ = (
+        CheckConstraint(
+            "device_family IN ('immunoassay', 'hematology', 'clinical_chemistry', 'urinalysis', "
+            "'electrolyte', 'coagulation', 'hba1c', 'blood_gas', 'point_of_care', 'other')",
+            name="device_family_allowed",
+        ),
+        CheckConstraint(
+            "transport IN ('unconfirmed', 'tcp', 'serial', 'file_feed', 'vendor_gateway')",
+            name="transport_allowed",
+        ),
+        CheckConstraint(
+            "protocol IN ('unconfirmed', 'astm_e1394', 'hl7_v2', 'vendor_defined', 'other')",
+            name="protocol_allowed",
+        ),
+        CheckConstraint(
+            "vendor_authorization_status IN ('pending', 'approved')",
+            name="vendor_authorization_status_allowed",
+        ),
+        CheckConstraint(
+            "facility_authorization_status IN ('pending', 'approved')",
+            name="facility_authorization_status_allowed",
+        ),
+    )
+
+    profile_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    candidate_id: Mapped[str | None] = mapped_column(String(64))
+    manufacturer: Mapped[str] = mapped_column(String(80), nullable=False)
+    model: Mapped[str] = mapped_column(String(80), nullable=False)
+    device_family: Mapped[str] = mapped_column(String(32), nullable=False)
+    firmware_software_scope: Mapped[str] = mapped_column(String(80), nullable=False)
+    transport: Mapped[str] = mapped_column(String(32), nullable=False)
+    protocol: Mapped[str] = mapped_column(String(32), nullable=False)
+    protocol_version: Mapped[str | None] = mapped_column(String(80))
+    interface_document_reference: Mapped[str | None] = mapped_column(String(64))
+    vendor_authorization_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending", server_default=text("'pending'")
+    )
+    vendor_authorization_reference: Mapped[str | None] = mapped_column(String(64))
+    facility_authorization_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending", server_default=text("'pending'")
+    )
+    facility_authorization_reference: Mapped[str | None] = mapped_column(String(64))
+    results_only_confirmed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    receiver_contract_reference: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 __all__ = [
     "AuditEventRecord",
     "DestinationApiProfileRow",
     "DestinationApiSyntheticValidationRow",
+    "DeviceProfileRow",
     "DeliveryAttemptRecord",
     "DeliveryOutboxRecord",
     "EventRecord",

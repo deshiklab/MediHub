@@ -8,6 +8,7 @@ from alembic.config import Config
 from medihub.infrastructure.destination_api_profile_store import (
     SqlAlchemyDestinationApiProfileStore,
 )
+from medihub.infrastructure.device_profile_store import SqlAlchemyDeviceProfileStore
 
 
 def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
@@ -41,6 +42,9 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
             row[1]
             for row in connection.execute("PRAGMA table_info(destination_api_synthetic_validation)")
         }
+        device_profile_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(device_profile)")
+        }
         foreign_keys = list(connection.execute("PRAGMA foreign_key_list(delivery_outbox)"))
         hold_foreign_keys = list(connection.execute("PRAGMA foreign_key_list(routing_hold)"))
         audit_foreign_keys = list(connection.execute("PRAGMA foreign_key_list(audit_event)"))
@@ -54,6 +58,7 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
         "audit_event",
         "destination_api_profile",
         "destination_api_synthetic_validation",
+        "device_profile",
     } <= tables
     assert {
         "event_id",
@@ -127,20 +132,57 @@ def test_migrations_build_event_outbox_routing_hold_and_audit_schema(
             "payload",
         )
     )
+    assert {
+        "profile_id",
+        "candidate_id",
+        "manufacturer",
+        "model",
+        "device_family",
+        "firmware_software_scope",
+        "transport",
+        "protocol",
+        "protocol_version",
+        "interface_document_reference",
+        "vendor_authorization_status",
+        "vendor_authorization_reference",
+        "facility_authorization_status",
+        "facility_authorization_reference",
+        "results_only_confirmed",
+        "receiver_contract_reference",
+        "created_at",
+        "updated_at",
+    } <= device_profile_columns
+    assert not any(
+        field in column.lower()
+        for column in device_profile_columns
+        for field in (
+            "endpoint",
+            "credential",
+            "password",
+            "secret",
+            "token",
+            "base_url",
+            "host",
+            "port_number",
+        )
+    )
 
 
-def test_migrations_adopt_dashboard_initialized_destination_profile_table(
+def test_migrations_adopt_dashboard_initialized_profile_tables(
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("MEDIHUB_DATABASE_URL", raising=False)
     database_path = tmp_path / "dashboard-before-migration.db"
     database_url = f"sqlite+aiosqlite:///{database_path.as_posix()}"
-    store = SqlAlchemyDestinationApiProfileStore(database_url)
+    destination_store = SqlAlchemyDestinationApiProfileStore(database_url)
+    device_store = SqlAlchemyDeviceProfileStore(database_url)
 
     async def initialize_store() -> None:
-        await store.start()
-        await store.close()
+        await destination_store.start()
+        await device_store.start()
+        await destination_store.close()
+        await device_store.close()
 
     asyncio.run(initialize_store())
 
@@ -155,6 +197,7 @@ def test_migrations_adopt_dashboard_initialized_destination_profile_table(
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
 
-    assert version == "0006_destination_api_validation"
+    assert version == "0007_device_profile"
     assert "destination_api_profile" in tables
     assert "destination_api_synthetic_validation" in tables
+    assert "device_profile" in tables

@@ -2,9 +2,9 @@
 
 ## Scope and hard boundary
 
-The dashboard includes **in-memory simulator devices and mapping drafts**, one in-process test receiver, and a database-backed store for allowlisted non-secret EMR/EMS contract worksheets. It is intended to make the configuration flow tangible without guessing any physical device protocol or facility destination contract.
+The dashboard includes **in-memory simulator devices and mapping drafts**, one in-process test receiver, and database-backed stores for non-secret device discovery profiles and allowlisted EMR/EMS contract worksheets. It is intended to make the configuration flow tangible without guessing any physical device protocol or facility destination contract.
 
-It is not a production management plane. It has no sign-in, user/tenant permissions, persistent device registry, physical device discovery/control, live mapping activation, external network connector, endpoint URL field, or credential field. Only destination worksheet metadata persists, in the database configured for the dashboard; the CLI defaults to `./medihub-local.db` and accepts `MEDIHUB_DATABASE_URL`. Simulator, device-profile, mapping, and operations-demo state resets when the dashboard process restarts; mapping history retains at most 100 revisions. Do not expose it as a production service or enter patient, facility, vendor-restricted, or secret data.
+It is not a production management plane. It has no sign-in, user/tenant permissions, persistent physical-device inventory, physical device discovery/control, live mapping activation, external network connector, endpoint URL field, or credential field. Non-secret device-profile drafts and destination worksheet metadata persist in the database configured for the dashboard; the CLI defaults to `./medihub-local.db` and accepts `MEDIHUB_DATABASE_URL`. Simulator inventory, mapping, and operations-demo state resets when the dashboard process restarts; mapping history retains at most 100 revisions. Do not expose it as a production service or enter patient, facility, vendor-restricted, or secret data.
 
 ## Use the preview
 
@@ -29,6 +29,8 @@ The management API is under `/api/management/`:
 | Endpoint | Function |
 | --- | --- |
 | `GET/POST /api/management/devices` | List or register a generated simulator record |
+| `GET/POST /api/management/device-profiles` | List or create a bounded non-secret device discovery profile; the list response reports `persistent` and always reports physical connections disabled |
+| `PATCH /api/management/device-profiles/{profile_id}` | Update a saved discovery profile; endpoint/credential fields are rejected and saving never activates hardware |
 | `PATCH /api/management/devices/{device_id}` | Enable/disable a simulator record |
 | `POST /api/management/devices/{device_id}/emit` | Emit one synthetic sample for an enabled simulator |
 | `GET /api/management/mappings` | Read the active-in-this-process synthetic draft set; activation remains false |

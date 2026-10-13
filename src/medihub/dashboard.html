@@ -311,7 +311,7 @@
             <ul>
               <li><strong>Safe for:</strong> product walkthroughs, software development, mapping exercises, and test-flow demonstrations with synthetic values.</li>
               <li><strong>Not for:</strong> diagnosis, treatment, clinical monitoring, production operations, real patient information, or live integration configuration.</li>
-              <li>Simulator registrations, device profiles, mapping drafts, tests, and revision history are in-memory and reset on restart. Destination contract worksheets persist in the dashboard's configured database; neither store enables a connection.</li>
+              <li>Simulator registrations, mapping drafts, tests, and revision history are in-memory and reset on restart. Non-secret device discovery profiles and destination contract worksheets persist in the dashboard's configured database; neither store enables a connection.</li>
             </ul>
           </article>
           <article class="help-card">
@@ -332,7 +332,7 @@
               <li>Select a simulator and choose <strong>Emit sample</strong> to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.</li>
               <li>The Bangladesh device library contains a user-selected CL-900i target, local seller listing leads, and family-level survey leads. Listings do not establish installed-base popularity, interface availability, compatibility, or driver support.</li>
               <li>Choose <strong>Use in profile</strong> to prefill a discovery record. Enter only exact model/software scope, documented protocol/transport, and dummy or non-sensitive opaque approval/document references; do not paste restricted document contents, URLs, addresses, credentials, patient data, or raw device messages.</li>
-              <li>Saved profiles are temporary discovery metadata. Expand <strong>Readiness checklist</strong> to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.</li>
+              <li>When a database is configured, saved profiles persist as non-secret discovery metadata. Expand <strong>Readiness checklist</strong> to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.</li>
               <li>Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.</li>
             </ol>
             <p>The separate API planning draft applies only to a local simulator. Endpoint, authentication, hardware discovery, and real device API calls are intentionally unavailable.</p>
@@ -457,7 +457,7 @@
               </div>
               <div class="device-section-grid">
                 <section class="device-subpanel full" aria-labelledby="saved-device-profiles-heading">
-                  <div class="device-subpanel-head"><div><h4 id="saved-device-profiles-heading">Saved discovery profiles</h4><p>Ephemeral, non-secret compatibility metadata; a complete profile still requires synthetic tests and separate site approval.</p></div></div>
+                  <div class="device-subpanel-head"><div><h4 id="saved-device-profiles-heading">Saved discovery profiles</h4><p>Persistent, non-secret discovery metadata; a complete profile still requires synthetic tests and separate site approval.</p></div></div>
                   <div id="device-profile-list" class="workbench-list" aria-live="polite"><div class="empty">Loading profiles…</div></div>
                 </section>
               </div>
@@ -723,7 +723,7 @@
             eyebrow: "Device integration workbench / synthetic only",
             description: "Review Bangladesh market-discovery leads, manage non-secret exact-model profiles, and exercise simulator-only workflows. No physical device is discovered or connected.",
             workbenchTitle: "Device library & profile setup",
-            workbenchDescription: "Capture exact model, firmware, approved interface references, and readiness blockers. Profiles are ephemeral and cannot connect to hardware."
+            workbenchDescription: "Capture exact model, firmware, approved interface references, and readiness blockers. Non-secret profiles persist in the configured database and cannot connect to hardware."
           },
           mappings: {
             title: "Data mapping",
@@ -771,7 +771,7 @@
           "Synthetic-only lab": "শুধু সিন্থেটিক পরীক্ষাগার",
           "Synthetic-only · no live connections": "শুধু সিন্থেটিক · কোনো লাইভ সংযোগ নেই",
           "· database-backed non-secret worksheets · synthetic-only mode": "· ডেটাবেসে সংরক্ষিত গোপন-তথ্যবিহীন worksheet · শুধু সিন্থেটিক মোড",
-          "Simulator registrations, device profiles, mapping drafts, tests, and revision history are in-memory and reset on restart. Destination contract worksheets persist in the configured database; neither store enables a connection.": "সিমুলেটর নিবন্ধন, ডিভাইস প্রোফাইল, ম্যাপিং খসড়া, পরীক্ষা ও সংস্করণ-ইতিহাস মেমোরিতে থাকে এবং পুনরায় চালু হলে মুছে যায়। গন্তব্য-চুক্তির worksheet কনফিগার করা ডেটাবেসে স্থায়ীভাবে থাকে; কোনো সংরক্ষণব্যবস্থাই সংযোগ চালু করে না।",
+          "Simulator registrations, mapping drafts, tests, and revision history are in-memory and reset on restart. Non-secret device discovery profiles and destination contract worksheets persist in the configured database; neither store enables a connection.": "সিমুলেটর নিবন্ধন, ম্যাপিং খসড়া, পরীক্ষা ও সংস্করণ-ইতিহাস মেমোরিতে থাকে এবং পুনরায় চালু হলে মুছে যায়। গোপন-তথ্যবিহীন ডিভাইস অনুসন্ধান-প্রোফাইল ও গন্তব্য-চুক্তির worksheet কনফিগার করা ডেটাবেসে থাকে; কোনো সংরক্ষণব্যবস্থাই সংযোগ চালু করে না।",
           "Stores allowlisted non-secret contract references and operator-reported approval metadata in the configured database; no connection is enabled.": "অনুমোদিত তালিকার গোপন-তথ্যবিহীন চুক্তি-রেফারেন্স ও অপারেটর-প্রতিবেদিত অনুমোদনের মেটাডেটা কনফিগার করা ডেটাবেসে রাখে; কোনো সংযোগ চালু হয় না।",
           "Allowlisted reference IDs and operator-reported approvals only; these worksheet records persist in the configured database. Do not enter URLs, hostnames, credentials, patient data, or document contents. Saving never enables a connection or establishes target conformance.": "শুধু অনুমোদিত তালিকার রেফারেন্স ID ও অপারেটর-প্রতিবেদিত অনুমোদন; এই worksheet রেকর্ড কনফিগার করা ডেটাবেসে স্থায়ীভাবে থাকে। URL, হোস্টনেম, পরিচয়-প্রমাণ, রোগীর তথ্য বা নথির বিষয়বস্তু দেবেন না। সংরক্ষণ করলে সংযোগ চালু হয় না বা লক্ষ্যের সামঞ্জস্য প্রমাণিত হয় না।",
           "Values are arbitrary synthetic scalars, not patient measurements. Simulator and mapping drafts reset when the server restarts; non-secret EMR/EMS worksheet references persist in the configured database. No live device, external API, endpoint, credential, or patient context is supported by this workbench.": "মানগুলো কৃত্রিম সংখ্যা, রোগীর পরিমাপ নয়। সার্ভার পুনরায় চালু হলে সিমুলেটর ও ম্যাপিং খসড়া মুছে যায়; গোপন-তথ্যবিহীন EMR/EMS worksheet কনফিগার করা ডেটাবেসে থাকে। এই ওয়ার্কবেঞ্চে বাস্তব ডিভাইস, বাহ্যিক API, এন্ডপয়েন্ট, পরিচয়-প্রমাণ বা রোগীর প্রসঙ্গ সমর্থিত নয়।",
@@ -786,7 +786,7 @@
           "Last updated": "সর্বশেষ হালনাগাদ",
           "Waiting for first snapshot…": "প্রথম স্ন্যাপশটের অপেক্ষায়…",
           "Development data only.": "শুধু উন্নয়ন ও পরীক্ষার ডেটা।",
-          "Values are arbitrary synthetic scalars, not patient measurements. Setup changes are ephemeral and reset when the server restarts. No live device, external API, EMR/EMS endpoint, credential, or patient context is supported by this workbench.": "মানগুলো কৃত্রিম পরীক্ষামূলক সংখ্যা—রোগীর পরিমাপ নয়। সেটআপের পরিবর্তন অস্থায়ী এবং সার্ভার পুনরায় চালু হলে মুছে যায়। এই ওয়ার্কবেঞ্চে কোনো বাস্তব ডিভাইস, বাহ্যিক API, EMR/EMS এন্ডপয়েন্ট, পরিচয়-প্রমাণ বা রোগীর তথ্য সমর্থিত নয়।",
+          "Values are arbitrary synthetic scalars, not patient measurements. Simulator registrations and mapping drafts reset when the server restarts; non-secret device discovery profiles and destination worksheets persist in the configured database. No live device, external API, EMR/EMS endpoint, credential, or patient context is supported by this workbench.": "মানগুলো কৃত্রিম পরীক্ষামূলক সংখ্যা—রোগীর পরিমাপ নয়। সিমুলেটর নিবন্ধন ও ম্যাপিং খসড়া সার্ভার পুনরায় চালু হলে মুছে যায়; গোপন-তথ্যবিহীন ডিভাইস অনুসন্ধান-প্রোফাইল ও গন্তব্য worksheet কনফিগার করা ডেটাবেসে থাকে। এই ওয়ার্কবেঞ্চে কোনো বাস্তব ডিভাইস, বাহ্যিক API, EMR/EMS এন্ডপয়েন্ট, পরিচয়-প্রমাণ বা রোগীর প্রসঙ্গ সমর্থিত নয়।",
           "Adapter health": "অ্যাডাপ্টারের অবস্থা",
           "Synthetic device source": "সিন্থেটিক ডিভাইস উৎস",
           "Waiting for health check": "স্বাস্থ্য-পরীক্ষার অপেক্ষায়",
@@ -891,9 +891,10 @@
           "Not run": "চালানো হয়নি",
           "Not approved": "অনুমোদিত নয়",
           "Saved discovery profiles": "সংরক্ষিত অনুসন্ধান প্রোফাইল",
-          "Ephemeral, non-secret compatibility metadata; a complete profile still requires synthetic tests and separate site approval.": "অস্থায়ী, গোপন তথ্যবিহীন সামঞ্জস্য-মেটাডেটা; সম্পূর্ণ প্রোফাইলের পরেও সিন্থেটিক পরীক্ষা ও আলাদা সাইট অনুমোদন দরকার।",
+          "Persistent, non-secret discovery metadata; a complete profile still requires synthetic tests and separate site approval.": "স্থায়ী, গোপন-তথ্যবিহীন অনুসন্ধান-মেটাডেটা; সম্পূর্ণ প্রোফাইলের পরেও সিন্থেটিক পরীক্ষা ও আলাদা সাইট অনুমোদন দরকার।",
           "Loading profiles…": "প্রোফাইল লোড হচ্ছে…",
           "No discovery profiles saved in this server session.": "এই সার্ভার সেশনে কোনো অনুসন্ধান প্রোফাইল সংরক্ষিত নেই।",
+          "No discovery profiles saved in the configured database.": "কনফিগার করা ডেটাবেসে কোনো অনুসন্ধান প্রোফাইল সংরক্ষিত নেই।",
           "No discovery candidates are available.": "কোনো অনুসন্ধান-সূত্র পাওয়া যায়নি।",
           "Discovery only": "শুধু অনুসন্ধান",
           "Use in profile": "প্রোফাইলে ব্যবহার করুন",
@@ -1174,7 +1175,7 @@
           "Select a simulator and choose Emit sample to run a synthetic sample through the local pipeline. Inspect the per-device flow for source, ingestion, outbox, and test-sink stages.": "একটি সিমুলেটর বেছে ‘নমুনা পাঠান’ নির্বাচন করে স্থানীয় পাইপলাইনে সিন্থেটিক নমুনা চালান। উৎস, গ্রহণ, আউটবক্স ও পরীক্ষামূলক গন্তব্যের ধাপ দেখতে ডিভাইসভিত্তিক প্রবাহ দেখুন।",
           "The Bangladesh device library contains a user-selected CL-900i target, local seller listing leads, and family-level survey leads. Listings do not establish installed-base popularity, interface availability, compatibility, or driver support.": "বাংলাদেশি ডিভাইস লাইব্রেরিতে ব্যবহারকারীর নির্বাচিত CL-900i লক্ষ্য, স্থানীয় বিক্রেতার তালিকার সূত্র এবং পরিবার-স্তরের জরিপের সূত্র রয়েছে। তালিকা স্থাপিত ডিভাইসের জনপ্রিয়তা, ইন্টারফেসের প্রাপ্যতা, সামঞ্জস্য বা ড্রাইভার সমর্থন প্রমাণ করে না।",
           "Choose Use in profile to prefill a discovery record. Enter only exact model/software scope, documented protocol/transport, and dummy or non-sensitive opaque approval/document references; do not paste restricted document contents, URLs, addresses, credentials, patient data, or raw device messages.": "অনুসন্ধান রেকর্ড পূরণ করতে ‘প্রোফাইলে ব্যবহার করুন’ বেছে নিন। শুধু সঠিক মডেল/সফটওয়্যার পরিসর, নথিভুক্ত প্রোটোকল/ট্রান্সপোর্ট এবং কাল্পনিক বা সংবেদনশীলতাহীন অনুমোদন/নথি রেফারেন্স দিন; সীমাবদ্ধ নথির বিষয়বস্তু, URL, ঠিকানা, পরিচয়-প্রমাণ, রোগীর তথ্য বা কাঁচা ডিভাইস বার্তা দেবেন না।",
-          "Saved profiles are temporary discovery metadata. Expand Readiness checklist to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.": "সংরক্ষিত প্রোফাইল অস্থায়ী অনুসন্ধান-মেটাডেটা। নয়টি অনুসন্ধান-ধাপ দেখতে ‘প্রস্তুতি তালিকা’ খুলুন; সব প্রমাণ-ধাপ নথিভুক্ত হলেও সিন্থেটিক যাচাই ও সাইট অনুমোদন বাকি থাকবে। কোনো প্রোফাইল হার্ডওয়্যার সংযুক্ত করতে পারে না।",
+          "When a database is configured, saved profiles persist as non-secret discovery metadata. Expand Readiness checklist to inspect nine discovery gates; synthetic validation and site approval remain outstanding even when every evidence gate is recorded. No profile can connect hardware.": "ডেটাবেস কনফিগার করা থাকলে সংরক্ষিত প্রোফাইল গোপন-তথ্যবিহীন অনুসন্ধান-মেটাডেটা হিসেবে টিকে থাকে। নয়টি অনুসন্ধান-ধাপ দেখতে ‘প্রস্তুতি তালিকা’ খুলুন; সব প্রমাণ-ধাপ নথিভুক্ত হলেও সিন্থেটিক যাচাই ও সাইট অনুমোদন বাকি থাকবে। কোনো প্রোফাইল হার্ডওয়্যার সংযুক্ত করতে পারে না।",
           "Use the export controls to download up to 12 recent, curated synthetic rows as CSV or JSON. Treat the files as test artifacts and do not add real information.": "এক্সপোর্ট নিয়ন্ত্রণ দিয়ে সর্বোচ্চ ১২টি বাছাই করা সাম্প্রতিক সিন্থেটিক সারি CSV বা JSON হিসেবে ডাউনলোড করুন। ফাইলগুলোকে পরীক্ষার উপকরণ হিসেবে রাখুন এবং বাস্তব তথ্য যোগ করবেন না।",
           "The separate API planning draft applies only to a local simulator. Endpoint, authentication, hardware discovery, and real device API calls are intentionally unavailable.": "আলাদা API পরিকল্পনা-খসড়া শুধু স্থানীয় সিমুলেটরের জন্য। এন্ডপয়েন্ট, প্রমাণীকরণ, হার্ডওয়্যার অনুসন্ধান এবং বাস্তব ডিভাইস API কল ইচ্ছাকৃতভাবে অনুপলব্ধ।",
           "4. Mapping drafts and tests": "৪. ম্যাপিং খসড়া ও পরীক্ষা",
@@ -1218,7 +1219,7 @@
           "Mapping drafts & QA": "ম্যাপিং খসড়া ও গুণমান যাচাই",
           "EMR / EMS connection APIs": "EMR / EMS সংযোগ API",
           "Review Bangladesh market-discovery leads, manage non-secret exact-model profiles, and exercise simulator-only workflows. No physical device is discovered or connected.": "বাংলাদেশের বাজার-অনুসন্ধানের সূত্র পর্যালোচনা করুন, গোপন তথ্যবিহীন সঠিক-মডেল প্রোফাইল পরিচালনা করুন এবং শুধু সিমুলেটর কর্মপ্রবাহ পরীক্ষা করুন। কোনো বাস্তব ডিভাইস খোঁজা বা সংযুক্ত করা হয় না।",
-          "Capture exact model, firmware, approved interface references, and readiness blockers. Profiles are ephemeral and cannot connect to hardware.": "সঠিক মডেল, ফার্মওয়্যার, অনুমোদিত ইন্টারফেসের রেফারেন্স ও প্রস্তুতির বাধাগুলো নথিবদ্ধ করুন। প্রোফাইল অস্থায়ী এবং হার্ডওয়্যারের সঙ্গে সংযোগ করতে পারে না।",
+          "Capture exact model, firmware, approved interface references, and readiness blockers. Non-secret profiles persist in the configured database and cannot connect to hardware.": "সঠিক মডেল, ফার্মওয়্যার, অনুমোদিত ইন্টারফেসের রেফারেন্স ও প্রস্তুতির বাধাগুলো নথিবদ্ধ করুন। গোপন-তথ্যবিহীন প্রোফাইল কনফিগার করা ডেটাবেসে সংরক্ষিত থাকে এবং হার্ডওয়্যারের সঙ্গে সংযোগ করতে পারে না।",
           "Review synthetic-only mapping drafts, previews, golden test vectors, and revision history. Mapping activation is disabled.": "শুধু সিন্থেটিক ম্যাপিং খসড়া, প্রিভিউ, গোল্ডেন টেস্ট ভেক্টর ও সংস্করণ ইতিহাস পর্যালোচনা করুন। ম্যাপিং সক্রিয় করা বন্ধ।",
           "Exercise exact-match mapping examples and compare inactive revisions using patient-free simulator values only.": "শুধু রোগী-তথ্যবিহীন সিমুলেটর মান দিয়ে হুবহু-মিল ম্যাপিং উদাহরণ পরীক্ষা এবং নিষ্ক্রিয় সংস্করণ তুলনা করুন।",
           "Review machine-readable EMR/FHIR and EMS/HL7 readiness gates and run local delivery drills. External endpoints, credentials, and live activation remain unavailable.": "মেশিন-পাঠযোগ্য EMR/FHIR ও EMS/HL7 প্রস্তুতি-ধাপ পর্যালোচনা করুন এবং স্থানীয় ডেলিভারি পরীক্ষা চালান। বাহ্যিক এন্ডপয়েন্ট, পরিচয়-প্রমাণ ও লাইভ সক্রিয়করণ অনুপলব্ধ।",
@@ -1614,6 +1615,7 @@
         const deviceApiDrafts = new Map();
         let deviceLibraryRows = [];
         let deviceProfileRows = [];
+        let deviceProfilesPersistent = false;
         let destinationApiTargetRows = [];
         let destinationApiProfilesPersistent = false;
         let editingDeviceProfileId = "";
@@ -1743,7 +1745,9 @@
           if (!deviceProfileRows.length) {
             const empty = document.createElement("div");
             empty.className = "empty";
-            empty.textContent = "No discovery profiles saved in this server session.";
+            empty.textContent = deviceProfilesPersistent
+              ? "No discovery profiles saved in the configured database."
+              : "No discovery profiles saved in this server session.";
             list.appendChild(empty);
             return;
           }
@@ -1812,6 +1816,7 @@
           ]);
           deviceLibraryRows = library.candidates || [];
           deviceProfileRows = profileResponse.profiles || [];
+          deviceProfilesPersistent = profileResponse.persistent === true;
           setText("device-catalog-total", number.format(deviceLibraryRows.length));
           const candidateSelect = byId("profile-candidate-id");
           candidateSelect.replaceChildren(new Option("Custom / survey entry", ""));

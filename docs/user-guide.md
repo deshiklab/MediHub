@@ -22,7 +22,7 @@ The interface language selector in the header switches between **English** and *
 | Page | Route | What it shows |
 | --- | --- | --- |
 | Operations | `/` or `/operations` | Synthetic source/receiver status, event and outbox metrics, recent synthetic events, delivery attempts, policy holds, and curated audit metadata. |
-| Device management | `/devices` | In-memory simulator controls, Bangladesh device-library discovery leads, ephemeral exact-model/firmware profile drafts with readiness blockers, simulator-only API drafts, per-device flow/mapping previews, and CSV/JSON export. |
+| Device management | `/devices` | In-memory simulator controls, Bangladesh device-library discovery leads, database-backed non-secret exact-model/firmware discovery profiles with readiness blockers, simulator-only API drafts, per-device flow/mapping previews, and CSV/JSON export. |
 | Data mapping | `/mappings` | Inactive mapping drafts, exact-match previews, synthetic golden test vectors, and in-memory revision history. |
 | EMR / EMS APIs | `/api-setup` | Machine-readable readiness checklists for disconnected FHIR R4 and HL7 v2 targets, persistent non-secret contract worksheets, local synthetic management API routes, and in-process receiver drills. No external API can be configured here. |
 | Help / user guide | `/help` | An in-app explanation of the demo boundary, workflows, safety, Bangladesh planning, and common issues. |

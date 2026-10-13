@@ -47,7 +47,7 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
     asyncio.run(exercise())
 
 
-def test_device_profiles_are_ephemeral_strict_and_cannot_enable_connections() -> None:
+def test_device_profiles_without_store_are_ephemeral_strict_and_cannot_enable_connections() -> None:
     async def exercise() -> None:
         app = create_dashboard_app(
             SyntheticOperationsDashboard(refresh_interval_seconds=60, duplicate_every=0)

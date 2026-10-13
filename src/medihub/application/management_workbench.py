@@ -45,6 +45,10 @@ from medihub.infrastructure.destination_api_profile_store import (
     DestinationApiProfileStoreError,
     SqlAlchemyDestinationApiProfileStore,
 )
+from medihub.infrastructure.device_profile_store import (
+    DeviceProfileStoreError,
+    SqlAlchemyDeviceProfileStore,
+)
 from medihub.infrastructure.event_store import SyntheticDeliveryReplayError
 
 SIMULATOR_MANUFACTURER = "MediHub Synthetic"
@@ -364,20 +368,22 @@ class ManagementWorkbenchError(ValueError):
 
 
 class SyntheticManagementWorkbench:
-    """Synthetic management catalogs and disconnected destination worksheets.
+    """Synthetic catalogs with durable non-secret discovery and receiver worksheets.
 
     Device records are simulator-only. Mapping entries use fixed example.invalid
     code systems. The only destination is MediHub's in-process test sink; stored
-    contract worksheets contain no endpoint, credential, or live-activation fields.
+    profiles contain no endpoint, credential, or live-activation fields.
     """
 
     def __init__(
         self,
         operations: SyntheticOperationsDashboard,
         destination_api_profile_store: SqlAlchemyDestinationApiProfileStore | None = None,
+        device_profile_store: SqlAlchemyDeviceProfileStore | None = None,
     ) -> None:
         self._operations = operations
         self._destination_api_profile_store = destination_api_profile_store
+        self._device_profile_store = device_profile_store
         self._lock = asyncio.Lock()
         self._devices: dict[str, SyntheticDeviceRecord] = {
             "sim-device-001": SyntheticDeviceRecord(device_id="sim-device-001")
@@ -411,34 +417,48 @@ class SyntheticManagementWorkbench:
         self._last_test_report: dict[str, object] | None = None
 
     async def start(self) -> None:
-        """Initialize and restore the optional durable non-secret worksheet store."""
+        """Initialize optional durable stores and restore allowlisted metadata."""
 
-        store = self._destination_api_profile_store
-        if store is None:
-            return
-        await store.start()
-        try:
-            profile_payloads = await store.list_profiles()
-            validation_payloads = await store.list_validations()
-            profiles = [
-                DestinationApiProfileRecord.model_validate(payload) for payload in profile_payloads
-            ]
-            validations = [
-                DestinationSyntheticValidationRecord.model_validate(payload)
-                for payload in validation_payloads
-            ]
-        except ValidationError:
-            raise DestinationApiProfileStoreError() from None
-        self._destination_api_profiles = {profile.target_id: profile for profile in profiles}
-        self._destination_api_validation_reports = {
-            report.target_id: report for report in validations
-        }
+        destination_store = self._destination_api_profile_store
+        if destination_store is not None:
+            await destination_store.start()
+            try:
+                profile_payloads = await destination_store.list_profiles()
+                validation_payloads = await destination_store.list_validations()
+                profiles = [
+                    DestinationApiProfileRecord.model_validate(payload)
+                    for payload in profile_payloads
+                ]
+                validations = [
+                    DestinationSyntheticValidationRecord.model_validate(payload)
+                    for payload in validation_payloads
+                ]
+            except ValidationError:
+                raise DestinationApiProfileStoreError() from None
+            self._destination_api_profiles = {profile.target_id: profile for profile in profiles}
+            self._destination_api_validation_reports = {
+                report.target_id: report for report in validations
+            }
+
+        device_store = self._device_profile_store
+        if device_store is not None:
+            await device_store.start()
+            try:
+                profile_payloads = await device_store.list_profiles()
+                profiles = [
+                    DeviceProfileRecord.model_validate(payload) for payload in profile_payloads
+                ]
+            except ValidationError:
+                raise DeviceProfileStoreError() from None
+            self._device_profiles = {str(profile.profile_id): profile for profile in profiles}
 
     async def stop(self) -> None:
-        """Dispose the optional worksheet store's database engine."""
+        """Dispose optional worksheet/profile database engines."""
 
         if self._destination_api_profile_store is not None:
             await self._destination_api_profile_store.close()
+        if self._device_profile_store is not None:
+            await self._device_profile_store.close()
 
     async def devices(self) -> dict[str, object]:
         async with self._lock:
@@ -459,7 +479,7 @@ class SyntheticManagementWorkbench:
         return device_library_payload()
 
     async def device_profiles(self) -> dict[str, object]:
-        """List in-memory non-secret profiles; these cannot activate a connector."""
+        """List non-secret profiles and report persistence without implying activation."""
 
         async with self._lock:
             profiles = [
@@ -471,7 +491,7 @@ class SyntheticManagementWorkbench:
             ]
         return {
             "mode": "synthetic_only",
-            "persistent": False,
+            "persistent": self._device_profile_store is not None,
             "physical_device_connections_enabled": False,
             "endpoint_fields_supported": False,
             "credential_fields_supported": False,
@@ -548,7 +568,7 @@ class SyntheticManagementWorkbench:
         *,
         profile_id: UUID | None = None,
     ) -> dict[str, object]:
-        """Create/update discovery metadata only; never construct a connection."""
+        """Create/update non-secret discovery metadata; never construct a connection."""
 
         if draft.candidate_id and draft.candidate_id not in {
             candidate.candidate_id for candidate in DEVICE_LIBRARY_CANDIDATES
@@ -560,7 +580,6 @@ class SyntheticManagementWorkbench:
                 if len(self._device_profiles) >= MAX_DEVICE_PROFILES:
                     raise ManagementWorkbenchError("device_profile_limit_reached", 409)
                 record = new_device_profile(draft)
-                self._device_profiles[str(record.profile_id)] = record
             else:
                 current = self._device_profiles.get(str(profile_id))
                 if current is None:
@@ -571,7 +590,16 @@ class SyntheticManagementWorkbench:
                     created_at=current.created_at,
                     updated_at=datetime.now(UTC),
                 )
-                self._device_profiles[str(profile_id)] = record
+
+            if self._device_profile_store is not None:
+                try:
+                    await self._device_profile_store.save_profile(record.model_dump(mode="python"))
+                except DeviceProfileStoreError:
+                    raise ManagementWorkbenchError(
+                        "device_profile_store_unavailable",
+                        503,
+                    ) from None
+            self._device_profiles[str(record.profile_id)] = record
         return device_profile_payload(record)
 
     async def register_simulator(self) -> dict[str, object]:

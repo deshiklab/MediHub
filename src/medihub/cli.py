@@ -385,6 +385,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 create_dashboard_app(
                     runtime,
                     destination_api_profile_database_url=database_url,
+                    device_profile_database_url=database_url,
                 ),
                 host=args.host,
                 port=args.port,

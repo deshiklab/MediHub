@@ -27,6 +27,7 @@ from medihub.application.operations import SyntheticOperationsDashboard
 from medihub.infrastructure.destination_api_profile_store import (
     SqlAlchemyDestinationApiProfileStore,
 )
+from medihub.infrastructure.device_profile_store import SqlAlchemyDeviceProfileStore
 from medihub.observability import MediHubMetrics
 
 DASHBOARD_HTML = files("medihub").joinpath("dashboard.html").read_text(encoding="utf-8")
@@ -48,8 +49,9 @@ def create_dashboard_app(
     runtime: SyntheticOperationsDashboard | None = None,
     *,
     destination_api_profile_database_url: str | None = None,
+    device_profile_database_url: str | None = None,
 ) -> FastAPI:
-    """Build a synthetic-only dashboard with optional durable non-secret worksheets."""
+    """Build a synthetic-only dashboard with optional durable non-secret setup records."""
 
     operations = runtime or SyntheticOperationsDashboard()
     profile_store = (
@@ -57,7 +59,17 @@ def create_dashboard_app(
         if destination_api_profile_database_url is not None
         else None
     )
-    workbench = SyntheticManagementWorkbench(operations, profile_store)
+    effective_device_database_url = (
+        destination_api_profile_database_url
+        if device_profile_database_url is None
+        else device_profile_database_url
+    )
+    device_profile_store = (
+        SqlAlchemyDeviceProfileStore(effective_device_database_url)
+        if effective_device_database_url is not None
+        else None
+    )
+    workbench = SyntheticManagementWorkbench(operations, profile_store, device_profile_store)
     metrics = MediHubMetrics()
 
     @asynccontextmanager

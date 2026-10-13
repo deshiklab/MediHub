@@ -226,7 +226,7 @@ class DeviceProfileDraft(DomainModel):
 
 
 class DeviceProfileRecord(DeviceProfileDraft):
-    """Ephemeral saved profile; its readiness never activates hardware."""
+    """Saved non-secret discovery profile; readiness never activates hardware."""
 
     profile_id: UUID
     created_at: AwareDateTime
@@ -234,7 +234,7 @@ class DeviceProfileRecord(DeviceProfileDraft):
 
 
 def new_device_profile(draft: DeviceProfileDraft) -> DeviceProfileRecord:
-    """Create an in-memory-compatible record with server-owned identity/timestamps."""
+    """Create a discovery record with server-owned identity and timestamps."""
 
     now = datetime.now(UTC)
     return DeviceProfileRecord(
