@@ -176,6 +176,20 @@ def page(browser: Browser) -> Page:
             "compatibility_verified": False,
             "live_adapter_available": False,
         },
+        {
+            "candidate_id": "sysmex-xn-3000",
+            "manufacturer": "Sysmex",
+            "model": "XN-3000",
+            "device_family": "hematology",
+            "discovery_basis": "bangladesh_facility_self_report",
+            "evidence_note": (
+                "Facility page self-reports an installation; not independently verified."
+            ),
+            "source_url": "https://example.invalid/facility-report",
+            "status": "discovery_only",
+            "compatibility_verified": False,
+            "live_adapter_available": False,
+        },
     ]
 
     def handle_request(route: Route) -> None:
@@ -530,6 +544,61 @@ def test_device_actions_and_generated_statuses_are_localized(page: Page) -> None
     expect(page.locator("html")).to_have_attribute("lang", "en")
     expect(page.locator("#device-status")).to_contain_text(
         "sim-device-001: passed; in-process receipts 1."
+    )
+
+
+def test_device_catalog_filters_by_family_evidence_and_search(page: Page) -> None:
+    page.goto(f"{BASE_URL}/devices", wait_until="domcontentloaded")
+
+    expect(page.locator("#device-catalog-result-count")).to_have_text(
+        "Showing 3 of 3 discovery leads."
+    )
+    seller_card = page.locator("#device-catalog .device-catalog-card").filter(
+        has_text="Mindray BC-20s"
+    )
+    expect(seller_card.get_by_role("link")).to_have_text("Seller listing (availability only)")
+    page.locator("#device-catalog-family-filter").select_option("hematology")
+    expect(page.locator("#device-catalog-result-count")).to_have_text(
+        "Showing 2 of 3 discovery leads."
+    )
+    expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(2)
+
+    page.locator("#device-catalog-evidence-filter").select_option("bangladesh_facility_self_report")
+    expect(page.locator("#device-catalog-result-count")).to_have_text(
+        "Showing 1 of 3 discovery leads."
+    )
+    facility_card = page.locator("#device-catalog .device-catalog-card")
+    expect(facility_card.locator("strong")).to_have_text("Sysmex XN-3000")
+    expect(facility_card.locator(".device-evidence-tag")).to_have_text(
+        "Bangladesh facility self-report"
+    )
+    expect(facility_card.locator(".catalog-status")).to_have_text("Discovery only")
+    expect(facility_card.get_by_role("link")).to_have_text(
+        "Facility self-report · not independently verified"
+    )
+    expect(page.locator("#profile-candidate-id option")).to_have_count(4)
+
+    page.locator("#device-catalog-search").fill("xn-3000")
+    expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(1)
+    page.locator("#device-catalog-search").fill("no matching model")
+    expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(0)
+    expect(page.locator("#device-catalog")).to_contain_text(
+        "No discovery leads match the current filters."
+    )
+
+    page.get_by_role("button", name="Clear filters").click()
+    expect(page.locator("#device-catalog-search")).to_have_value("")
+    expect(page.locator("#device-catalog-family-filter")).to_have_value("")
+    expect(page.locator("#device-catalog-evidence-filter")).to_have_value("")
+    expect(page.locator("#device-catalog .device-catalog-card")).to_have_count(3)
+
+    page.locator("#language-select").select_option("bn")
+    expect(page.locator("#device-catalog-search")).to_have_attribute(
+        "placeholder", "যেমন Mindray বা XN-3000"
+    )
+    expect(page.get_by_role("button", name="ফিল্টার মুছুন")).to_be_visible()
+    expect(page.locator("#device-catalog-result-count")).to_have_text(
+        "মোট ৩টির মধ্যে ৩টি অনুসন্ধান-সূত্র দেখানো হচ্ছে।"
     )
 
 
