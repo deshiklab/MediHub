@@ -168,6 +168,45 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
         evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
+        candidate_id="mindray-bc-5130",
+        manufacturer="Mindray",
+        model="BC-5130",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh lists this model and claims HL7/bidirectional LIS; this is not "
+            "a validated host profile or evidence of installed prevalence."
+        ),
+        source_url="https://www.medistorebd.com/product/mindray-bc-5130-auto-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="edan-h30",
+        manufacturer="EDAN",
+        model="H30",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "BMA Bazar lists EDAN H30; its LAN description is not a confirmed host profile or "
+            "evidence of installed prevalence."
+        ),
+        source_url="https://bmabazar.com/shop/edan-3-part-different-cbc-fully-auto-hematology-analyzer-machine-for-blood-test-h30-copy/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="dymind-dh36",
+        manufacturer="Dymind",
+        model="DH36",
+        device_family="hematology",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh lists DH36 and advertises bidirectional LIS; this is not a "
+            "validated host profile or evidence of installed prevalence."
+        ),
+        source_url="https://www.medistorebd.com/product/dymind-dh36-auto-hematology-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
         candidate_id="dymind-df50",
         manufacturer="Dymind",
         model="DF50",
@@ -259,6 +298,32 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
         evidence_reviewed_on=date(2026, 10, 11),
     ),
     DeviceLibraryCandidate(
+        candidate_id="mindray-bs-240",
+        manufacturer="Mindray",
+        model="BS-240",
+        device_family="clinical_chemistry",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Rapid Medical Bangladesh lists this model; the listing does not establish installed "
+            "prevalence or the host profile of any unit."
+        ),
+        source_url="https://rapidmedicalbd.com/shop/application/laboratory-equipments/analyzer-machines/bio-chemistry-analyzer/mindray-bs-240-clinical-fully-automated-chemistry-analyzer-with-hba1c-capability/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="erba-xl-200",
+        manufacturer="Erba",
+        model="XL-200",
+        device_family="clinical_chemistry",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Rapid Medical Bangladesh lists this model and advertises LIS connection; the claim is "
+            "not a validated host profile or evidence of installed prevalence."
+        ),
+        source_url="https://rapidmedicalbd.com/shop/application/laboratory-equipments/analyzer-machines/bio-chemistry-analyzer/erba-xl-200-fully-automatic-clinical-chemistry-analyzer-machine-biochemical-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
         candidate_id="icubio-imagic-m7",
         manufacturer="ICUBIO",
         model="iMagic M7",
@@ -269,6 +334,19 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
             "installed prevalence, firmware, and host profile are unverified."
         ),
         source_url="https://www.medistorebd.com/product/fully-automated-bio-chemistry-analyzer-icubio-imagic-m7/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="cornley-bg-800",
+        manufacturer="Meizhou Cornley Hi-Tech",
+        model="BG-800",
+        device_family="blood_gas",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "BMA Bazar identifies the BG-800 blood-gas model; the listing does not establish local "
+            "installations or an approved host interface."
+        ),
+        source_url="https://bmabazar.com/shop/blood-gas-electrolyte-analyzer-bg-8000/",
         evidence_reviewed_on=date(2026, 10, 14),
     ),
     DeviceLibraryCandidate(
