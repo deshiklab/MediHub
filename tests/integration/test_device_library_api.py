@@ -62,6 +62,11 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     "mindray-bs-240",
                     "erba-xl-200",
                     "cornley-bg-800",
+                    "contec-bc400",
+                    "bio-elite-klite8",
+                    "succeeder-sf-400",
+                    "aehealthcare-ms-11",
+                    "getein-gp-1100",
                 } <= candidate_ids
                 assert all(item["status"] == "discovery_only" for item in payload["candidates"])
                 assert all(
@@ -82,6 +87,11 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     "mindray-bs-240",
                     "erba-xl-200",
                     "cornley-bg-800",
+                    "contec-bc400",
+                    "bio-elite-klite8",
+                    "succeeder-sf-400",
+                    "aehealthcare-ms-11",
+                    "getein-gp-1100",
                 }
                 assert all(
                     discovery_bases[candidate_id] == "bangladesh_seller_listing"
@@ -101,6 +111,11 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     ("mindray-bs-240", "Mindray", "BS-240", "clinical_chemistry"),
                     ("erba-xl-200", "Erba", "XL-200", "clinical_chemistry"),
                     ("cornley-bg-800", "Meizhou Cornley Hi-Tech", "BG-800", "blood_gas"),
+                    ("contec-bc400", "Contec", "BC400", "urinalysis"),
+                    ("bio-elite-klite8", "Bio Elite", "K-Lite8", "electrolyte"),
+                    ("succeeder-sf-400", "Succeeder", "SF-400", "coagulation"),
+                    ("aehealthcare-ms-11", "AeHealthcare", "MS 11", "hba1c"),
+                    ("getein-gp-1100", "Getein", "GP 1100", "point_of_care"),
                 ):
                     candidate = candidates_by_id[candidate_id]
                     assert candidate["manufacturer"] == manufacturer
@@ -114,6 +129,10 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                     "RS-232/PC connectivity"
                     in candidates_by_id["icubio-imagic-m7"]["evidence_note"]
                 )
+                assert (
+                    "page branding is inconsistent"
+                    in candidates_by_id["aehealthcare-ms-11"]["evidence_note"]
+                )
                 assert candidates_by_id["mindray-bc-20s"]["evidence_reviewed_on"] == "2026-10-11"
                 assert candidates_by_id["celltus-cts-3000"]["evidence_reviewed_on"] == "2026-10-13"
                 assert candidates_by_id["zecen-cia-600"]["evidence_reviewed_on"] == "2026-10-14"
@@ -122,7 +141,7 @@ def test_device_library_separates_market_leads_from_actual_adapters() -> None:
                 assert discovery_bases["celltus-cts-3000"] == "bangladesh_seller_listing"
                 assert discovery_bases["celltus-cts-5000"] == "bangladesh_supplier_category"
                 assert discovery_bases["dymind-df-51"] == "bangladesh_seller_listing"
-                assert payload["candidate_count"] == len(payload["candidates"]) == 27
+                assert payload["candidate_count"] == len(payload["candidates"]) == 32
 
     asyncio.run(exercise())
 

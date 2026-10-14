@@ -350,6 +350,72 @@ DEVICE_LIBRARY_CANDIDATES: tuple[DeviceLibraryCandidate, ...] = (
         evidence_reviewed_on=date(2026, 10, 14),
     ),
     DeviceLibraryCandidate(
+        candidate_id="contec-bc400",
+        manufacturer="Contec",
+        model="BC400",
+        device_family="urinalysis",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "BMA Bazar lists the Contec BC400 urine analyzer and mentions RS-232; this is not a "
+            "verified host profile or evidence of installed prevalence."
+        ),
+        source_url="https://bmabazar.com/shop/contec-bc400-clinical-11-parameter-urine-analyzer-machine/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="bio-elite-klite8",
+        manufacturer="Bio Elite",
+        model="K-Lite8",
+        device_family="electrolyte",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "BMA Bazar lists the K-Lite8 and advertises HL7/LIS; this is not a validated host "
+            "profile or evidence of installed prevalence."
+        ),
+        source_url="https://bmabazar.com/shop/electrolyte-analyzer-k-lite8/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="succeeder-sf-400",
+        manufacturer="Succeeder",
+        model="SF-400",
+        device_family="coagulation",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Medistore Bangladesh lists SF-400 and advertises USB/RS-232; this is not a validated "
+            "host profile or evidence of installed prevalence."
+        ),
+        source_url="https://www.medistorebd.com/product/automated-coagulation-analyzer/",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="aehealthcare-ms-11",
+        manufacturer="AeHealthcare",
+        model="MS 11",
+        device_family="hba1c",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Techno Healthcare lists AeHealthcare MS 11 for HbA1c/POCT, but page branding is "
+            "inconsistent; confirm identity. No installed prevalence or host profile "
+            "is established."
+        ),
+        source_url="https://www.technohealthcare.com.bd/product/36",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
+        candidate_id="getein-gp-1100",
+        manufacturer="Getein",
+        model="GP 1100",
+        device_family="point_of_care",
+        discovery_basis="bangladesh_seller_listing",
+        evidence_note=(
+            "Techno Healthcare lists Getein GP 1100 as POCT/HbA1c; seller claims do not establish "
+            "installed prevalence or a validated host profile."
+        ),
+        source_url="https://www.technohealthcare.com.bd/product/37",
+        evidence_reviewed_on=date(2026, 10, 14),
+    ),
+    DeviceLibraryCandidate(
         candidate_id="survey-urinalysis",
         manufacturer="To be confirmed",
         model="Urinalysis analyzer to survey",

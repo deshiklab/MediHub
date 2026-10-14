@@ -4,7 +4,7 @@
 
 - [Medical device integration platform — research, architecture, stack, and development plan](docs/DEVICE_INTEGRATION_PLATFORM_PLAN.md)
 - [Mindray CL-900i integration plan](docs/MINDRAY_CL900I_INTEGRATION_PLAN.md) — target-specific discovery and safety gates; no live adapter is implemented.
-- [Bangladesh device discovery research](docs/BANGLADESH_DEVICE_DISCOVERY_RESEARCH.md) — six additional seller-listed model leads and public GitHub research; no compatibility or installed-base claims.
+- [Bangladesh device discovery research](docs/BANGLADESH_DEVICE_DISCOVERY_RESEARCH.md) — eleven additional seller-listed model leads across diagnostic families and public GitHub research; no compatibility or installed-base claims.
 
 Bangladesh is a required deployment target; the plan includes a country-specific feasibility assessment and pilot gates.
 
