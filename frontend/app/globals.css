@@ -161,11 +161,28 @@ tbody tr:last-child td { border-bottom: 0; }
 .device-filter select { padding-right: 25px; }
 .device-filter input:disabled, .device-filter select:disabled { cursor: not-allowed; opacity: .55; }
 .device-date-hint { margin: 10px 0 0; color: #8999ab; font-size: 10px; line-height: 1.55; }
+.device-share-hint { margin: 5px 0 0; color: #8396aa; font-size: 9px; line-height: 1.5; }
 .device-library-status { margin: 17px 2px; color: #9aabbd; font-size: 12px; }
 .device-results-section { margin-top: 17px; }
 .device-results-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 10px; }
 .device-results-heading h2 { font-size: 16px; }
 .device-results-count { margin: 0; color: #99adbf; font-size: 10px; font-variant-numeric: tabular-nums; }
+.device-result-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.device-share-link {
+  flex: 0 0 auto;
+  border: 1px solid #394b5d;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #172332;
+  color: #c5d2df;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.device-share-link:hover:not(:disabled) { border-color: #55a99e; color: #a9f0e0; }
+.device-share-link:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.device-share-link:disabled { cursor: not-allowed; opacity: .48; }
 .device-export-csv {
   flex: 0 0 auto;
   border: 1px solid #34796f;
@@ -181,6 +198,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .device-export-csv:hover:not(:disabled) { border-color: #58b3a5; background: #174038; }
 .device-export-csv:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .device-export-csv:disabled { cursor: not-allowed; opacity: .48; }
+.device-share-status { margin: -2px 0 8px; color: #a8c9f5; font-size: 10px; line-height: 1.5; }
 .device-export-status { margin: -2px 0 11px; color: #8fdcc8; font-size: 10px; line-height: 1.5; }
 .device-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
 .device-result-card {
@@ -227,6 +245,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .device-filter-grid { grid-template-columns: 1fr; }
   .device-filter > span { min-height: 0; }
   .device-results-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .device-result-actions { width: 100%; justify-content: flex-start; }
   .device-result-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 430px) {

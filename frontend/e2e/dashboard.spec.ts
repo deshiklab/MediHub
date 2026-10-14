@@ -285,6 +285,42 @@ test("exports only filtered discovery leads with CSV formula protection and scop
   )).toBeVisible();
 });
 
+test("shares only allowlisted discovery filters and restores them from a URL", async ({ page }) => {
+  await page.goto("/bangladesh-devices?q=Mindray&family=hematology&basis=bangladesh_seller_listing&catalogDate=recorded&extra=discard-me");
+
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
+  const search = page.getByRole("searchbox", {
+    name: "Search manufacturer, model, family, or evidence note",
+  });
+  await expect(search).toHaveValue("Mindray");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).has("extra"))).toBe(false);
+  await search.fill("Mindray BC");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).get("q"))).toBe("Mindray BC");
+
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copy filtered-view link" }).click();
+  await expect(page.getByText(
+    "Filtered-view link copied. It includes only search/filter settings; no catalog data was uploaded.",
+    { exact: true },
+  )).toBeVisible();
+  const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
+  const sharedParams = new URL(sharedUrl).searchParams;
+  expect(Array.from(sharedParams.keys()).sort()).toEqual(["basis", "catalogDate", "family", "q"]);
+  expect(sharedParams.get("q")).toBe("Mindray BC");
+  expect(sharedParams.get("family")).toBe("hematology");
+  expect(sharedParams.get("basis")).toBe("bangladesh_seller_listing");
+  expect(sharedParams.get("catalogDate")).toBe("recorded");
+
+  await page.goto(sharedUrl);
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
+  await expect(page.getByRole("searchbox", {
+    name: "Search manufacturer, model, family, or evidence note",
+  })).toHaveValue("Mindray BC");
+  await expect(page.getByRole("combobox", { name: "Device family" })).toHaveValue("hematology");
+  await expect(page.getByRole("combobox", { name: "Evidence basis" })).toHaveValue("bangladesh_seller_listing");
+});
+
 test("localizes the Bangladesh discovery page and keeps its filters usable on mobile", async ({ page }) => {
   await page.getByRole("link", { name: "Browse Bangladesh leads" }).click();
   await page.getByRole("combobox", { name: "Interface language" }).selectOption("bn");

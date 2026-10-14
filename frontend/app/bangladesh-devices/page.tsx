@@ -11,6 +11,7 @@ import {
   type DiscoveryBasis,
 } from "@/lib/device-library";
 import { buildDeviceDiscoveryCsv } from "@/lib/device-library-csv";
+import { readSharedFilters, shareableFilterUrl } from "@/lib/device-discovery-url";
 
 type Language = "en" | "bn";
 type CatalogDateFilter = "" | "recorded" | "not-recorded";
@@ -40,6 +41,10 @@ const copy = {
     dateNotRecorded: "No date metadata recorded",
     dateHint: "A recorded catalog date is metadata only. It does not establish claim freshness, current availability, compatibility, or prevalence.",
     clearFilters: "Clear filters",
+    shareHint: "The share link includes your search text and selected filters in the URL. Share only if you're comfortable sharing those values; no device connection is made.",
+    copyShareLink: "Copy filtered-view link",
+    shareCopied: "Filtered-view link copied. It includes only search/filter settings; no catalog data was uploaded.",
+    shareFailed: "Could not copy the link. The address bar still shows the shareable filtered view.",
     showing: "Showing {shown} of {total} discovery leads",
     resultsTitle: "Discovery leads",
     loading: "Loading the Bangladesh discovery catalog…",
@@ -100,6 +105,10 @@ const copy = {
     dateNotRecorded: "তারিখের মেটাডেটা নেই",
     dateHint: "ক্যাটালগে তারিখ থাকলেও তা শুধু মেটাডেটা। এতে তথ্যের সাম্প্রতিকতা, বর্তমান প্রাপ্যতা, সামঞ্জস্য বা বাজারে প্রচলন প্রমাণিত হয় না।",
     clearFilters: "ফিল্টার মুছুন",
+    shareHint: "শেয়ার লিংকে সার্চের লেখা ও নির্বাচিত ফিল্টার URL-এ থাকবে। এসব মান শেয়ার করতে স্বচ্ছন্দ হলেই লিংকটি শেয়ার করুন; কোনো ডিভাইস সংযোগ করা হয় না।",
+    copyShareLink: "ফিল্টার করা ভিউয়ের লিংক কপি করুন",
+    shareCopied: "ফিল্টার করা ভিউয়ের লিংক কপি হয়েছে। এতে শুধু সার্চ/ফিল্টারের মান আছে; ক্যাটালগের তথ্য আপলোড হয়নি।",
+    shareFailed: "লিংক কপি করা যায়নি। ঠিকানার বারে শেয়ারযোগ্য ফিল্টার করা ভিউটি রয়েছে।",
     showing: "{total}টি অনুসন্ধান-সূত্রের মধ্যে {shown}টি দেখানো হচ্ছে",
     resultsTitle: "ডিভাইস অনুসন্ধানের সূত্র",
     loading: "বাংলাদেশি ডিভাইস অনুসন্ধানের ক্যাটালগ লোড হচ্ছে…",
@@ -160,6 +169,10 @@ const copy = {
   dateNotRecorded: string;
   dateHint: string;
   clearFilters: string;
+  shareHint: string;
+  copyShareLink: string;
+  shareCopied: string;
+  shareFailed: string;
   showing: string;
   resultsTitle: string;
   loading: string;
@@ -195,6 +208,8 @@ export default function BangladeshDevicesPage() {
   const [familyFilter, setFamilyFilter] = useState<DeviceFamily | "">("");
   const [evidenceFilter, setEvidenceFilter] = useState<DiscoveryBasis | "">("");
   const [dateFilter, setDateFilter] = useState<CatalogDateFilter>("");
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"copied" | "error" | null>(null);
   const [exportStatus, setExportStatus] = useState<{ kind: "success"; count: number } | { kind: "error" } | null>(null);
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
@@ -207,6 +222,30 @@ export default function BangladeshDevicesPage() {
     }
     setPreferenceLoaded(true);
   }, []);
+
+  useEffect(() => {
+    const sharedFilters = readSharedFilters(window.location.search);
+    setSearch(sharedFilters.search);
+    setFamilyFilter(sharedFilters.familyFilter);
+    setEvidenceFilter(sharedFilters.evidenceFilter);
+    setDateFilter(sharedFilters.dateFilter);
+    setFiltersLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!filtersLoaded) return;
+    const nextUrl = shareableFilterUrl(new URL(window.location.href), {
+      search,
+      familyFilter,
+      evidenceFilter,
+      dateFilter,
+    });
+    const nextLocation = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextLocation !== currentLocation) {
+      window.history.replaceState(window.history.state, "", nextLocation);
+    }
+  }, [dateFilter, evidenceFilter, familyFilter, filtersLoaded, search]);
 
   useEffect(() => {
     if (!preferenceLoaded) return;
@@ -273,7 +312,26 @@ export default function BangladeshDevicesPage() {
     setEvidenceFilter("");
     setDateFilter("");
     setExportStatus(null);
+    setShareStatus(null);
   };
+  const copyFilteredViewLink = async () => {
+    const url = shareableFilterUrl(new URL(window.location.href), {
+      search,
+      familyFilter,
+      evidenceFilter,
+      dateFilter,
+    });
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(url.toString());
+      setShareStatus("copied");
+    } catch {
+      setShareStatus("error");
+    }
+  };
+  const shareStatusMessage = shareStatus === "copied"
+    ? text.shareCopied
+    : shareStatus === "error" ? text.shareFailed : "";
   const exportFilteredCandidates = () => {
     if (filteredCandidates.length === 0) return;
     try {
@@ -313,6 +371,7 @@ export default function BangladeshDevicesPage() {
             <select value={language} onChange={(event) => {
               setLanguage(event.target.value as Language);
               setExportStatus(null);
+              setShareStatus(null);
             }}>
               <option value="en">English</option>
               <option value="bn">বাংলা</option>
@@ -356,6 +415,7 @@ export default function BangladeshDevicesPage() {
               onChange={(event) => {
                 setSearch(event.target.value);
                 setExportStatus(null);
+                setShareStatus(null);
               }}
               placeholder={text.searchPlaceholder}
               maxLength={100}
@@ -367,6 +427,7 @@ export default function BangladeshDevicesPage() {
             <select value={familyFilter} onChange={(event) => {
               setFamilyFilter(event.target.value as DeviceFamily | "");
               setExportStatus(null);
+              setShareStatus(null);
             }} disabled={!library}>
               <option value="">{text.allFamilies}</option>
               {deviceFamilies.map((family) => <option key={family} value={family}>{text.familyLabels[family]}</option>)}
@@ -377,6 +438,7 @@ export default function BangladeshDevicesPage() {
             <select value={evidenceFilter} onChange={(event) => {
               setEvidenceFilter(event.target.value as DiscoveryBasis | "");
               setExportStatus(null);
+              setShareStatus(null);
             }} disabled={!library}>
               <option value="">{text.allEvidence}</option>
               {discoveryBases.map((basis) => <option key={basis} value={basis}>{text.evidenceLabels[basis]}</option>)}
@@ -387,6 +449,7 @@ export default function BangladeshDevicesPage() {
             <select value={dateFilter} onChange={(event) => {
               setDateFilter(event.target.value as CatalogDateFilter);
               setExportStatus(null);
+              setShareStatus(null);
             }} disabled={!library}>
               <option value="">{text.anyCatalogDate}</option>
               <option value="recorded">{text.dateRecorded}</option>
@@ -395,6 +458,7 @@ export default function BangladeshDevicesPage() {
           </label>
         </div>
         <p className="device-date-hint">{text.dateHint}</p>
+        <p className="device-share-hint">{text.shareHint}</p>
       </section>
 
       {loading && <p className="device-library-status" role="status">{text.loading}</p>}
@@ -407,15 +471,26 @@ export default function BangladeshDevicesPage() {
               <h2 id="device-results-heading">{text.resultsTitle}</h2>
               <p className="device-results-count" role="status" data-testid="device-results-count">{resultsMessage}</p>
             </div>
-            <button
-              className="device-export-csv"
-              type="button"
-              onClick={exportFilteredCandidates}
-              disabled={filteredCandidates.length === 0}
-            >
-              {text.exportCsv}
-            </button>
+            <div className="device-result-actions">
+              <button
+                className="device-share-link"
+                type="button"
+                onClick={() => void copyFilteredViewLink()}
+                disabled={!filtersLoaded}
+              >
+                {text.copyShareLink}
+              </button>
+              <button
+                className="device-export-csv"
+                type="button"
+                onClick={exportFilteredCandidates}
+                disabled={filteredCandidates.length === 0}
+              >
+                {text.exportCsv}
+              </button>
+            </div>
           </div>
+          {shareStatusMessage && <p className="device-share-status" role="status" aria-live="polite">{shareStatusMessage}</p>}
           {exportStatusMessage && <p className="device-export-status" role="status" aria-live="polite">{exportStatusMessage}</p>}
           {filteredCandidates.length > 0 ? (
             <div className="device-result-grid" data-testid="device-result-grid">
