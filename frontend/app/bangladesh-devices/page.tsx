@@ -54,10 +54,11 @@ const copy = {
     modelOrder: "Model A–Z",
     familyOrder: "Device family A–Z",
     evidenceOrder: "Evidence basis A–Z",
+    reviewDateOrder: "Review date (newest first)",
     anyCatalogDate: "Any metadata status",
     dateRecorded: "Date metadata recorded",
     dateNotRecorded: "No date metadata recorded",
-    dateHint: "A recorded catalog date is metadata only. It does not establish claim freshness, current availability, compatibility, or prevalence.",
+    dateHint: "A recorded catalog date is metadata only. It does not establish claim freshness, current availability, compatibility, or prevalence. Sorting by date puts leads without a recorded date last.",
     clearFilters: "Clear filters",
     shareHint: "The share link includes your search text and selected filter/sort choices in the URL. Share only if you're comfortable sharing those values; no device connection is made.",
     copyShareLink: "Copy filtered-view link",
@@ -129,10 +130,11 @@ const copy = {
     modelOrder: "মডেল A–Z",
     familyOrder: "ডিভাইসের ধরন A–Z",
     evidenceOrder: "তথ্যের ভিত্তি A–Z",
+    reviewDateOrder: "যাচাইয়ের তারিখ (নতুন তারিখ আগে)",
     anyCatalogDate: "যেকোনো মেটাডেটা অবস্থা",
     dateRecorded: "তারিখের মেটাডেটা আছে",
     dateNotRecorded: "তারিখের মেটাডেটা নেই",
-    dateHint: "ক্যাটালগে তারিখ থাকলেও তা শুধু মেটাডেটা। এতে তথ্যের সাম্প্রতিকতা, বর্তমান প্রাপ্যতা, সামঞ্জস্য বা বাজারে প্রচলন প্রমাণিত হয় না।",
+    dateHint: "ক্যাটালগে তারিখ থাকলেও তা শুধু মেটাডেটা। এতে তথ্যের সাম্প্রতিকতা, বর্তমান প্রাপ্যতা, সামঞ্জস্য বা বাজারে প্রচলন প্রমাণিত হয় না। তারিখ দিয়ে সাজালে যেসব সূত্রের তারিখ নেই, সেগুলো শেষে থাকবে।",
     clearFilters: "ফিল্টার মুছুন",
     shareHint: "শেয়ার লিংকে সার্চের লেখা ও নির্বাচিত ফিল্টার/সাজানোর ক্রম URL-এ থাকবে। এসব মান শেয়ার করতে স্বচ্ছন্দ হলেই লিংকটি শেয়ার করুন; কোনো ডিভাইস সংযোগ করা হয় না।",
     copyShareLink: "ফিল্টার করা ভিউয়ের লিংক কপি করুন",
@@ -204,6 +206,7 @@ const copy = {
   modelOrder: string;
   familyOrder: string;
   evidenceOrder: string;
+  reviewDateOrder: string;
   anyCatalogDate: string;
   dateRecorded: string;
   dateNotRecorded: string;
@@ -261,6 +264,7 @@ export default function BangladeshDevicesPage() {
     model: text.modelOrder,
     family: text.familyOrder,
     evidence: text.evidenceOrder,
+    "review-date": text.reviewDateOrder,
   };
 
   useEffect(() => {

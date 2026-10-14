@@ -277,6 +277,38 @@ test("sorts discovery leads locally by manufacturer without changing the lead co
   await expect(page.getByRole("button", { name: "Clear filters" })).toBeDisabled();
 });
 
+test("sorts by review-date metadata with unknown dates last", async ({ page }) => {
+  await page.getByRole("link", { name: "Browse Bangladesh leads" }).click();
+
+  const sort = page.getByRole("combobox", { name: "Sort results" });
+  await sort.selectOption("review-date");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 5 of 5 discovery leads");
+  await expect(sort).toHaveValue("review-date");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).get("sort"))).toBe("review-date");
+  await expect(page.locator(".device-result-card h3")).toHaveText([
+    "Zecen CIA 600",
+    "Mindray BC-20s",
+    "Sysmex XN-3000",
+    "Mindray CL-900i",
+    "To be confirmed HbA1c analyzer to survey",
+  ]);
+  await expect(page.getByText("A recorded catalog date is metadata only.", { exact: false })).toBeVisible();
+
+  await page.reload();
+  await expect(sort).toHaveValue("review-date");
+  await expect(page.locator(".device-result-card h3")).toHaveText([
+    "Zecen CIA 600",
+    "Mindray BC-20s",
+    "Sysmex XN-3000",
+    "Mindray CL-900i",
+    "To be confirmed HbA1c analyzer to survey",
+  ]);
+
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(sort).toHaveValue("catalog");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).has("sort"))).toBe(false);
+});
+
 test("exports only filtered discovery leads with CSV formula protection and scope metadata", async ({ page }) => {
   await page.route("**/api/management/device-library", async (route) => {
     const exportLibrary = structuredClone(deviceLibrarySnapshot);
@@ -373,7 +405,12 @@ test("localizes the Bangladesh discovery page and keeps its filters usable on mo
   await expect(page.getByText("এগুলো শুধু অনুসন্ধানের সূত্র।", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "তথ্যের ভিত্তি" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "প্রকাশ্য সূত্রের লিংক" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "ফলাফল সাজান" })).toBeVisible();
+  const bengaliSort = page.getByRole("combobox", { name: "ফলাফল সাজান" });
+  await expect(bengaliSort).toBeVisible();
+  await expect(bengaliSort.locator('option[value="review-date"]')).toHaveText("যাচাইয়ের তারিখ (নতুন তারিখ আগে)");
+  await bengaliSort.selectOption("review-date");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).get("sort"))).toBe("review-date");
+  await expect(page.getByText("যেসব সূত্রের তারিখ নেই, সেগুলো শেষে থাকবে।", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন" })).toBeVisible();
 
   await page.getByRole("combobox", { name: "ডিভাইসের ধরন" }).selectOption("hematology");

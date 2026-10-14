@@ -5,7 +5,7 @@ import {
   type DiscoveryBasis,
 } from "./device-library";
 
-export const discoverySortOrders = ["catalog", "manufacturer", "model", "family", "evidence"] as const;
+export const discoverySortOrders = ["catalog", "manufacturer", "model", "family", "evidence", "review-date"] as const;
 export type DiscoverySortOrder = (typeof discoverySortOrders)[number];
 
 export type SourceLinkFilter = "" | "linked" | "unlinked";
