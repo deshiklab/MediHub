@@ -11,7 +11,13 @@ import {
   type DiscoveryBasis,
 } from "@/lib/device-library";
 import { buildDeviceDiscoveryCsv } from "@/lib/device-library-csv";
-import { readSharedFilters, shareableFilterUrl } from "@/lib/device-discovery-url";
+import { sortDeviceDiscoveryCandidates } from "@/lib/device-library-sort";
+import {
+  discoverySortOrders,
+  readSharedFilters,
+  shareableFilterUrl,
+  type DiscoverySortOrder,
+} from "@/lib/device-discovery-url";
 
 type Language = "en" | "bn";
 type CatalogDateFilter = "" | "recorded" | "not-recorded";
@@ -36,14 +42,20 @@ const copy = {
     evidence: "Evidence basis",
     allEvidence: "All evidence bases",
     catalogDate: "Catalog date metadata",
+    sortResults: "Sort results",
+    catalogOrder: "Catalog order",
+    manufacturerOrder: "Manufacturer A–Z",
+    modelOrder: "Model A–Z",
+    familyOrder: "Device family A–Z",
+    evidenceOrder: "Evidence basis A–Z",
     anyCatalogDate: "Any metadata status",
     dateRecorded: "Date metadata recorded",
     dateNotRecorded: "No date metadata recorded",
     dateHint: "A recorded catalog date is metadata only. It does not establish claim freshness, current availability, compatibility, or prevalence.",
     clearFilters: "Clear filters",
-    shareHint: "The share link includes your search text and selected filters in the URL. Share only if you're comfortable sharing those values; no device connection is made.",
+    shareHint: "The share link includes your search text and selected filter/sort choices in the URL. Share only if you're comfortable sharing those values; no device connection is made.",
     copyShareLink: "Copy filtered-view link",
-    shareCopied: "Filtered-view link copied. It includes only search/filter settings; no catalog data was uploaded.",
+    shareCopied: "Filtered-view link copied. It includes only search/filter/sort settings; no catalog data was uploaded.",
     shareFailed: "Could not copy the link. The address bar still shows the shareable filtered view.",
     showing: "Showing {shown} of {total} discovery leads",
     resultsTitle: "Discovery leads",
@@ -100,14 +112,20 @@ const copy = {
     evidence: "তথ্যের ভিত্তি",
     allEvidence: "সব তথ্যের ভিত্তি",
     catalogDate: "ক্যাটালগের তারিখ-সংক্রান্ত মেটাডেটা",
+    sortResults: "ফলাফল সাজান",
+    catalogOrder: "ক্যাটালগে থাকা ক্রম",
+    manufacturerOrder: "প্রস্তুতকারক A–Z",
+    modelOrder: "মডেল A–Z",
+    familyOrder: "ডিভাইসের ধরন A–Z",
+    evidenceOrder: "তথ্যের ভিত্তি A–Z",
     anyCatalogDate: "যেকোনো মেটাডেটা অবস্থা",
     dateRecorded: "তারিখের মেটাডেটা আছে",
     dateNotRecorded: "তারিখের মেটাডেটা নেই",
     dateHint: "ক্যাটালগে তারিখ থাকলেও তা শুধু মেটাডেটা। এতে তথ্যের সাম্প্রতিকতা, বর্তমান প্রাপ্যতা, সামঞ্জস্য বা বাজারে প্রচলন প্রমাণিত হয় না।",
     clearFilters: "ফিল্টার মুছুন",
-    shareHint: "শেয়ার লিংকে সার্চের লেখা ও নির্বাচিত ফিল্টার URL-এ থাকবে। এসব মান শেয়ার করতে স্বচ্ছন্দ হলেই লিংকটি শেয়ার করুন; কোনো ডিভাইস সংযোগ করা হয় না।",
+    shareHint: "শেয়ার লিংকে সার্চের লেখা ও নির্বাচিত ফিল্টার/সাজানোর ক্রম URL-এ থাকবে। এসব মান শেয়ার করতে স্বচ্ছন্দ হলেই লিংকটি শেয়ার করুন; কোনো ডিভাইস সংযোগ করা হয় না।",
     copyShareLink: "ফিল্টার করা ভিউয়ের লিংক কপি করুন",
-    shareCopied: "ফিল্টার করা ভিউয়ের লিংক কপি হয়েছে। এতে শুধু সার্চ/ফিল্টারের মান আছে; ক্যাটালগের তথ্য আপলোড হয়নি।",
+    shareCopied: "ফিল্টার করা ভিউয়ের লিংক কপি হয়েছে। এতে শুধু সার্চ/ফিল্টার/সাজানোর মান আছে; ক্যাটালগের তথ্য আপলোড হয়নি।",
     shareFailed: "লিংক কপি করা যায়নি। ঠিকানার বারে শেয়ারযোগ্য ফিল্টার করা ভিউটি রয়েছে।",
     showing: "{total}টি অনুসন্ধান-সূত্রের মধ্যে {shown}টি দেখানো হচ্ছে",
     resultsTitle: "ডিভাইস অনুসন্ধানের সূত্র",
@@ -164,6 +182,12 @@ const copy = {
   evidence: string;
   allEvidence: string;
   catalogDate: string;
+  sortResults: string;
+  catalogOrder: string;
+  manufacturerOrder: string;
+  modelOrder: string;
+  familyOrder: string;
+  evidenceOrder: string;
   anyCatalogDate: string;
   dateRecorded: string;
   dateNotRecorded: string;
@@ -208,11 +232,19 @@ export default function BangladeshDevicesPage() {
   const [familyFilter, setFamilyFilter] = useState<DeviceFamily | "">("");
   const [evidenceFilter, setEvidenceFilter] = useState<DiscoveryBasis | "">("");
   const [dateFilter, setDateFilter] = useState<CatalogDateFilter>("");
+  const [sortOrder, setSortOrder] = useState<DiscoverySortOrder>("catalog");
   const [filtersLoaded, setFiltersLoaded] = useState(false);
   const [shareStatus, setShareStatus] = useState<"copied" | "error" | null>(null);
   const [exportStatus, setExportStatus] = useState<{ kind: "success"; count: number } | { kind: "error" } | null>(null);
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
+  const sortLabels: Record<DiscoverySortOrder, string> = {
+    catalog: text.catalogOrder,
+    manufacturer: text.manufacturerOrder,
+    model: text.modelOrder,
+    family: text.familyOrder,
+    evidence: text.evidenceOrder,
+  };
 
   useEffect(() => {
     try {
@@ -229,6 +261,7 @@ export default function BangladeshDevicesPage() {
     setFamilyFilter(sharedFilters.familyFilter);
     setEvidenceFilter(sharedFilters.evidenceFilter);
     setDateFilter(sharedFilters.dateFilter);
+    setSortOrder(sharedFilters.sortOrder);
     setFiltersLoaded(true);
   }, []);
 
@@ -239,13 +272,14 @@ export default function BangladeshDevicesPage() {
       familyFilter,
       evidenceFilter,
       dateFilter,
+      sortOrder,
     });
     const nextLocation = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
     const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (nextLocation !== currentLocation) {
       window.history.replaceState(window.history.state, "", nextLocation);
     }
-  }, [dateFilter, evidenceFilter, familyFilter, filtersLoaded, search]);
+  }, [dateFilter, evidenceFilter, familyFilter, filtersLoaded, search, sortOrder]);
 
   useEffect(() => {
     if (!preferenceLoaded) return;
@@ -287,7 +321,7 @@ export default function BangladeshDevicesPage() {
   const filteredCandidates = useMemo(() => {
     if (!library) return [];
     const query = normalizeSearch(search, language);
-    return library.candidates.filter((candidate) => {
+    const filtered = library.candidates.filter((candidate) => {
       if (familyFilter && candidate.device_family !== familyFilter) return false;
       if (evidenceFilter && candidate.discovery_basis !== evidenceFilter) return false;
       if (dateFilter === "recorded" && candidate.evidence_reviewed_on === null) return false;
@@ -303,14 +337,21 @@ export default function BangladeshDevicesPage() {
       ].join(" "), language);
       return searchText.includes(query);
     });
-  }, [dateFilter, evidenceFilter, familyFilter, language, library, search, text]);
+    return sortDeviceDiscoveryCandidates(
+      filtered,
+      sortOrder,
+      language === "bn" ? "bn-BD" : "en",
+      text,
+    );
+  }, [dateFilter, evidenceFilter, familyFilter, language, library, search, sortOrder, text]);
 
-  const hasFilters = Boolean(search.trim() || familyFilter || evidenceFilter || dateFilter);
+  const hasFilters = Boolean(search.trim() || familyFilter || evidenceFilter || dateFilter || sortOrder !== "catalog");
   const clearFilters = () => {
     setSearch("");
     setFamilyFilter("");
     setEvidenceFilter("");
     setDateFilter("");
+    setSortOrder("catalog");
     setExportStatus(null);
     setShareStatus(null);
   };
@@ -320,6 +361,7 @@ export default function BangladeshDevicesPage() {
       familyFilter,
       evidenceFilter,
       dateFilter,
+      sortOrder,
     });
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
@@ -454,6 +496,16 @@ export default function BangladeshDevicesPage() {
               <option value="">{text.anyCatalogDate}</option>
               <option value="recorded">{text.dateRecorded}</option>
               <option value="not-recorded">{text.dateNotRecorded}</option>
+            </select>
+          </label>
+          <label className="device-filter">
+            <span>{text.sortResults}</span>
+            <select value={sortOrder} onChange={(event) => {
+              setSortOrder(event.target.value as DiscoverySortOrder);
+              setExportStatus(null);
+              setShareStatus(null);
+            }} disabled={!library}>
+              {discoverySortOrders.map((order) => <option key={order} value={order}>{sortLabels[order]}</option>)}
             </select>
           </label>
         </div>

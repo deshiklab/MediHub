@@ -245,6 +245,28 @@ test("browses Bangladesh discovery leads with local search and safe metadata fil
   await expect(page.getByRole("button", { name: "Export filtered leads CSV" })).toBeDisabled();
 });
 
+test("sorts discovery leads locally by manufacturer without changing the lead count", async ({ page }) => {
+  await page.getByRole("link", { name: "Browse Bangladesh leads" }).click();
+
+  const sort = page.getByRole("combobox", { name: "Sort results" });
+  await expect(sort).toHaveValue("catalog");
+  await sort.selectOption("manufacturer");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 5 of 5 discovery leads");
+  await expect(page.getByRole("button", { name: "Clear filters" })).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).get("sort"))).toBe("manufacturer");
+  await expect(page.locator(".device-result-card h3")).toHaveText([
+    "Mindray BC-20s",
+    "Mindray CL-900i",
+    "Sysmex XN-3000",
+    "To be confirmed HbA1c analyzer to survey",
+    "Zecen CIA 600",
+  ]);
+
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(sort).toHaveValue("catalog");
+  await expect(page.getByRole("button", { name: "Clear filters" })).toBeDisabled();
+});
+
 test("exports only filtered discovery leads with CSV formula protection and scope metadata", async ({ page }) => {
   await page.route("**/api/management/device-library", async (route) => {
     const exportLibrary = structuredClone(deviceLibrarySnapshot);
@@ -286,7 +308,7 @@ test("exports only filtered discovery leads with CSV formula protection and scop
 });
 
 test("shares only allowlisted discovery filters and restores them from a URL", async ({ page }) => {
-  await page.goto("/bangladesh-devices?q=Mindray&family=hematology&basis=bangladesh_seller_listing&catalogDate=recorded&extra=discard-me");
+  await page.goto("/bangladesh-devices?q=Mindray&family=hematology&basis=bangladesh_seller_listing&catalogDate=recorded&sort=model&extra=discard-me");
 
   await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
   const search = page.getByRole("searchbox", {
@@ -301,16 +323,17 @@ test("shares only allowlisted discovery filters and restores them from a URL", a
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.getByRole("button", { name: "Copy filtered-view link" }).click();
   await expect(page.getByText(
-    "Filtered-view link copied. It includes only search/filter settings; no catalog data was uploaded.",
+    "Filtered-view link copied. It includes only search/filter/sort settings; no catalog data was uploaded.",
     { exact: true },
   )).toBeVisible();
   const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
   const sharedParams = new URL(sharedUrl).searchParams;
-  expect(Array.from(sharedParams.keys()).sort()).toEqual(["basis", "catalogDate", "family", "q"]);
+  expect(Array.from(sharedParams.keys()).sort()).toEqual(["basis", "catalogDate", "family", "q", "sort"]);
   expect(sharedParams.get("q")).toBe("Mindray BC");
   expect(sharedParams.get("family")).toBe("hematology");
   expect(sharedParams.get("basis")).toBe("bangladesh_seller_listing");
   expect(sharedParams.get("catalogDate")).toBe("recorded");
+  expect(sharedParams.get("sort")).toBe("model");
 
   await page.goto(sharedUrl);
   await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
@@ -319,6 +342,7 @@ test("shares only allowlisted discovery filters and restores them from a URL", a
   })).toHaveValue("Mindray BC");
   await expect(page.getByRole("combobox", { name: "Device family" })).toHaveValue("hematology");
   await expect(page.getByRole("combobox", { name: "Evidence basis" })).toHaveValue("bangladesh_seller_listing");
+  await expect(page.getByRole("combobox", { name: "Sort results" })).toHaveValue("model");
 });
 
 test("localizes the Bangladesh discovery page and keeps its filters usable on mobile", async ({ page }) => {
@@ -330,6 +354,7 @@ test("localizes the Bangladesh discovery page and keeps its filters usable on mo
   await expect(page.getByRole("combobox", { name: "ইন্টারফেসের ভাষা" })).toBeVisible();
   await expect(page.getByText("এগুলো শুধু অনুসন্ধানের সূত্র।", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "তথ্যের ভিত্তি" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "ফলাফল সাজান" })).toBeVisible();
   await expect(page.getByRole("button", { name: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন" })).toBeVisible();
 
   await page.getByRole("combobox", { name: "ডিভাইসের ধরন" }).selectOption("hematology");
