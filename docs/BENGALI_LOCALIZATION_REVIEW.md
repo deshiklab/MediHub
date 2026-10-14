@@ -4,7 +4,7 @@
 
 ## Scope and safety
 
-This checklist applies to the English / বাংলা FastAPI dashboard, its in-app help, and the companion Next.js operations overview. The Bengali interface describes a synthetic-only software demo. It must not suggest that the dashboard operates physical devices, provides clinical guidance, or connects to an EMR/EMS. Preserve English protocol names, identifiers, codes, and error codes where translating them would make them harder to verify against the underlying system.
+This checklist applies to the English / বাংলা FastAPI dashboard, its in-app help, and the companion Next.js operations overview and synthetic lab-review prototype. The Bengali interface describes a synthetic-only software demo. It must not suggest that the dashboard operates physical devices, provides clinical guidance, or connects to an EMR/EMS. Preserve English protocol names, identifiers, codes, and error codes where translating them would make them harder to verify against the underlying system.
 
 ## Suggested term review
 
@@ -57,10 +57,10 @@ CI installs Chromium and runs these tests. The browser test stubs all FastAPI da
 
 A reviewer should complete these checks using the actual dashboard, not only this Markdown file:
 
-- [ ] Read the visible copy on Operations, Device management, Data mapping, EMR / EMS APIs, and Help in both languages.
+- [ ] Read the visible copy on Operations, Device management, Data mapping, EMR / EMS APIs, Lab review (demo), and Help in both languages.
 - [ ] Confirm the Bangla is natural, consistent, and suitable for health-facility operators in Bangladesh; flag awkward calques, overly technical terms, and ambiguous instructions.
 - [ ] Confirm that warning text keeps the synthetic-only and “no patient data / no live connection” boundaries clear and prominent.
-- [ ] Exercise dynamic states: healthy/starting, active/inactive simulator, no data, retryable and terminal failure, mapping pass/stale, and error/status messages.
+- [ ] Exercise dynamic states: healthy/starting, active/inactive simulator, no data, retryable and terminal failure, mapping pass/stale, error/status messages, and temporary Lab review view/follow-up flags that reset on reload.
 - [ ] Check Bengali script rendering and wrapping at 320, 360, and 390 CSS-pixel viewport widths on at least one Android browser and one desktop browser with a Bengali-capable font.
 - [ ] Navigate the language selector and links with keyboard only. Verify the selected language is announced, the page `lang` changes, focus stays visible, and there is no text clipped behind controls.
 - [ ] With a screen reader, confirm the language selector's accessible name, page heading, navigation labels, and live status messages are understandable in Bengali.

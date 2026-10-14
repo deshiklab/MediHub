@@ -17,6 +17,7 @@ type DemoResult = {
 };
 
 type ViewFilter = "all" | "not-viewed" | "viewed";
+type FollowUpFilter = "all" | "flagged" | "not-flagged";
 
 const demoResults: DemoResult[] = [
   {
@@ -65,9 +66,9 @@ const copy = {
       "A visual prototype of pending results for technician review. These fixtures are not received from a CL-900i or any clinical system.",
     safetyTitle: "Demo boundary",
     safetyCopy:
-      "No patient data is present. This page does not associate accessions with patients, verify or finalize results, release results, or send data to another system. Do not use it for clinical care.",
+      "No patient data is present. This page does not associate accessions with patients, verify or finalize results, release results, or send data to another system. View acknowledgements and fixed follow-up flags are temporary demo-only browser state; they are not clinical decisions or saved review records. Do not use it for clinical care.",
     queueTitle: "Results awaiting review",
-    queueHint: "Every row is fabricated and remains unverified in this browser-only demonstration.",
+    queueHint: "Every row is fabricated and remains pending and unverified. View acknowledgements and fixed follow-up flags reset when this page reloads.",
     controlsTitle: "Synthetic queue controls",
     searchLabel: "Search synthetic accession, assay, or source ID",
     searchPlaceholder: "e.g. SYNTH-ACC-1001",
@@ -75,6 +76,10 @@ const copy = {
     allRows: "All demo rows",
     notViewed: "Not acknowledged in this browser",
     viewedOnly: "Viewed in this browser",
+    followUpFilterLabel: "Local demo follow-up flag",
+    allFollowUp: "All demo rows",
+    flaggedOnly: "Flagged for additional demo review",
+    notFlagged: "Not flagged",
     clearFilters: "Clear filters",
     showingCount: "Showing {shown} of {total} synthetic records.",
     noMatches: "No synthetic rows match the current search and filter.",
@@ -86,19 +91,23 @@ const copy = {
     actions: "Details",
     pending: "Pending technician review",
     viewed: "Viewed locally · still unverified",
+    followUpPending: "Follow-up flagged locally · still pending",
     openDetails: "Open demo details",
     closeDetails: "Hide details",
     acknowledge: "Acknowledge demo view",
     viewedNotice: "Viewed in this browser only. The result remains pending and unverified.",
+    flagForFollowUp: "Flag for additional demo review",
+    clearFollowUp: "Clear demo review flag",
+    followUpNotice: "Flag stored only in this page's temporary browser state. The result remains pending and unverified; nothing is transmitted.",
     detailTitle: "Opaque synthetic source fields",
     sourceMessage: "Synthetic message ID",
     source: "Source",
     sourceValue: "Synthetic fixture",
     noPatient: "Patient context: none",
     noInterpretation: "No reference interval or clinical interpretation is supplied.",
-    noActions: "No verify, finalize, release, or send actions are available in this prototype.",
+    noActions: "No clinical verification, finalization, release, disposition, or send action is available. The local demo flag is not an escalation or saved review record.",
     count: "Synthetic records",
-    footer: "MediHub · Static synthetic review prototype · No device or receiver connection",
+    footer: "MediHub · Static synthetic review prototype · Local view/flag state only · No device or receiver connection",
   },
   bn: {
     language: "ইন্টারফেসের ভাষা",
@@ -116,9 +125,9 @@ const copy = {
       "ল্যাব টেকনিশিয়ানের পর্যালোচনার অপেক্ষায় থাকা ফলাফলের একটি দৃশ্যমান প্রোটোটাইপ। এই নমুনাগুলো CL-900i বা কোনো ক্লিনিক্যাল সিস্টেম থেকে আসেনি।",
     safetyTitle: "ডেমোর সীমা",
     safetyCopy:
-      "এখানে কোনো রোগীর তথ্য নেই। এই পৃষ্ঠা accession-এর সঙ্গে রোগী মেলায় না, ফলাফল যাচাই বা চূড়ান্ত করে না, প্রকাশ করে না, এবং অন্য কোনো সিস্টেমে পাঠায় না। চিকিৎসার কাজে এটি ব্যবহার করবেন না।",
+      "এখানে কোনো রোগীর তথ্য নেই। এই পৃষ্ঠা accession-এর সঙ্গে রোগী মেলায় না, ফলাফল যাচাই বা চূড়ান্ত করে না, প্রকাশ করে না, এবং অন্য কোনো সিস্টেমে পাঠায় না। দেখার স্বীকৃতি ও নির্দিষ্ট follow-up চিহ্ন শুধু সাময়িক ডেমো ব্রাউজার-অবস্থা; এগুলো ক্লিনিক্যাল সিদ্ধান্ত বা সংরক্ষিত পর্যালোচনা নয়। চিকিৎসার কাজে এটি ব্যবহার করবেন না।",
     queueTitle: "পর্যালোচনার অপেক্ষায় থাকা ফলাফল",
-    queueHint: "প্রতিটি সারি কৃত্রিমভাবে তৈরি; এই ব্রাউজারভিত্তিক প্রদর্শনীতে সব ফলাফল যাচাইহীন থাকে।",
+    queueHint: "প্রতিটি সারি কৃত্রিম; সব ফলাফল অপেক্ষমাণ ও যাচাইহীন। পৃষ্ঠা পুনরায় লোড হলে দেখার স্বীকৃতি ও follow-up চিহ্ন মুছে যায়।",
     controlsTitle: "সিন্থেটিক সারির নিয়ন্ত্রণ",
     searchLabel: "সিন্থেটিক accession, অ্যাসে বা উৎসের ID খুঁজুন",
     searchPlaceholder: "যেমন SYNTH-ACC-1001",
@@ -126,6 +135,10 @@ const copy = {
     allRows: "সব ডেমো সারি",
     notViewed: "এই ব্রাউজারে এখনো দেখা হয়নি",
     viewedOnly: "এই ব্রাউজারে দেখা হয়েছে",
+    followUpFilterLabel: "স্থানীয় ডেমো follow-up চিহ্ন",
+    allFollowUp: "সব ডেমো সারি",
+    flaggedOnly: "আরও ডেমো পর্যালোচনার জন্য চিহ্নিত",
+    notFlagged: "চিহ্নিত নয়",
     clearFilters: "ফিল্টার মুছুন",
     showingCount: "মোট {total}টি সিন্থেটিক রেকর্ডের মধ্যে {shown}টি দেখানো হচ্ছে।",
     noMatches: "বর্তমান অনুসন্ধান ও ফিল্টারে কোনো সিন্থেটিক সারি মেলেনি।",
@@ -137,19 +150,23 @@ const copy = {
     actions: "বিস্তারিত",
     pending: "ল্যাব টেকনিশিয়ানের পর্যালোচনার অপেক্ষায়",
     viewed: "এখানে দেখা হয়েছে · এখনো যাচাইহীন",
+    followUpPending: "স্থানীয় follow-up চিহ্ন · এখনো অপেক্ষমাণ",
     openDetails: "ডেমোর বিস্তারিত দেখুন",
     closeDetails: "বিস্তারিত লুকান",
     acknowledge: "ডেমোতে দেখা হয়েছে চিহ্নিত করুন",
     viewedNotice: "শুধু এই ব্রাউজারে দেখা হয়েছে। ফলাফল এখনো অপেক্ষমাণ ও যাচাইহীন।",
+    flagForFollowUp: "আরও ডেমো পর্যালোচনার জন্য চিহ্নিত করুন",
+    clearFollowUp: "ডেমো follow-up চিহ্ন মুছুন",
+    followUpNotice: "চিহ্নটি শুধু এই পৃষ্ঠার সাময়িক ব্রাউজার অবস্থায় থাকে। ফলাফল অপেক্ষমাণ ও যাচাইহীন; কিছু পাঠানো হয় না।",
     detailTitle: "অব্যাখ্যাকৃত সিন্থেটিক উৎসের ক্ষেত্র",
     sourceMessage: "সিন্থেটিক বার্তার আইডি",
     source: "উৎস",
     sourceValue: "সিন্থেটিক নমুনা",
     noPatient: "রোগীর তথ্য: নেই",
     noInterpretation: "কোনো রেফারেন্স সীমা বা চিকিৎসাগত ব্যাখ্যা দেওয়া হয়নি।",
-    noActions: "এই প্রোটোটাইপে যাচাই, চূড়ান্তকরণ, প্রকাশ বা পাঠানোর কোনো ব্যবস্থা নেই।",
+    noActions: "ক্লিনিক্যাল যাচাই, চূড়ান্তকরণ, প্রকাশ, সিদ্ধান্ত বা পাঠানোর ব্যবস্থা নেই। স্থানীয় ডেমো চিহ্নটি এস্কেলেশন বা সংরক্ষিত পর্যালোচনা নয়।",
     count: "সিন্থেটিক রেকর্ড",
-    footer: "MediHub · স্থির সিন্থেটিক পর্যালোচনা প্রোটোটাইপ · কোনো ডিভাইস বা রিসিভার সংযোগ নেই",
+    footer: "MediHub · স্থির সিন্থেটিক পর্যালোচনা প্রোটোটাইপ · স্থানীয় দেখা/চিহ্নের অবস্থা · কোনো ডিভাইস বা রিসিভার সংযোগ নেই",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -158,16 +175,21 @@ export default function LabReviewPage() {
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
   const [viewedResultIds, setViewedResultIds] = useState<string[]>([]);
+  const [followUpResultIds, setFollowUpResultIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>("all");
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
   const filteredResults = useMemo(() => {
     const query = searchTerm.trim().normalize("NFKC").toLocaleLowerCase();
     return demoResults.filter((result) => {
       const wasViewed = viewedResultIds.includes(result.id);
+      const followUpFlagged = followUpResultIds.includes(result.id);
       if (viewFilter === "not-viewed" && wasViewed) return false;
       if (viewFilter === "viewed" && !wasViewed) return false;
+      if (followUpFilter === "flagged" && !followUpFlagged) return false;
+      if (followUpFilter === "not-flagged" && followUpFlagged) return false;
       if (!query) return true;
       const searchableText = [result.accession, result.assay, result.id, result.sourceMessageId]
         .join(" ")
@@ -175,7 +197,7 @@ export default function LabReviewPage() {
         .toLocaleLowerCase();
       return searchableText.includes(query);
     });
-  }, [searchTerm, viewFilter, viewedResultIds]);
+  }, [followUpFilter, followUpResultIds, searchTerm, viewFilter, viewedResultIds]);
   const showingCount = text.showingCount
     .replace("{shown}", number.format(filteredResults.length))
     .replace("{total}", number.format(demoResults.length));
@@ -208,6 +230,14 @@ export default function LabReviewPage() {
   const acknowledgeView = (resultId: string) => {
     setViewedResultIds((previous) =>
       previous.includes(resultId) ? previous : [...previous, resultId],
+    );
+  };
+
+  const toggleFollowUpFlag = (resultId: string) => {
+    setFollowUpResultIds((previous) =>
+      previous.includes(resultId)
+        ? previous.filter((previousId) => previousId !== resultId)
+        : [...previous, resultId],
     );
   };
 
@@ -295,12 +325,25 @@ export default function LabReviewPage() {
               <option value="viewed">{text.viewedOnly}</option>
             </select>
           </label>
+          <label className={styles.filterField}>
+            <span>{text.followUpFilterLabel}</span>
+            <select
+              className={styles.filterInput}
+              value={followUpFilter}
+              onChange={(event) => setFollowUpFilter(event.target.value as FollowUpFilter)}
+            >
+              <option value="all">{text.allFollowUp}</option>
+              <option value="flagged">{text.flaggedOnly}</option>
+              <option value="not-flagged">{text.notFlagged}</option>
+            </select>
+          </label>
           <button
             className={styles.clearFilters}
             type="button"
             onClick={() => {
               setSearchTerm("");
               setViewFilter("all");
+              setFollowUpFilter("all");
               setOpenResultId(null);
             }}
           >
@@ -326,6 +369,7 @@ export default function LabReviewPage() {
                 filteredResults.map((result) => {
                   const isOpen = openResultId === result.id;
                   const wasViewed = viewedResultIds.includes(result.id);
+                  const followUpFlagged = followUpResultIds.includes(result.id);
                   const detailId = `details-${result.id}`;
                   return (
                     <ResultRows
@@ -335,9 +379,11 @@ export default function LabReviewPage() {
                       language={language}
                       isOpen={isOpen}
                       wasViewed={wasViewed}
+                      followUpFlagged={followUpFlagged}
                       detailId={detailId}
                       onToggle={() => setOpenResultId(isOpen ? null : result.id)}
                       onAcknowledge={() => acknowledgeView(result.id)}
+                      onToggleFollowUpFlag={() => toggleFollowUpFlag(result.id)}
                     />
                   );
                 })
@@ -364,9 +410,11 @@ type ResultRowProps = {
   language: Language;
   isOpen: boolean;
   wasViewed: boolean;
+  followUpFlagged: boolean;
   detailId: string;
   onToggle: () => void;
   onAcknowledge: () => void;
+  onToggleFollowUpFlag: () => void;
 };
 
 function ResultRows({
@@ -375,9 +423,11 @@ function ResultRows({
   language,
   isOpen,
   wasViewed,
+  followUpFlagged,
   detailId,
   onToggle,
   onAcknowledge,
+  onToggleFollowUpFlag,
 }: ResultRowProps) {
   return (
     <>
@@ -390,7 +440,11 @@ function ResultRows({
           timeStyle: "short",
           timeZone: "UTC",
         }).format(new Date(result.receivedAt))}</td>
-        <td><span className={styles.pendingBadge}>{wasViewed ? text.viewed : text.pending}</span></td>
+        <td>
+          <span className={followUpFlagged ? `${styles.pendingBadge} ${styles.followUpBadge}` : styles.pendingBadge}>
+            {followUpFlagged ? text.followUpPending : wasViewed ? text.viewed : text.pending}
+          </span>
+        </td>
         <td>
           <button
             className={styles.actionButton}
@@ -424,6 +478,16 @@ function ResultRows({
                   {text.acknowledge}
                 </button>
               )}
+              {followUpFlagged && (
+                <p className={styles.followUpNote} role="status">{text.followUpNotice}</p>
+              )}
+              <button
+                className={styles.followUpButton}
+                type="button"
+                onClick={onToggleFollowUpFlag}
+              >
+                {followUpFlagged ? text.clearFollowUp : text.flagForFollowUp}
+              </button>
             </section>
           </td>
         </tr>

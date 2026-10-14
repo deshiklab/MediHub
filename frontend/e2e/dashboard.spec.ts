@@ -536,6 +536,40 @@ test("filters synthetic review rows using only browser-local view acknowledgemen
   await expect(page.getByText("Pending technician review").first()).toBeVisible();
 });
 
+test("keeps synthetic follow-up flags local and separate from result verification", async ({ page }) => {
+  await page.getByRole("link", { name: "Lab review (demo)" }).click();
+
+  const row = page.getByRole("row").filter({ hasText: "SYNTH-ACC-1002" }).first();
+  await row.getByRole("button", { name: "Open demo details" }).click();
+  await page.getByRole("button", { name: "Flag for additional demo review" }).click();
+  await expect(page.getByText(
+    "Flag stored only in this page's temporary browser state. The result remains pending and unverified; nothing is transmitted.",
+    { exact: true },
+  )).toBeVisible();
+  await expect(row).toContainText("Follow-up flagged locally · still pending");
+  await expect(page.getByRole("button", { name: /verify|finalize|release|send/i })).toHaveCount(0);
+
+  const followUpFilter = page.getByRole("combobox", { name: "Local demo follow-up flag" });
+  await followUpFilter.selectOption("flagged");
+  await expect(page.getByText("Showing 1 of 3 synthetic records.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "SYNTH-ACC-1002" }).first()).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "SYNTH-ACC-1001" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Clear demo review flag" }).click();
+  await expect(page.getByText("Showing 0 of 3 synthetic records.", { exact: true })).toBeVisible();
+  await followUpFilter.selectOption("not-flagged");
+  await expect(page.getByText("Showing 3 of 3 synthetic records.", { exact: true })).toBeVisible();
+
+  await followUpFilter.selectOption("all");
+  const unflaggedRow = page.getByRole("row").filter({ hasText: "SYNTH-ACC-1002" }).first();
+  await unflaggedRow.getByRole("button", { name: "Open demo details" }).click();
+  await page.getByRole("button", { name: "Flag for additional demo review" }).click();
+  await page.reload();
+  await expect(page.getByText("Showing 3 of 3 synthetic records.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "SYNTH-ACC-1002" }).first())
+    .toContainText("Pending technician review");
+});
+
 test("supports Bengali lab-review copy and keeps the table within mobile viewport", async ({ page }) => {
   await page.getByRole("link", { name: "Lab review (demo)" }).click();
   await page.getByRole("combobox", { name: "Interface language" }).selectOption("bn");
@@ -547,6 +581,7 @@ test("supports Bengali lab-review copy and keeps the table within mobile viewpor
     name: "সিন্থেটিক accession, অ্যাসে বা উৎসের ID খুঁজুন",
   });
   await expect(page.getByRole("combobox", { name: "এই ব্রাউজারে দেখার স্বীকৃতি" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "স্থানীয় ডেমো follow-up চিহ্ন" })).toBeVisible();
   await search.fill("NO-SUCH-SYNTHETIC-RECORD");
   await expect(page.getByText("মোট ৩টি সিন্থেটিক রেকর্ডের মধ্যে ০টি দেখানো হচ্ছে।", { exact: true })).toBeVisible();
   await expect(page.getByText("বর্তমান অনুসন্ধান ও ফিল্টারে কোনো সিন্থেটিক সারি মেলেনি।")).toBeVisible();
