@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 const snapshot = {
@@ -239,6 +240,49 @@ test("browses Bangladesh discovery leads with local search and safe metadata fil
     "A recorded catalog date is metadata only.",
     { exact: false },
   )).toBeVisible();
+  await search.fill("NO-SUCH-DISCOVERY-LEAD");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 0 of 5 discovery leads");
+  await expect(page.getByRole("button", { name: "Export filtered leads CSV" })).toBeDisabled();
+});
+
+test("exports only filtered discovery leads with CSV formula protection and scope metadata", async ({ page }) => {
+  await page.route("**/api/management/device-library", async (route) => {
+    const exportLibrary = structuredClone(deviceLibrarySnapshot);
+    exportLibrary.candidates[0].evidence_note = " =HYPERLINK(\"https://example.invalid\",\"formula\")";
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json; charset=utf-8",
+      body: JSON.stringify(exportLibrary),
+    });
+  });
+  await page.goto("/bangladesh-devices");
+
+  const search = page.getByRole("searchbox", {
+    name: "Search manufacturer, model, family, or evidence note",
+  });
+  await search.fill("Mindray");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 2 of 5 discovery leads");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export filtered leads CSV" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("medihub-bangladesh-device-discovery-leads.csv");
+  const downloadPath = await download.path();
+  if (!downloadPath) throw new Error("CSV download path was not created");
+  const csv = await readFile(downloadPath, "utf8");
+
+  expect(csv.startsWith("\uFEFF")).toBe(true);
+  expect(csv).toContain("catalog_date_metadata_recorded");
+  expect(csv).toContain("scope_limit");
+  expect(csv).toContain("mindray-cl900i");
+  expect(csv).toContain("mindray-bc-20s");
+  expect(csv).not.toContain("zecen-cia-600");
+  expect(csv).toContain("' =HYPERLINK");
+  expect(csv).toContain("compatibility_verified");
+  expect(csv).not.toContain("2026-10-14");
+  await expect(page.getByText(
+    "Exported 2 visible discovery leads to CSV. No exact catalog dates or survey responses were included.",
+    { exact: true },
+  )).toBeVisible();
 });
 
 test("localizes the Bangladesh discovery page and keeps its filters usable on mobile", async ({ page }) => {
@@ -250,9 +294,17 @@ test("localizes the Bangladesh discovery page and keeps its filters usable on mo
   await expect(page.getByRole("combobox", { name: "ইন্টারফেসের ভাষা" })).toBeVisible();
   await expect(page.getByText("এগুলো শুধু অনুসন্ধানের সূত্র।", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "তথ্যের ভিত্তি" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন" })).toBeVisible();
 
   await page.getByRole("combobox", { name: "ডিভাইসের ধরন" }).selectOption("hematology");
   await expect(page.getByTestId("device-results-count")).toHaveText("৫টি অনুসন্ধান-সূত্রের মধ্যে ২টি দেখানো হচ্ছে");
+  const bengaliDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন" }).click();
+  const bengaliDownload = await bengaliDownloadPromise;
+  const bengaliPath = await bengaliDownload.path();
+  if (!bengaliPath) throw new Error("Bengali CSV download path was not created");
+  const bengaliCsv = await readFile(bengaliPath, "utf8");
+  expect(bengaliCsv).toContain("শুধু অনুসন্ধানের সূত্র; স্থাপিত ডিভাইসের প্রচলন");
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(page.getByRole("navigation", { name: "MediHub-এর পৃষ্ঠাগুলো" })).toBeVisible();

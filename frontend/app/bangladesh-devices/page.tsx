@@ -10,6 +10,7 @@ import {
   type DeviceLibrary,
   type DiscoveryBasis,
 } from "@/lib/device-library";
+import { buildDeviceDiscoveryCsv } from "@/lib/device-library-csv";
 
 type Language = "en" | "bn";
 type CatalogDateFilter = "" | "recorded" | "not-recorded";
@@ -44,6 +45,10 @@ const copy = {
     loading: "Loading the Bangladesh discovery catalog…",
     unavailable: "The discovery catalog is unavailable or outside the approved synthetic-only scope. No device connection has been attempted.",
     noResults: "No discovery leads match this search and filter combination.",
+    exportCsv: "Export filtered leads CSV",
+    csvScopeLimit: "Discovery lead only; not installed-base prevalence, verified compatibility, supported drivers, or current availability. Physical-device connections remain disabled.",
+    exportedCsv: "Exported {count} visible discovery leads to CSV. No exact catalog dates or survey responses were included.",
+    exportUnavailable: "CSV export is unavailable in this browser.",
     discoveryOnly: "Discovery only",
     evidenceNote: "Evidence note",
     sourceLink: "Open public source",
@@ -100,6 +105,10 @@ const copy = {
     loading: "বাংলাদেশি ডিভাইস অনুসন্ধানের ক্যাটালগ লোড হচ্ছে…",
     unavailable: "অনুসন্ধানের ক্যাটালগ পাওয়া যাচ্ছে না অথবা অনুমোদিত শুধু-সিন্থেটিক সীমার বাইরে। কোনো ডিভাইসের সঙ্গে সংযোগের চেষ্টা করা হয়নি।",
     noResults: "এই অনুসন্ধান ও ফিল্টারে কোনো সূত্র মেলেনি।",
+    exportCsv: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন",
+    csvScopeLimit: "শুধু অনুসন্ধানের সূত্র; স্থাপিত ডিভাইসের প্রচলন, যাচাইকৃত সামঞ্জস্য, সমর্থিত ড্রাইভার বা বর্তমান প্রাপ্যতার প্রমাণ নয়। বাস্তব ডিভাইসের সংযোগ বন্ধ।",
+    exportedCsv: "দেখানো {count}টি ডিভাইস-সূত্র CSV-তে রপ্তানি হয়েছে। কোনো নির্দিষ্ট ক্যাটালগ-তারিখ বা জরিপের উত্তর যোগ করা হয়নি।",
+    exportUnavailable: "এই ব্রাউজারে CSV রপ্তানি করা যাচ্ছে না।",
     discoveryOnly: "শুধু অনুসন্ধানের সূত্র",
     evidenceNote: "তথ্যের নোট",
     sourceLink: "প্রকাশ্য সূত্র খুলুন",
@@ -156,6 +165,10 @@ const copy = {
   loading: string;
   unavailable: string;
   noResults: string;
+  exportCsv: string;
+  csvScopeLimit: string;
+  exportedCsv: string;
+  exportUnavailable: string;
   discoveryOnly: string;
   evidenceNote: string;
   sourceLink: string;
@@ -182,6 +195,7 @@ export default function BangladeshDevicesPage() {
   const [familyFilter, setFamilyFilter] = useState<DeviceFamily | "">("");
   const [evidenceFilter, setEvidenceFilter] = useState<DiscoveryBasis | "">("");
   const [dateFilter, setDateFilter] = useState<CatalogDateFilter>("");
+  const [exportStatus, setExportStatus] = useState<{ kind: "success"; count: number } | { kind: "error" } | null>(null);
   const text = copy[language];
   const number = new Intl.NumberFormat(language === "bn" ? "bn-BD" : "en");
 
@@ -258,7 +272,30 @@ export default function BangladeshDevicesPage() {
     setFamilyFilter("");
     setEvidenceFilter("");
     setDateFilter("");
+    setExportStatus(null);
   };
+  const exportFilteredCandidates = () => {
+    if (filteredCandidates.length === 0) return;
+    try {
+      const csv = buildDeviceDiscoveryCsv(filteredCandidates, text.csvScopeLimit);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "medihub-bangladesh-device-discovery-leads.csv";
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+      setExportStatus({ kind: "success", count: filteredCandidates.length });
+    } catch {
+      setExportStatus({ kind: "error" });
+    }
+  };
+  const exportStatusMessage = exportStatus?.kind === "success"
+    ? text.exportedCsv.replace("{count}", number.format(exportStatus.count))
+    : exportStatus?.kind === "error" ? text.exportUnavailable : "";
   const resultsMessage = text.showing
     .replace("{shown}", number.format(filteredCandidates.length))
     .replace("{total}", number.format(library?.candidates.length ?? 0));
@@ -273,7 +310,10 @@ export default function BangladeshDevicesPage() {
         <div className="top-actions">
           <label className="language-control">
             <span>{text.language}</span>
-            <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
+            <select value={language} onChange={(event) => {
+              setLanguage(event.target.value as Language);
+              setExportStatus(null);
+            }}>
               <option value="en">English</option>
               <option value="bn">বাংলা</option>
             </select>
@@ -313,7 +353,10 @@ export default function BangladeshDevicesPage() {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setExportStatus(null);
+              }}
               placeholder={text.searchPlaceholder}
               maxLength={100}
               disabled={!library}
@@ -321,21 +364,30 @@ export default function BangladeshDevicesPage() {
           </label>
           <label className="device-filter">
             <span>{text.family}</span>
-            <select value={familyFilter} onChange={(event) => setFamilyFilter(event.target.value as DeviceFamily | "")} disabled={!library}>
+            <select value={familyFilter} onChange={(event) => {
+              setFamilyFilter(event.target.value as DeviceFamily | "");
+              setExportStatus(null);
+            }} disabled={!library}>
               <option value="">{text.allFamilies}</option>
               {deviceFamilies.map((family) => <option key={family} value={family}>{text.familyLabels[family]}</option>)}
             </select>
           </label>
           <label className="device-filter">
             <span>{text.evidence}</span>
-            <select value={evidenceFilter} onChange={(event) => setEvidenceFilter(event.target.value as DiscoveryBasis | "")} disabled={!library}>
+            <select value={evidenceFilter} onChange={(event) => {
+              setEvidenceFilter(event.target.value as DiscoveryBasis | "");
+              setExportStatus(null);
+            }} disabled={!library}>
               <option value="">{text.allEvidence}</option>
               {discoveryBases.map((basis) => <option key={basis} value={basis}>{text.evidenceLabels[basis]}</option>)}
             </select>
           </label>
           <label className="device-filter">
             <span>{text.catalogDate}</span>
-            <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value as CatalogDateFilter)} disabled={!library}>
+            <select value={dateFilter} onChange={(event) => {
+              setDateFilter(event.target.value as CatalogDateFilter);
+              setExportStatus(null);
+            }} disabled={!library}>
               <option value="">{text.anyCatalogDate}</option>
               <option value="recorded">{text.dateRecorded}</option>
               <option value="not-recorded">{text.dateNotRecorded}</option>
@@ -351,9 +403,20 @@ export default function BangladeshDevicesPage() {
       {library && !unavailable && (
         <section className="device-results-section" aria-labelledby="device-results-heading">
           <div className="device-results-heading">
-            <h2 id="device-results-heading">{text.resultsTitle}</h2>
-            <p className="device-results-count" role="status" data-testid="device-results-count">{resultsMessage}</p>
+            <div>
+              <h2 id="device-results-heading">{text.resultsTitle}</h2>
+              <p className="device-results-count" role="status" data-testid="device-results-count">{resultsMessage}</p>
+            </div>
+            <button
+              className="device-export-csv"
+              type="button"
+              onClick={exportFilteredCandidates}
+              disabled={filteredCandidates.length === 0}
+            >
+              {text.exportCsv}
+            </button>
           </div>
+          {exportStatusMessage && <p className="device-export-status" role="status" aria-live="polite">{exportStatusMessage}</p>}
           {filteredCandidates.length > 0 ? (
             <div className="device-result-grid" data-testid="device-result-grid">
               {filteredCandidates.map((candidate) => (
