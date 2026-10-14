@@ -142,7 +142,7 @@ tbody tr:last-child td { border-bottom: 0; }
   outline-offset: 2px;
 }
 .device-clear-filters:disabled { cursor: not-allowed; opacity: .48; }
-.device-filter-grid { display: grid; grid-template-columns: minmax(200px, 1.5fr) repeat(4, minmax(130px, 1fr)); gap: 10px; }
+.device-filter-grid { display: grid; grid-template-columns: minmax(190px, 1.5fr) repeat(5, minmax(110px, 1fr)); gap: 10px; }
 .device-filter { display: grid; align-content: start; gap: 6px; min-width: 0; }
 .device-filter > span { min-height: 2.7em; color: #aebdcb; font-size: 10px; font-weight: 700; line-height: 1.35; }
 .device-filter input, .device-filter select {
@@ -161,7 +161,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .device-filter select { padding-right: 25px; }
 .device-filter input:disabled, .device-filter select:disabled { cursor: not-allowed; opacity: .55; }
 .device-date-hint { margin: 10px 0 0; color: #8999ab; font-size: 10px; line-height: 1.55; }
-.device-share-hint { margin: 5px 0 0; color: #8396aa; font-size: 9px; line-height: 1.5; }
+.device-share-hint, .device-source-hint { margin: 5px 0 0; color: #8396aa; font-size: 9px; line-height: 1.5; }
 .device-library-status { margin: 17px 2px; color: #9aabbd; font-size: 12px; }
 .device-results-section { margin-top: 17px; }
 .device-results-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 10px; }

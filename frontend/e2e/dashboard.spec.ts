@@ -202,7 +202,7 @@ test("summarizes Bangladesh discovery evidence without implying support", async 
   await expect(page.getByRole("link", { name: "Browse Bangladesh leads" })).toHaveAttribute("href", "/bangladesh-devices");
 });
 
-test("browses Bangladesh discovery leads with local search and safe metadata filters", async ({ page }) => {
+test("browses Bangladesh leads with local search and public-source presence filters", async ({ page }) => {
   await page.getByRole("link", { name: "Browse Bangladesh leads" }).click();
 
   await expect(page).toHaveURL(/\/bangladesh-devices$/);
@@ -218,11 +218,21 @@ test("browses Bangladesh discovery leads with local search and safe metadata fil
     name: "Search manufacturer, model, family, or evidence note",
   });
   await search.fill("Zecen");
-  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 2 of 5 discovery leads");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
   await expect(page.getByRole("heading", { level: 3, name: "Zecen CIA 600" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: "Zecen CIA 1200" })).toBeVisible();
 
   await page.getByRole("button", { name: "Clear filters" }).click();
+  const publicSourceFilter = page.getByRole("combobox", { name: "Public source link" });
+  await publicSourceFilter.selectOption("linked");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 2 of 5 discovery leads");
+  await expect(page.getByRole("link", { name: "Open public source" })).toHaveCount(2);
+  await publicSourceFilter.selectOption("unlinked");
+  await expect(page.getByTestId("device-results-count")).toHaveText("Showing 3 of 5 discovery leads");
+  await expect(page.getByText("No public source link recorded", { exact: true })).toHaveCount(3);
+
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(publicSourceFilter).toHaveValue("");
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).has("source"))).toBe(false);
   await page.getByRole("combobox", { name: "Device family" }).selectOption("hematology");
   await expect(page.getByTestId("device-results-count")).toHaveText("Showing 2 of 5 discovery leads");
   await page.getByRole("combobox", { name: "Evidence basis" }).selectOption("bangladesh_seller_listing");
@@ -308,7 +318,7 @@ test("exports only filtered discovery leads with CSV formula protection and scop
 });
 
 test("shares only allowlisted discovery filters and restores them from a URL", async ({ page }) => {
-  await page.goto("/bangladesh-devices?q=Mindray&family=hematology&basis=bangladesh_seller_listing&catalogDate=recorded&sort=model&extra=discard-me");
+  await page.goto("/bangladesh-devices?q=Mindray&family=hematology&basis=bangladesh_seller_listing&catalogDate=recorded&sort=model&source=linked&extra=discard-me");
 
   await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
   const search = page.getByRole("searchbox", {
@@ -328,12 +338,13 @@ test("shares only allowlisted discovery filters and restores them from a URL", a
   )).toBeVisible();
   const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
   const sharedParams = new URL(sharedUrl).searchParams;
-  expect(Array.from(sharedParams.keys()).sort()).toEqual(["basis", "catalogDate", "family", "q", "sort"]);
+  expect(Array.from(sharedParams.keys()).sort()).toEqual(["basis", "catalogDate", "family", "q", "sort", "source"]);
   expect(sharedParams.get("q")).toBe("Mindray BC");
   expect(sharedParams.get("family")).toBe("hematology");
   expect(sharedParams.get("basis")).toBe("bangladesh_seller_listing");
   expect(sharedParams.get("catalogDate")).toBe("recorded");
   expect(sharedParams.get("sort")).toBe("model");
+  expect(sharedParams.get("source")).toBe("linked");
 
   await page.goto(sharedUrl);
   await expect(page.getByTestId("device-results-count")).toHaveText("Showing 1 of 5 discovery leads");
@@ -343,6 +354,13 @@ test("shares only allowlisted discovery filters and restores them from a URL", a
   await expect(page.getByRole("combobox", { name: "Device family" })).toHaveValue("hematology");
   await expect(page.getByRole("combobox", { name: "Evidence basis" })).toHaveValue("bangladesh_seller_listing");
   await expect(page.getByRole("combobox", { name: "Sort results" })).toHaveValue("model");
+  await expect(page.getByRole("combobox", { name: "Public source link" })).toHaveValue("linked");
+
+  await page.goto("/bangladesh-devices?source=verified&extra=discard-me");
+  await expect(page.getByRole("combobox", { name: "Public source link" })).toHaveValue("");
+  await expect(page.getByTestId("device-result-card")).toHaveCount(5);
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).has("source"))).toBe(false);
+  await expect.poll(() => page.evaluate(() => new URLSearchParams(window.location.search).has("extra"))).toBe(false);
 });
 
 test("localizes the Bangladesh discovery page and keeps its filters usable on mobile", async ({ page }) => {
@@ -354,6 +372,7 @@ test("localizes the Bangladesh discovery page and keeps its filters usable on mo
   await expect(page.getByRole("combobox", { name: "ইন্টারফেসের ভাষা" })).toBeVisible();
   await expect(page.getByText("এগুলো শুধু অনুসন্ধানের সূত্র।", { exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "তথ্যের ভিত্তি" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "প্রকাশ্য সূত্রের লিংক" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "ফলাফল সাজান" })).toBeVisible();
   await expect(page.getByRole("button", { name: "ফিল্টার করা সূত্রের CSV রপ্তানি করুন" })).toBeVisible();
 

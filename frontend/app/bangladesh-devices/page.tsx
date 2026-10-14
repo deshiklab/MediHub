@@ -17,6 +17,7 @@ import {
   readSharedFilters,
   shareableFilterUrl,
   type DiscoverySortOrder,
+  type SourceLinkFilter,
 } from "@/lib/device-discovery-url";
 
 type Language = "en" | "bn";
@@ -41,6 +42,11 @@ const copy = {
     allFamilies: "All device families",
     evidence: "Evidence basis",
     allEvidence: "All evidence bases",
+    sourceLinkFilter: "Public source link",
+    anySourceLink: "Any source-link status",
+    sourceLinked: "Public URL recorded",
+    sourceUnlinked: "No public URL recorded",
+    sourceFilterHint: "This only indicates whether the catalog contains a public URL; it does not verify the source or its claims.",
     catalogDate: "Catalog date metadata",
     sortResults: "Sort results",
     catalogOrder: "Catalog order",
@@ -111,6 +117,11 @@ const copy = {
     allFamilies: "সব ধরনের ডিভাইস",
     evidence: "তথ্যের ভিত্তি",
     allEvidence: "সব তথ্যের ভিত্তি",
+    sourceLinkFilter: "প্রকাশ্য সূত্রের লিংক",
+    anySourceLink: "যেকোনো লিংক অবস্থা",
+    sourceLinked: "প্রকাশ্য URL নথিভুক্ত আছে",
+    sourceUnlinked: "প্রকাশ্য URL নথিভুক্ত নেই",
+    sourceFilterHint: "এতে শুধু ক্যাটালগে প্রকাশ্য URL আছে কি না বোঝায়; সূত্র বা তার দাবি যাচাই করা হয় না।",
     catalogDate: "ক্যাটালগের তারিখ-সংক্রান্ত মেটাডেটা",
     sortResults: "ফলাফল সাজান",
     catalogOrder: "ক্যাটালগে থাকা ক্রম",
@@ -181,6 +192,11 @@ const copy = {
   allFamilies: string;
   evidence: string;
   allEvidence: string;
+  sourceLinkFilter: string;
+  anySourceLink: string;
+  sourceLinked: string;
+  sourceUnlinked: string;
+  sourceFilterHint: string;
   catalogDate: string;
   sortResults: string;
   catalogOrder: string;
@@ -231,6 +247,7 @@ export default function BangladeshDevicesPage() {
   const [search, setSearch] = useState("");
   const [familyFilter, setFamilyFilter] = useState<DeviceFamily | "">("");
   const [evidenceFilter, setEvidenceFilter] = useState<DiscoveryBasis | "">("");
+  const [sourceFilter, setSourceFilter] = useState<SourceLinkFilter>("");
   const [dateFilter, setDateFilter] = useState<CatalogDateFilter>("");
   const [sortOrder, setSortOrder] = useState<DiscoverySortOrder>("catalog");
   const [filtersLoaded, setFiltersLoaded] = useState(false);
@@ -260,6 +277,7 @@ export default function BangladeshDevicesPage() {
     setSearch(sharedFilters.search);
     setFamilyFilter(sharedFilters.familyFilter);
     setEvidenceFilter(sharedFilters.evidenceFilter);
+    setSourceFilter(sharedFilters.sourceFilter);
     setDateFilter(sharedFilters.dateFilter);
     setSortOrder(sharedFilters.sortOrder);
     setFiltersLoaded(true);
@@ -271,6 +289,7 @@ export default function BangladeshDevicesPage() {
       search,
       familyFilter,
       evidenceFilter,
+      sourceFilter,
       dateFilter,
       sortOrder,
     });
@@ -279,7 +298,7 @@ export default function BangladeshDevicesPage() {
     if (nextLocation !== currentLocation) {
       window.history.replaceState(window.history.state, "", nextLocation);
     }
-  }, [dateFilter, evidenceFilter, familyFilter, filtersLoaded, search, sortOrder]);
+  }, [dateFilter, evidenceFilter, familyFilter, filtersLoaded, search, sortOrder, sourceFilter]);
 
   useEffect(() => {
     if (!preferenceLoaded) return;
@@ -324,6 +343,8 @@ export default function BangladeshDevicesPage() {
     const filtered = library.candidates.filter((candidate) => {
       if (familyFilter && candidate.device_family !== familyFilter) return false;
       if (evidenceFilter && candidate.discovery_basis !== evidenceFilter) return false;
+      if (sourceFilter === "linked" && candidate.source_url === null) return false;
+      if (sourceFilter === "unlinked" && candidate.source_url !== null) return false;
       if (dateFilter === "recorded" && candidate.evidence_reviewed_on === null) return false;
       if (dateFilter === "not-recorded" && candidate.evidence_reviewed_on !== null) return false;
       if (!query) return true;
@@ -343,13 +364,14 @@ export default function BangladeshDevicesPage() {
       language === "bn" ? "bn-BD" : "en",
       text,
     );
-  }, [dateFilter, evidenceFilter, familyFilter, language, library, search, sortOrder, text]);
+  }, [dateFilter, evidenceFilter, familyFilter, language, library, search, sortOrder, sourceFilter, text]);
 
-  const hasFilters = Boolean(search.trim() || familyFilter || evidenceFilter || dateFilter || sortOrder !== "catalog");
+  const hasFilters = Boolean(search.trim() || familyFilter || evidenceFilter || sourceFilter || dateFilter || sortOrder !== "catalog");
   const clearFilters = () => {
     setSearch("");
     setFamilyFilter("");
     setEvidenceFilter("");
+    setSourceFilter("");
     setDateFilter("");
     setSortOrder("catalog");
     setExportStatus(null);
@@ -360,6 +382,7 @@ export default function BangladeshDevicesPage() {
       search,
       familyFilter,
       evidenceFilter,
+      sourceFilter,
       dateFilter,
       sortOrder,
     });
@@ -487,6 +510,18 @@ export default function BangladeshDevicesPage() {
             </select>
           </label>
           <label className="device-filter">
+            <span>{text.sourceLinkFilter}</span>
+            <select value={sourceFilter} onChange={(event) => {
+              setSourceFilter(event.target.value as SourceLinkFilter);
+              setExportStatus(null);
+              setShareStatus(null);
+            }} disabled={!library}>
+              <option value="">{text.anySourceLink}</option>
+              <option value="linked">{text.sourceLinked}</option>
+              <option value="unlinked">{text.sourceUnlinked}</option>
+            </select>
+          </label>
+          <label className="device-filter">
             <span>{text.catalogDate}</span>
             <select value={dateFilter} onChange={(event) => {
               setDateFilter(event.target.value as CatalogDateFilter);
@@ -510,6 +545,7 @@ export default function BangladeshDevicesPage() {
           </label>
         </div>
         <p className="device-date-hint">{text.dateHint}</p>
+        <p className="device-source-hint">{text.sourceFilterHint}</p>
         <p className="device-share-hint">{text.shareHint}</p>
       </section>
 
